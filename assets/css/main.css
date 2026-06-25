@@ -1,0 +1,58 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aura Gas Management — single fixed dark theme (no light/dark toggle). */
+@layer base {
+  :root {
+    --background: 14 41% 8%;
+    --foreground: 14 68% 90%;
+    --card: 16 29% 13%;
+    --card-foreground: 14 68% 90%;
+    --primary: 18 100% 59%;
+    --primary-foreground: 18 100% 18%;
+    --secondary: 14 19% 21%;
+    --secondary-foreground: 15 45% 79%;
+    --muted: 16 33% 11%;
+    --muted-foreground: 16 20% 58%;
+    --accent: 18 23% 17%;
+    --accent-foreground: 14 68% 90%;
+    --destructive: 356 100% 29%;
+    --destructive-foreground: 6 100% 92%;
+    --border: 15 22% 29%;
+    --input: 15 22% 29%;
+    --ring: 18 100% 59%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Hanken Grotesk', sans-serif;
+  }
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.material-symbols-outlined.fill {
+  font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
