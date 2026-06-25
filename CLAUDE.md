@@ -28,6 +28,16 @@
 18. [Pre-commit Code Review Checklist](#18-pre-commit-code-review-checklist)
 19. [Environment Variables](#19-environment-variables)
 20. [Anti-patterns & Common Pitfalls](#20-anti-patterns--common-pitfalls)
+21. [Data Architecture Clarifications](#21-data-architecture-clarifications)
+22. [Delivery Card — 3-Level Identity Pattern](#22-delivery-card--3-level-identity-pattern)
+23. [Cylinder Stock Module](#23-cylinder-stock-module)
+24. [Purchase Module](#24-purchase-module)
+25. [Reports Module](#25-reports-module)
+26. [Navigation Structure Update](#26-navigation-structure-update)
+27. [Schema Corrections & Complete Table List](#27-schema-corrections--complete-table-list)
+28. [Backup Endpoint Update](#28-backup-endpoint-update)
+29. [UI Design System — Aura Gas Management](#29-ui-design-system--aura-gas-management)
+30. [Orders & Delivery Payment Status](#30-orders--delivery-payment-status)
 
 ---
 
@@ -75,8 +85,10 @@ Price changes          → Price history table (non-destructive)
 | ORM         | Drizzle ORM                 | drizzle-orm + drizzle-kit               |
 | Auth        | nuxt-auth-utils             | Session cookie, PBKDF2 passwords        |
 | HTTP client | $fetch / useFetch           | Nuxt built-in, no axios                 |
-| Icons       | Lucide Vue Next             | Tree-shakable, consistent               |
+| Icons       | Material Symbols Outlined   | Google icon font, via `<Icon name="..."/>` (§29.4). `components/ui/select/*` vendor files still use Lucide internally — never touch those |
+| Font        | Hanken Grotesk              | Google Fonts, single weight family (§29) |
 | Language    | TypeScript 5+               | Strict mode on                          |
+| Package mgr | pnpm                        | `pnpm-lock.yaml` is the lockfile — never run `npm install`, it'll regenerate `package-lock.json` and drift from the lockfile in git. Version overrides go under `pnpm.overrides` in package.json, not root `overrides` (that key is npm/yarn-only and is silently ignored by pnpm). |
 
 ---
 
@@ -1390,5 +1402,1075 @@ const total = Math.round((qty * price) * 100) / 100
 
 ---
 
-*Last updated: project init*
-*Maintained by: project author — update this file whenever architecture decisions change*
+## 21. Data Architecture Clarifications
+
+### 21.1 Single brand — all staff see all data
+
+This is a single-agency app. There is no multi-tenant separation.
+All staff (admin, delivery, viewer) access the same business data.
+
+```
+✅ Every user sees all customers
+✅ Every user sees all deliveries
+✅ Every user sees all payments and balances
+✅ Every user sees all stock levels
+```
+
+The **only** personal filter is "My Deliveries" — a convenience
+filter on the delivery list that shows only entries logged by the
+currently logged-in staff member. This is a UI convenience,
+not a data access restriction.
+
+```typescript
+// server/routes/api/deliveries/index.get.ts
+const query = getQuery(event)
+const user  = requireRole(event, ['admin', 'delivery', 'viewer'])
+
+// "mine" query param = convenience filter, not a security gate
+const mine = query.mine === 'true'
+
+const whereClause = mine
+  ? eq(deliveries.createdBy, user.id)   // filter to own deliveries
+  : undefined                            // show all — same table, no restriction
+
+const result = await db.select().from(deliveries)
+  .where(whereClause)
+  .orderBy(desc(deliveries.deliveryDate))
+  .all()
+```
+
+**Never** build server-side role-based data scoping for the
+deliveries list. All staff are trusted employees of the same
+business. Scope only the "My Deliveries" convenience filter
+via an explicit `?mine=true` query param from the client.
+
+---
+
+## 22. Delivery Card — 3-Level Identity Pattern
+
+Every delivery record displayed in a card or list item across
+the entire app **must** show three distinct identity levels.
+This is a non-negotiable UI consistency rule.
+
+### 22.1 The three levels
+
+```
+Level 1 — Business name (PRIMARY)
+  The restaurant or shop name.
+  Most prominent. Largest text. Bold.
+  e.g. "Malabar Biriyani House"
+
+Level 2 — Contact person (SECONDARY)
+  The individual at that business.
+  Smaller, secondary color, below the shop name.
+  e.g. "Mohammed Riyas"
+
+Level 3 — Delivered by (META)
+  The staff member who logged this delivery.
+  Smallest. Tertiary color. Bottom of card.
+  Shown as a chip: tiny 20px avatar + "Delivered by Rajan K"
+  e.g. tiny circle "RK" + "Delivered by Rajan K"
+```
+
+### 22.2 Component implementation
+
+```vue
+<!-- components/deliveries/DeliveryCard.vue -->
+<script setup lang="ts">
+import type { DeliveryWithRelations } from '~/types/database'
+
+defineProps<{
+  delivery: DeliveryWithRelations
+}>()
+</script>
+
+<template>
+  <div class="delivery-card">
+    <!-- Level 1: Business name — always most prominent -->
+    <p class="text-[15px] font-medium text-foreground">
+      {{ delivery.customer.name }}
+    </p>
+
+    <!-- Level 2: Contact person — always below business name -->
+    <p class="text-[12px] text-muted-foreground mt-0.5">
+      {{ delivery.customer.contactPerson }}
+    </p>
+
+    <!-- ... items, amount, status badge ... -->
+
+    <!-- Level 3: Delivered by — always at bottom of card, smallest -->
+    <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-border">
+      <UserAvatar
+        :name="delivery.createdByName"
+        :size="20"
+      />
+      <span class="text-[11px] text-muted-foreground">
+        Delivered by {{ delivery.createdByName }}
+      </span>
+    </div>
+  </div>
+</template>
+```
+
+### 22.3 Where this pattern applies
+
+Apply the 3-level pattern consistently on every delivery card in:
+
+- Dashboard → Today's delivery list
+- Deliveries page → full list and "My Deliveries" tab
+- Customer detail → Ledger tab delivery entries
+- Reports → any delivery list within report sections
+
+Do not abbreviate or drop any level, even on smaller cards.
+If space is very constrained, shrink font size — never remove a level.
+
+### 22.4 Type to support this pattern
+
+```typescript
+// types/database.ts — extend the base Delivery type
+export type DeliveryWithRelations = Delivery & {
+  customer: Pick<Customer, 'id' | 'name' | 'contactPerson' | 'area'>
+  items: Array<DeliveryItem & { product: Product }>
+}
+```
+
+```typescript
+// server/routes/api/deliveries/index.get.ts
+// Always JOIN customer and items when returning deliveries for display
+const deliveries = await db.query.deliveries.findMany({
+  with: {
+    customer: {
+      columns: { id: true, name: true, contactPerson: true, area: true }
+    },
+    items: {
+      with: { product: true }
+    }
+  },
+  orderBy: [desc(schema.deliveries.deliveryDate)]
+})
+```
+
+---
+
+## 23. Cylinder Stock Module
+
+### 23.1 Business context
+
+The agency tracks two states for each cylinder size at all times:
+
+```
+Full cylinders  — filled, ready to deliver to restaurants
+Empty cylinders — collected back from restaurants, waiting
+                  to be returned to the main supplier
+```
+
+Stock changes happen in exactly three scenarios:
+
+| Event            | Full stock  | Empty stock |
+|------------------|-------------|-------------|
+| Delivery made    | − qty       | + qty       |
+| Purchase from supplier | + received  | − returned  |
+| Manual adjustment| ± adj       | ± adj       |
+
+All three scenarios must trigger automatic stock updates
+inside a database transaction. **Never** update stock manually
+outside of these three controlled paths.
+
+### 23.2 Cylinder sizes
+
+The business uses exactly **3 cylinder sizes**: `12kg · 17kg · 33kg`
+
+```typescript
+// types/index.ts
+export const CYLINDER_SIZES = [12, 17, 33] as const
+export type CylinderSize = typeof CYLINDER_SIZES[number]
+```
+
+Note: The earlier plan mentioned 12kg, 17kg, 21kg, 33kg (4 sizes).
+**This is now corrected to 3 sizes: 12kg, 17kg, 33kg.**
+Remove 21kg from all schema enums, form options, and UI.
+
+### 23.3 Schema
+
+```typescript
+// server/database/schema.ts
+
+// Single row per cylinder size — source of truth for current stock
+export const cylinderStock = sqliteTable('cylinder_stock', {
+  id:           integer('id').primaryKey({ autoIncrement: true }),
+  sizeKg:       integer('size_kg').notNull().unique(), // 12, 17, or 33
+  fullCount:    integer('full_count').notNull().default(0),
+  emptyCount:   integer('empty_count').notNull().default(0),
+  updatedAt:    text('updated_at').default(sql`(datetime('now'))`).notNull(),
+})
+
+// Immutable log of every stock change — never delete from this table
+export const stockMovements = sqliteTable('stock_movements', {
+  id:              integer('id').primaryKey({ autoIncrement: true }),
+  sizeKg:          integer('size_kg').notNull(),
+  movementType:    text('movement_type', {
+    enum: ['delivery', 'purchase', 'adjustment']
+  }).notNull(),
+  fullChange:      integer('full_change').notNull(),  // negative = decrease
+  emptyChange:     integer('empty_change').notNull(), // negative = decrease
+  referenceId:     integer('reference_id'),           // delivery.id or purchase.id
+  referenceType:   text('reference_type'),            // 'delivery' or 'purchase'
+  notes:           text('notes'),
+  createdBy:       integer('created_by').references(() => users.id).notNull(),
+  createdByName:   text('created_by_name').notNull(),
+  createdAt:       text('created_at').default(sql`(datetime('now'))`).notNull(),
+}, (table) => ({
+  sizeIdx:      index('stock_movements_size_idx').on(table.sizeKg),
+  typeIdx:      index('stock_movements_type_idx').on(table.movementType),
+  refIdx:       index('stock_movements_ref_idx').on(table.referenceId, table.referenceType),
+}))
+```
+
+### 23.4 Stock update helper — always use this, never update directly
+
+```typescript
+// server/utils/stock.ts
+
+interface StockChange {
+  sizeKg:      12 | 17 | 33
+  fullChange:  number   // positive = increase, negative = decrease
+  emptyChange: number
+}
+
+export async function applyStockChanges(
+  db:            ReturnType<typeof useDB>,
+  changes:       StockChange[],
+  movementType:  'delivery' | 'purchase' | 'adjustment',
+  referenceId:   number,
+  referenceType: string,
+  user:          { id: number; fullName: string },
+  notes?:        string
+) {
+  for (const change of changes) {
+    // 1. Read current stock
+    const current = await db.select()
+      .from(cylinderStock)
+      .where(eq(cylinderStock.sizeKg, change.sizeKg))
+      .get()
+
+    if (!current) {
+      throw createError({
+        statusCode: 500,
+        message: `Stock record not found for ${change.sizeKg}kg`
+      })
+    }
+
+    // 2. Validate — never go below zero
+    const newFull  = current.fullCount  + change.fullChange
+    const newEmpty = current.emptyCount + change.emptyChange
+
+    if (newFull < 0) {
+      throw createError({
+        statusCode: 422,
+        message: `Insufficient full cylinders for ${change.sizeKg}kg. ` +
+                 `Available: ${current.fullCount}`
+      })
+    }
+    if (newEmpty < 0) {
+      throw createError({
+        statusCode: 422,
+        message: `Insufficient empty cylinders for ${change.sizeKg}kg. ` +
+                 `Available: ${current.emptyCount}`
+      })
+    }
+
+    // 3. Update stock
+    await db.update(cylinderStock)
+      .set({
+        fullCount:  newFull,
+        emptyCount: newEmpty,
+        updatedAt:  new Date().toISOString(),
+      })
+      .where(eq(cylinderStock.sizeKg, change.sizeKg))
+
+    // 4. Log the movement — always, never skip
+    await db.insert(stockMovements).values({
+      sizeKg:       change.sizeKg,
+      movementType,
+      fullChange:   change.fullChange,
+      emptyChange:  change.emptyChange,
+      referenceId,
+      referenceType,
+      notes,
+      createdBy:    user.id,
+      createdByName: user.fullName,
+    })
+  }
+}
+```
+
+> **D1 note:** Cloudflare D1's Drizzle driver does not support `db.transaction()`
+> (it issues raw `BEGIN`/`COMMIT`, which D1 rejects). `applyStockChanges` takes a
+> plain `useDB(event)` handle and runs sequential awaited statements instead of a
+> `tx` callback — read-validate-write per size, in order, no rollback on partial
+> failure. Stock writes happen *after* the parent record (delivery/purchase) and
+> its line items are inserted via `db.batch()`, so a stock failure still leaves
+> a valid delivery/purchase row; surface the error to the user so they can retry
+> the now-mismatched stock manually via the adjustment endpoint. This mirrors the
+> existing pattern in `server/routes/api/deliveries/index.post.ts`.
+
+### 23.5 How delivery creation must handle stock
+
+```typescript
+// server/routes/api/deliveries/index.post.ts (excerpt)
+
+// Create the delivery record
+const [delivery] = await db.insert(deliveries).values({...}).returning()
+
+// Insert delivery items + decrement accessory inventory via db.batch()
+await db.batch([...itemInserts, ...accessoryInventoryUpdates])
+
+// Auto-update cylinder stock per size — sequential, after the batch (see §23.4 D1 note)
+// Delivery: full cylinders go out, empty cylinders come back
+const cylinderChanges = groupBySizeKg(items).map(({ sizeKg, qty }) => ({
+  sizeKg,
+  fullChange:  -qty,  // full cylinders decrease
+  emptyChange: +qty,  // empty cylinders increase
+}))
+
+await applyStockChanges(
+  db,
+  cylinderChanges,
+  'delivery',
+  delivery.id,
+  'delivery',
+  user
+)
+```
+
+### 23.6 API routes for cylinder stock
+
+```
+GET  /api/inventory/cylinders          — current full + empty per size
+GET  /api/inventory/movements          — stock movement history (paginated)
+POST /api/inventory/adjustment         — manual stock correction (admin only)
+```
+
+---
+
+## 24. Purchase Module
+
+### 24.1 Business context
+
+The agency periodically drives to the main LPG supplier company
+(e.g. HP Gas, Indane, Bharat Gas) to exchange empty cylinders
+for full ones. One purchase record captures the entire exchange:
+
+```
+→ Empties returned to supplier (per size)
+← Full cylinders received from supplier (per size)
+₹  Payment made to supplier
+```
+
+Stock is automatically updated on purchase save:
+```
+Full stock  += received per size
+Empty stock -= returned per size
+```
+
+### 24.2 Schema
+
+```typescript
+// server/database/schema.ts
+
+export const purchases = sqliteTable('purchases', {
+  id:               integer('id').primaryKey({ autoIncrement: true }),
+  supplier:         text('supplier').notNull(),      // HP Gas / Indane / Bharat Gas
+  purchaseDate:     text('purchase_date').notNull(), // YYYY-MM-DD
+  invoiceNo:        text('invoice_no'),              // optional
+  totalAmount:      real('total_amount').notNull(),
+  amountPaid:       real('amount_paid').notNull().default(0),
+  paymentMode:      text('payment_mode', {
+    enum: ['cash', 'upi', 'bank', 'credit']
+  }),
+  paymentStatus:    text('payment_status', {
+    enum: ['paid', 'partial', 'pending']
+  }).notNull().default('pending'),
+  paymentReference: text('payment_reference'),       // UTR / cheque no
+  dueDate:          text('due_date'),                // for credit payments
+  notes:            text('notes'),
+  createdBy:        integer('created_by').references(() => users.id).notNull(),
+  createdByName:    text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  dateIdx:     index('purchases_date_idx').on(table.purchaseDate),
+  statusIdx:   index('purchases_status_idx').on(table.paymentStatus),
+}))
+
+// One row per cylinder size per purchase
+export const purchaseItems = sqliteTable('purchase_items', {
+  id:           integer('id').primaryKey({ autoIncrement: true }),
+  purchaseId:   integer('purchase_id').references(() => purchases.id).notNull(),
+  sizeKg:       integer('size_kg').notNull(),        // 12, 17, or 33
+  receivedQty:  integer('received_qty').notNull().default(0), // full cylinders in
+  returnedQty:  integer('returned_qty').notNull().default(0), // empty cylinders out
+  unitPrice:    real('unit_price'),                  // price per cylinder (optional)
+}, (table) => ({
+  purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),
+}))
+```
+
+### 24.3 Purchase creation — server route
+
+```typescript
+// server/routes/api/purchases/index.post.ts
+
+const CreatePurchaseSchema = z.object({
+  supplier:         z.string().min(1).max(100),
+  purchaseDate:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  invoiceNo:        z.string().max(50).optional(),
+  totalAmount:      z.number().positive(),
+  amountPaid:       z.number().min(0),
+  paymentMode:      z.enum(['cash', 'upi', 'bank', 'credit']),
+  paymentReference: z.string().optional(),
+  dueDate:          z.string().optional(),
+  notes:            z.string().max(500).optional(),
+  items: z.array(z.object({
+    sizeKg:       z.union([z.literal(12), z.literal(17), z.literal(33)]),
+    receivedQty:  z.number().int().min(0),
+    returnedQty:  z.number().int().min(0),
+    unitPrice:    z.number().positive().optional(),
+  })).min(1),
+})
+
+export default defineEventHandler(async (event) => {
+  const user = requireRole(event, ['admin'])          // admin only
+  const body = await parseBody(event, CreatePurchaseSchema)
+  const db = useDB(event)
+
+  // Determine payment status
+  const paymentStatus =
+    body.amountPaid >= body.totalAmount ? 'paid'    :
+    body.amountPaid > 0                 ? 'partial' : 'pending'
+
+  // 1. Create purchase record
+  const [purchase] = await db.insert(purchases).values({
+    ...body,
+    paymentStatus,
+    createdBy:     user.id,
+    createdByName: user.fullName,
+  }).returning()
+  if (!purchase) throw createError({ statusCode: 500, message: 'Failed to create purchase' })
+
+  // 2. Insert purchase items
+  await db.insert(purchaseItems).values(
+    body.items.map(i => ({ ...i, purchaseId: purchase.id }))
+  )
+
+  // 3. Auto-update cylinder stock (sequential — see §23.4 D1 note)
+  // Purchase: full cylinders come in, empty cylinders go out
+  const changes = body.items
+    .filter(i => i.receivedQty > 0 || i.returnedQty > 0)
+    .map(i => ({
+      sizeKg:      i.sizeKg,
+      fullChange:  +i.receivedQty,  // received full → increases full stock
+      emptyChange: -i.returnedQty,  // returned empty → decreases empty stock
+    }))
+
+  await applyStockChanges(db, changes, 'purchase', purchase.id, 'purchase', user)
+
+  return { data: purchase }
+})
+```
+
+### 24.4 Live stock impact preview — client-side
+
+The New Purchase form must show a real-time stock impact preview
+as the user enters received and returned quantities.
+This runs entirely on the client using current stock data fetched
+on form load. Never round-trip to the server for the preview.
+
+```typescript
+// composables/usePurchaseForm.ts
+
+const currentStock = ref<CylinderStockMap>({})  // fetched on mount
+
+const stockPreview = computed(() => {
+  return CYLINDER_SIZES.map(size => {
+    const current = currentStock.value[size] ?? { fullCount: 0, emptyCount: 0 }
+    const item = form.items.find(i => i.sizeKg === size)
+
+    const receivedQty = item?.receivedQty ?? 0
+    const returnedQty = item?.returnedQty ?? 0
+
+    const newFull  = current.fullCount  + receivedQty
+    const newEmpty = current.emptyCount - returnedQty
+
+    return {
+      size,
+      before:       current,
+      fullChange:   +receivedQty,
+      emptyChange:  -returnedQty,
+      after:        { fullCount: newFull, emptyCount: newEmpty },
+      fullValid:    newFull  >= 0,
+      emptyValid:   newEmpty >= 0,   // false = trying to return more than available
+      isValid:      newFull  >= 0 && newEmpty >= 0,
+    }
+  })
+})
+
+// Disable submit button if any size has invalid preview
+const formIsValid = computed(() => stockPreview.value.every(s => s.isValid))
+```
+
+Show this preview in the form at all times — not only on error.
+The user should see the before → change → after for every
+cylinder size, even sizes not touched in this purchase (show no change).
+
+### 24.5 API routes for purchases
+
+```
+GET    /api/purchases              — list, newest first, with summary stats
+POST   /api/purchases              — create (admin only)
+GET    /api/purchases/:id          — full detail with items
+PATCH  /api/purchases/:id          — edit (admin only; reverses old stock, applies new)
+DELETE /api/purchases/:id          — delete (admin only; reverses stock changes)
+```
+
+**Editing and deleting purchases** requires reversing the original
+stock movement before applying the new one. Use this pattern:
+
+```typescript
+// On PATCH:
+// 1. Reverse the original purchase's stock impact
+// 2. Apply the new purchase's stock impact
+// 3. Update the purchase record and items
+// Never update stock_movements — add new entries for the reversal
+```
+
+### 24.6 Permission for purchases
+
+```typescript
+// Purchases are admin-only — delivery staff do not create purchases
+// Viewers can read purchase history
+requireRole(event, ['admin'])          // POST, PATCH, DELETE
+requireRole(event, ['admin', 'viewer']) // GET list and detail
+```
+
+### 24.7 Updated permission matrix (additions)
+
+| Action                       | Admin | Delivery | Viewer |
+|------------------------------|-------|----------|--------|
+| View cylinder stock          | ✅    | ✅       | ✅     |
+| View purchase history        | ✅    | ❌       | ✅     |
+| Create purchase              | ✅    | ❌       | ❌     |
+| Edit / delete purchase       | ✅    | ❌       | ❌     |
+| Manual stock adjustment      | ✅    | ❌       | ❌     |
+| View stock movement log      | ✅    | ✅       | ✅     |
+
+---
+
+## 25. Reports Module
+
+### 25.1 Date filter — the foundation of all reports
+
+Every report query accepts `from` and `to` date params.
+The client sends ISO date strings (YYYY-MM-DD).
+The server never infers dates — always explicit.
+
+```typescript
+// Zod schema for all report routes
+const ReportQuerySchema = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+})
+```
+
+### 25.2 Date presets — computed on client only, never on server
+
+```typescript
+// utils/datePresets.ts
+import { startOfWeek, endOfWeek, startOfMonth, endOfMonth,
+         subMonths, startOfYear, format } from 'date-fns'
+
+export type DatePreset =
+  | 'this_week' | 'this_month' | '3_months'
+  | '6_months'  | 'this_year'  | 'custom'
+
+export function getPresetRange(preset: DatePreset): { from: string; to: string } {
+  const today = new Date()
+  const fmt   = (d: Date) => format(d, 'yyyy-MM-dd')
+
+  switch (preset) {
+    case 'this_week':
+      return { from: fmt(startOfWeek(today, { weekStartsOn: 1 })),
+               to:   fmt(endOfWeek(today,   { weekStartsOn: 1 })) }
+    case 'this_month':
+      return { from: fmt(startOfMonth(today)), to: fmt(endOfMonth(today)) }
+    case '3_months':
+      return { from: fmt(subMonths(today, 3)), to: fmt(today) }
+    case '6_months':
+      return { from: fmt(subMonths(today, 6)), to: fmt(today) }
+    case 'this_year':
+      return { from: fmt(startOfYear(today)), to: fmt(today) }
+    case 'custom':
+      return { from: '', to: '' }   // user fills manually
+  }
+}
+```
+
+### 25.3 Report API routes
+
+```
+GET /api/reports/summary     — revenue (billed, collected, outstanding)
+GET /api/reports/cylinders   — cylinders delivered by size
+GET /api/reports/empties     — empty cylinders collected by size
+GET /api/reports/payments    — payment mode breakdown
+GET /api/reports/customers   — top customers by billing
+GET /api/reports/staff       — deliveries per staff member
+GET /api/reports/procurement — purchases vs deliveries comparison
+```
+
+All routes accept `?from=YYYY-MM-DD&to=YYYY-MM-DD`.
+
+### 25.4 Report query examples
+
+```typescript
+// GET /api/reports/cylinders
+// Cylinders delivered per size in date range
+const cylinderReport = await db
+  .select({
+    sizeKg:        products.cylinderSize,
+    totalDelivered: sql<number>`sum(${deliveryItems}.quantity)`,
+    totalRevenue:   sql<number>`sum(${deliveryItems}.subtotal)`,
+  })
+  .from(deliveryItems)
+  .innerJoin(deliveries, eq(deliveries.id, deliveryItems.deliveryId))
+  .innerJoin(products,   eq(products.id,   deliveryItems.productId))
+  .where(and(
+    eq(deliveries.status, 'delivered'),
+    eq(products.type, 'cylinder'),
+    gte(deliveries.deliveryDate, from),
+    lte(deliveries.deliveryDate, to),
+  ))
+  .groupBy(products.cylinderSize)
+  .all()
+
+// GET /api/reports/staff
+// Deliveries logged per staff member in date range
+const staffReport = await db
+  .select({
+    createdBy:     deliveries.createdBy,
+    createdByName: deliveries.createdByName,
+    deliveryCount: sql<number>`count(*)`,
+    totalValue:    sql<number>`sum(${deliveries}.total_amount)`,
+  })
+  .from(deliveries)
+  .where(and(
+    eq(deliveries.status, 'delivered'),
+    gte(deliveries.deliveryDate, from),
+    lte(deliveries.deliveryDate, to),
+  ))
+  .groupBy(deliveries.createdBy)
+  .orderBy(desc(sql`count(*)`))
+  .all()
+```
+
+### 25.5 Comparison with previous period
+
+Every report section should optionally return "vs previous period" data.
+The previous period has the same duration, immediately before the from date.
+
+```typescript
+// server/utils/report-helpers.ts
+export function getPreviousPeriod(from: string, to: string) {
+  const fromDate = new Date(from)
+  const toDate   = new Date(to)
+  const duration = toDate.getTime() - fromDate.getTime()
+
+  const prevTo   = new Date(fromDate.getTime() - 1)      // day before from
+  const prevFrom = new Date(prevTo.getTime() - duration) // same span before
+
+  return {
+    from: format(prevFrom, 'yyyy-MM-dd'),
+    to:   format(prevTo,   'yyyy-MM-dd'),
+  }
+}
+
+// Usage: fetch both periods in parallel
+const [current, previous] = await Promise.all([
+  fetchReportData(from, to),
+  fetchReportData(prevFrom, prevTo),
+])
+
+// Return delta percentage
+const delta = previous.total > 0
+  ? ((current.total - previous.total) / previous.total) * 100
+  : null
+```
+
+### 25.6 Report composable pattern
+
+```typescript
+// composables/useReports.ts
+export function useReports() {
+  const preset    = ref<DatePreset>('this_month')
+  const customFrom = ref('')
+  const customTo   = ref('')
+
+  const dateRange = computed(() =>
+    preset.value === 'custom'
+      ? { from: customFrom.value, to: customTo.value }
+      : getPresetRange(preset.value)
+  )
+
+  // Only fetch when we have valid dates
+  const canFetch = computed(() =>
+    Boolean(dateRange.value.from && dateRange.value.to)
+  )
+
+  const { data: summary, refresh: refreshSummary } = useAsyncData(
+    () => `report-summary-${dateRange.value.from}-${dateRange.value.to}`,
+    () => $fetch('/api/reports/summary', { query: dateRange.value }),
+    { watch: [dateRange] }   // auto-refetch when date range changes
+  )
+
+  function setPreset(p: DatePreset) { preset.value = p }
+  function setCustomRange(from: string, to: string) {
+    customFrom.value = from
+    customTo.value   = to
+    preset.value     = 'custom'
+  }
+
+  return { preset, dateRange, summary, setPreset, setCustomRange, canFetch }
+}
+```
+
+---
+
+## 26. Navigation Structure Update
+
+### 26.1 Bottom navigation — 5 tabs (revised)
+
+```
+Tab 1: Home       → /                     Dashboard
+Tab 2: Deliveries → /deliveries            All deliveries + My Deliveries tab
+Tab 3: Customers  → /customers             Customer list
+Tab 4: Stock      → /stock                 Cylinder stock + Purchases
+Tab 5: Reports    → /reports               Reports with date filter
+```
+
+Settings is moved to a gear icon in the top-right header on the
+Dashboard — not a primary nav tab. It is accessed less frequently.
+
+Payments is no longer a bottom-nav tab. Reach it via the "Record
+Payment" action on a customer's ledger (`/customers/[id]`) or a
+dashboard shortcut. The `/payments` page itself still exists for
+full payment history — just not pinned to the bottom nav.
+
+### 26.2 Stock section structure
+
+```
+/stock
+  ├── /stock          → Cylinder Stock (full + empty counts, all sizes)
+  └── /stock/purchases
+        ├── index     → Purchase history list
+        ├── new       → New purchase form
+        └── [id]      → Purchase detail view
+```
+
+The `/stock` page shows:
+- Cylinder stock card (12kg, 17kg, 33kg — full + empty)
+- "Record Purchase" shortcut card
+- Recent stock movement list (last 10 entries)
+- Link to full purchase history
+
+### 26.3 Dashboard additions
+
+Add these two sections to the dashboard below the KPI row:
+
+```
+Section A — Cylinder Stock (compact)
+  Quick read: 3 rows (12kg / 17kg / 33kg)
+  Each row: size · full count (filled dot) · empty count (hollow dot)
+  Low stock warning inline if full count < threshold
+  Tap → goes to /stock
+
+Section B — Record Purchase shortcut
+  Subtle outlined card: "+ Record new purchase from supplier →"
+  Tap → goes to /stock/purchases/new
+  Only visible to admin role
+```
+
+---
+
+## 27. Schema Corrections & Complete Table List
+
+### 27.1 Cylinder size correction
+
+**Correct sizes: 12kg, 17kg, 33kg** (3 sizes)
+**Remove 21kg from all code** — it was in the earlier plan but
+the client confirmed only these 3 sizes are in use.
+
+Run a search for `21` in schema files and remove it everywhere.
+
+### 27.2 Complete schema table list
+
+```
+users               — staff accounts
+customers           — restaurant/shop customers
+products            — cylinders (12/17/33kg) + accessories
+prices              — default + per-customer prices with effective dates
+deliveries          — delivery header records
+delivery_items      — line items per delivery
+customer_payments   — payments received from customers
+procurements        — purchases from main supplier (alias: purchases table)
+purchase_items      — cylinder quantities per purchase
+cylinder_stock      — current full + empty counts per size (3 rows only)
+stock_movements     — immutable log of every stock change
+```
+
+### 27.3 Seed data on first deploy
+
+```sql
+-- Seed cylinder_stock with 3 rows (must exist before any operations)
+INSERT INTO cylinder_stock (size_kg, full_count, empty_count) VALUES
+  (12, 0, 0),
+  (17, 0, 0),
+  (33, 0, 0);
+
+-- Seed default products
+INSERT INTO products (name, type, size_kg, sku, display_order, is_active) VALUES
+  ('17kg Cylinder', 'cylinder', 17, 'CYL-17', 1, 1),
+  ('12kg Cylinder', 'cylinder', 12, 'CYL-12', 2, 1),
+  ('33kg Cylinder', 'cylinder', 33, 'CYL-33', 3, 1),
+  ('Regulator',     'accessory', null, 'ACC-REG', 4, 1),
+  ('Adapter',       'accessory', null, 'ACC-ADP', 5, 1),
+  ('Connector',     'accessory', null, 'ACC-CON', 6, 1),
+  ('Cooktop',       'accessory', null, 'ACC-CTK', 7, 1);
+```
+
+---
+
+## 28. Backup Endpoint Update
+
+Add cylinder stock and purchase data to the Google Sheets backup:
+
+```typescript
+// server/routes/api/backup.get.ts — add to return object
+return {
+  customers:       await db.select().from(customers).all(),
+  products:        await db.select().from(products).all(),
+  deliveries:      await db.select().from(deliveries).all(),
+  deliveryItems:   await db.select().from(deliveryItems).all(),
+  payments:        await db.select().from(customerPayments).all(),
+  purchases:       await db.select().from(purchases).all(),       // NEW
+  purchaseItems:   await db.select().from(purchaseItems).all(),   // NEW
+  cylinderStock:   await db.select().from(cylinderStock).all(),   // NEW
+  stockMovements:  await db.select().from(stockMovements).all(),  // NEW
+  ledger:          await db.execute(LEDGER_SQL),
+  exported_at:     new Date().toISOString(),
+}
+```
+
+Google Sheet tabs to add:
+```
+Sheet 8: Purchases       — one row per purchase
+Sheet 9: PurchaseItems   — one row per purchase line item
+Sheet 10: CylinderStock  — current stock snapshot (3 rows)
+Sheet 11: StockMovements — full stock movement log
+```
+
+---
+
+## 29. UI Design System — Aura Gas Management
+
+Sourced from a Stitch design project ("Gas Agency Manager", project ID
+`17743013945297294290`) and adopted wholesale 2026-06-25. This is now
+the single visual language for the app — **single fixed dark theme,
+no light/dark toggle.**
+
+### 29.1 Colors
+
+Full M3-style token set, ported as flat hex values directly into
+`tailwind.config.ts` `theme.extend.colors` (not CSS vars — this app
+has one theme, so no runtime toggling is needed). Use these tokens
+directly in templates, e.g. `bg-surface-container-high`,
+`text-on-surface-variant`, `border-outline-variant/30`.
+
+| Token | Hex | Use |
+|---|---|---|
+| `surface` / `background` | `#1d100c` | App background |
+| `surface-container-low` | `#261813` | Subtle nested surface |
+| `surface-container` | `#2a1c17` | Default card background |
+| `surface-container-high` | `#352721` | Elevated card / active nav item bg |
+| `surface-container-highest` | `#41312c` | Most elevated surface, input fields |
+| `on-surface` | `#f7ddd5` | Primary text |
+| `on-surface-variant` | `#e2bfb3` | Secondary text |
+| `outline` / `outline-variant` | `#a98a7f` / `#594139` | Borders, dividers |
+| `primary-container` | `#ff6b2c` | Solid CTA buttons, active nav pill (Aura Orange) |
+| `on-primary-container` | `#5c1c00` | Text/icon on `primary-container` |
+| `primary` / `primary-fixed-dim` | `#ffb59a` | Accent text/icons on dark surfaces (headings, links) |
+| `tertiary-container` | `#00a6d6` | Secondary accent (e.g. fleet/progress bars) |
+| `error-container` | `#93000a` | Destructive surfaces |
+
+Semantic status colors (Clear/Delivered = green, Outstanding = red,
+low-stock warning = amber) use **plain Tailwind palette classes**
+directly (`emerald-500`, `red-500`/`error`, `amber-500`) — no custom
+tokens needed for these, matching the Stitch reference markup exactly.
+
+The pre-existing shadcn semantic slots (`bg-primary`,
+`text-foreground`, `border-input`, etc., used internally by
+`components/ui/*` vendor files) still work — their CSS vars in
+`assets/css/main.css` `:root` were repointed to HSL equivalents of
+this same palette, so vendor components render correctly without
+being edited.
+
+### 29.2 Typography
+
+**Hanken Grotesk** (Google Fonts) is the only typeface, loaded via
+`@import` in `assets/css/main.css`. Named font-size utilities ported
+into `tailwind.config.ts` `theme.extend.fontSize` — use these instead
+of raw `text-[Npx]`:
+
+| Class | Size / weight | Use |
+|---|---|---|
+| `text-display-lg` | 48px/700 | Page-level hero numbers |
+| `text-headline-md` | 24px/600 | Page titles |
+| `text-data-primary` | 16px/600 | Card titles, primary data values |
+| `text-data-secondary` | 12px/500 | Secondary labels, metadata |
+| `text-data-tertiary` | 11px/400 | Smallest supporting text |
+| `text-body-base` | 14px/400 | Body copy, form inputs |
+| `text-label-caps` | 10px/700, uppercase tracking | Nav labels, status chip text |
+
+There is no separate `font-*` family utility needed (single font) —
+don't port the Stitch `font-data-primary` etc. family classes, only
+the `text-*` size ones above.
+
+### 29.3 Spacing
+
+`tailwind.config.ts` `theme.extend.spacing` adds the named scale used
+throughout the reference screens: `xs` (4px) · `sm` (8px) · `md`
+(16px) · `lg` (24px) · `xl` (32px) · `gutter`/`margin-mobile` (16px).
+Use `p-md`, `gap-lg`, etc. alongside standard Tailwind spacing.
+
+Radius: standard Tailwind `rounded-xl` (0.75rem) already matches the
+design's `xl` token — no override needed there. `--radius` stays
+`0.5rem` (matches the design's `lg` token) for shadcn vendor
+components.
+
+### 29.4 Icons — Material Symbols Outlined
+
+Replaces Lucide Vue Next everywhere **except** inside
+`components/ui/select/*` (shadcn vendor files — never edit, leave
+their internal Lucide icons as-is).
+
+```vue
+<!-- components/shared/Icon.vue — the only way to render an icon now -->
+<Icon name="local_shipping" />
+<Icon name="groups" class="text-xl text-primary" />
+<Icon name="home" :filled="true" />  <!-- filled variant for active nav state -->
+```
+
+Size is controlled via Tailwind `text-*` font-size utilities (the
+icon font's glyph scales with `font-size`), not `h-*`/`w-*` like
+Lucide. Icon names are Google's Material Symbols identifiers
+(`local_shipping`, `inventory_2`, `groups`, `analytics`, `home`,
+`add`, `chevron_right`, `arrow_forward`, `edit`, `delete`, `search`,
+`notifications`, `payments`, `wifi_off`, `inbox`, `chat`, etc.) — look
+up exact names at fonts.google.com/icons before inventing one.
+
+### 29.5 Component patterns
+
+- **Data card:** `bg-surface-container rounded-xl p-4 border border-outline-variant/30`
+- **Bento KPI card:** same as above, `col-span-2` for the hero metric, half-width siblings for secondary metrics
+- **Status chip:** `px-sm py-xs rounded-full font-label-caps text-label-caps border` with a 10% opacity tint background of the semantic color + a small leading dot (`w-1.5 h-1.5 rounded-full`)
+- **Stepper input (qty +/-):** two `w-8 h-8 rounded-full` circular buttons flanking a numeric value, decrement ghost-bordered, increment filled `bg-primary-container`
+- **Sticky bottom action bar:** `fixed bottom-0` with `backdrop-blur` or solid `bg-surface-container-high`, used on forms (New Delivery, New Purchase) instead of an inline submit button
+- **3-level delivery card** (§22) keeps its meaning but now renders as: business name (`text-data-primary text-on-surface`) → contact person (`text-data-secondary text-on-surface-variant`) → "Delivered by" chip (`bg-surface-container-highest rounded-full` with small avatar + `text-data-tertiary`)
+
+### 29.6 Source reference
+
+Original Stitch screens + extracted HTML/CSS live in the session
+scratchpad during the migration (not checked into the repo). Re-fetch
+via the `stitch` MCP server (`get_project`/`get_screen` on project ID
+above) if pixel-level re-verification is ever needed.
+
+---
+
+## 30. Orders & Delivery Payment Status
+
+### 30.1 Orders — customer call-in booking
+
+A customer calls in to book a cylinder before it's actually delivered. This
+is tracked separately from `deliveries` — **orders have zero stock/price
+impact until confirmed delivered.**
+
+```
+orders        — id, customerId, orderDate, status (pending/delivered/cancelled),
+                notes, deliveryId (set once converted), deliveredAt, createdBy/Name
+order_items   — orderId, productId, quantity (no price — resolved at deliver time)
+```
+
+`POST /api/orders/:id/deliver` is the only way an order becomes a real
+delivery: it resolves prices, validates + commits cylinder stock changes
+(same `validateStockChanges`/`commitStockChanges` helpers as regular
+deliveries, §23.4), inserts the `deliveries`/`delivery_items` rows, and
+updates the order to `status: 'delivered'` with `deliveryId` pointing at the
+new delivery. Never write to `deliveries` directly when converting an
+order — always go through this endpoint so stock/price logic stays in one
+place.
+
+### 30.2 Delivery payment status — cash-in-hand vs. pay-later
+
+Most customers settle on the weekend; some pay on the spot. `deliveries`
+has a `paymentStatus` column (`'paid' | 'pending'`, default `'pending'`)
+captured explicitly at creation time (or at order-deliver time) via a
+clear/pending toggle in the UI — **this is a separate concern from
+`status` (fulfillment)**, which stays `'delivered'` for every row today
+(no partial-fulfillment workflow exists outside Orders).
+
+When the toggle is `'paid'`, the server **auto-creates a matching
+`customer_payments` row** (`server/utils/payment.ts` →
+`recordDeliveryPayment`), linked back via `customer_payments.deliveryId`.
+This is the key design decision: **the existing ledger/outstanding-balance
+math (sum of `customer_payments` vs sum of `deliveries.totalAmount`) never
+needed to change** — marking a delivery "paid" is just a trigger that
+inserts the payment row a human would otherwise have entered manually via
+`/payments`. Never compute "pending amount" from `deliveries.paymentStatus`
+directly — always go through the existing balance calculation; the flag is
+a UI/workflow convenience, not a second source of truth.
+
+`customer_payments.deliveryId` being non-null is also how "today's
+collections" (`/payments/today`, dashboard's "Today's Amount Collected"
+card) can show an itemized cylinder breakdown for that payment — manual
+settle-up payments recorded via `/payments` (paying off an old pending
+balance) leave `deliveryId` null and show no item breakdown, which is
+correct: that payment isn't tied to one specific delivery.
+
+### 30.3 Dashboard card semantics (don't conflate these)
+
+| Card | Source | Why |
+|---|---|---|
+| Today's Deliveries | count of deliveries with `deliveryDate = today` | fulfillment activity today |
+| Today's Amount Collected | sum of `customer_payments` with `paymentDate = today` | actual cash collected today — **not** sum of today's delivery totals, since a delivery made today might not be paid today, and an old pending delivery might get settled today |
+| Total Pending | existing ledger `outstanding` (billed − paid, all-time) | unchanged from §25 |
+| Orders | count of `orders` with `status = 'pending'` | bookings awaiting delivery |
+
+### 30.4 Favorite item prefill
+
+`GET /api/customers/:id/favorite-product` returns the single most-ordered
+product for that customer (groupBy `delivery_items.productId`, count desc,
+limit 1). `DeliveryForm.vue`/`OrderForm.vue` call this when a customer is
+selected and prefill quantity 1 for that product — still fully removable
+and more items can be added. This is a convenience default only, never
+enforced.
+
+### 30.5 Single shared team — no per-staff data silos
+
+Per CLAUDE.md §21, this remains a single-agency app: any staff member can
+collect payment for a delivery another staff member made. Nothing in §30
+changes that — `createdBy`/`createdByName` are recorded purely for
+reporting/activity-trail purposes (§30.6), never as an access boundary.
+`GET /api/reports/staff/:userId/activity` is a reporting convenience filter
+(see deliveries `?mine=true` precedent in §21.1), not a security gate.
+
+---
+
+*Last updated: 2026-06-25 — added cylinder stock, purchase module, reports overhaul, nav restructure (§21-28), Aura Gas Management dark UI redesign (§29), Orders module + delivery payment status (§30)*
+<br>*Maintained by: project author — update this file whenever architecture decisions change*
