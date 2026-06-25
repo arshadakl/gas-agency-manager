@@ -1,0 +1,53 @@
+{
+  "name": "gas-supplier-pwa",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "generate": "nuxt generate",
+    "preview": "wrangler pages dev dist",
+    "typecheck": "nuxt typecheck",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate": "wrangler d1 migrations apply DB",
+    "db:studio": "drizzle-kit studio",
+    "deploy": "nuxt build && wrangler pages deploy dist"
+  },
+  "dependencies": {
+    "@lucide/vue": "^1.21.0",
+    "@vite-pwa/nuxt": "1.1.1",
+    "@vueuse/core": "^14.3.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "drizzle-orm": "0.45.2",
+    "lucide-vue-next": "1.0.0",
+    "nuxt": "3.21.8",
+    "nuxt-auth-utils": "0.5.29",
+    "reka-ui": "^2.10.0",
+    "tailwind-merge": "^2.6.0",
+    "tailwindcss-animate": "^1.0.7",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250101.0",
+    "@nuxtjs/tailwindcss": "^6.13.1",
+    "@types/node": "^26.0.0",
+    "drizzle-kit": "0.31.10",
+    "nitro-cloudflare-dev": "^0.2.2",
+    "tailwindcss": "3.4.19",
+    "typescript": "^5.7.2",
+    "vite": "7.3.3",
+    "vue-tsc": "^3.3.5",
+    "wrangler": "4.104.0"
+  },
+  "packageManager": "pnpm@9.9.0",
+  "pnpm": {
+    "overrides": {
+      "vite": "7.3.3"
+    }
+  }
+}
