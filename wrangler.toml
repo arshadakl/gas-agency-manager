@@ -1,0 +1,10 @@
+name = "gas-supplier-pwa"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = "dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "gas-supplier-db"
+database_id = "<your-d1-database-id>"
+migrations_dir = "server/database/migrations"
