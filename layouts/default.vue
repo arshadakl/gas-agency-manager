@@ -13,10 +13,10 @@ watch(isOnline, async (online) => {
 </script>
 
 <template>
-  <div class="flex min-h-screen flex-col bg-surface text-on-surface max-w-[480px] mx-auto relative overflow-x-hidden pb-24">
+  <div class="flex min-h-screen flex-col bg-surface text-on-surface max-w-[480px] mx-auto relative overflow-hidden">
     <OfflineBanner />
     <AppHeader />
-    <main class="flex-1">
+    <main class="flex-1 overflow-y-auto">
       <slot />
     </main>
     <BottomNav />

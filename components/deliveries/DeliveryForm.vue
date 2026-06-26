@@ -96,21 +96,18 @@ function buildPayload(): DeliveryCreatePayload | null {
   }
 }
 
-function handleSaveOnly() {
-  const payload = buildPayload()
-  if (!payload) return
-  emit('submit', payload)
-}
+const submitMode = ref<'save-only' | 'save-whatsapp'>('save-only')
 
-function handleSaveAndWhatsapp() {
+function handleSubmit() {
   const payload = buildPayload()
   if (!payload) return
-  emit('submit', { ...payload, whatsapp: true })
+  const withWhatsapp = submitMode.value === 'save-whatsapp'
+  emit('submit', withWhatsapp ? { ...payload, whatsapp: true } : payload)
 }
 </script>
 
 <template>
-  <form class="space-y-lg" @submit.prevent="handleSaveOnly">
+  <form class="space-y-lg pb-32" @submit.prevent="handleSubmit">
     <!-- 1. Customer Selection -->
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
       <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Customer</label>
@@ -122,7 +119,7 @@ function handleSaveAndWhatsapp() {
           placeholder="Search customer..."
           class="block w-full pl-10 pr-3 py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base placeholder-on-surface-variant focus:outline-none focus:border-primary"
         >
-        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden">
+        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container">
           <button
             v-for="c in filteredCustomers"
             :key="c.id"
@@ -214,36 +211,39 @@ function handleSaveAndWhatsapp() {
 
     <!-- 5. Payment -->
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
-      <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Payment</label>
+      <label class="text-data-secondary text-on-surface-variant block mb-3 uppercase tracking-wider">Payment Status</label>
       <div class="flex gap-sm">
         <button
           type="button"
-          class="flex-1 px-4 py-2.5 rounded-full text-data-secondary transition-all border"
-          :class="!paidNow ? 'border-error text-error bg-error/10' : 'border-outline-variant text-on-surface-variant hover:bg-surface-variant'"
+          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border"
+          :class="!paidNow ? 'border-error bg-error/15 text-error' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
           @click="paidNow = false"
         >
-          Pending — pay later
+          Pending — Pay Later
         </button>
         <button
           type="button"
-          class="flex-1 px-4 py-2.5 rounded-full text-data-secondary transition-all border"
-          :class="paidNow ? 'border-tertiary text-tertiary bg-tertiary/10' : 'border-outline-variant text-on-surface-variant hover:bg-surface-variant'"
+          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border"
+          :class="paidNow ? 'border-tertiary-container bg-tertiary-container/15 text-tertiary-container' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
           @click="paidNow = true"
         >
-          Paid now — clear
+          Paid Now — Collect
         </button>
       </div>
-      <div v-if="paidNow" class="flex gap-sm overflow-x-auto pt-2">
-        <button
-          v-for="mode in PAYMENT_MODES"
-          :key="mode"
-          type="button"
-          class="shrink-0 px-4 py-2 rounded-full text-data-secondary capitalize transition-all border"
-          :class="paymentMode === mode ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant hover:bg-surface-variant'"
-          @click="paymentMode = mode"
-        >
-          {{ mode }}
-        </button>
+      <div v-if="paidNow" class="pt-3 border-t border-surface-variant">
+        <p class="text-data-secondary text-on-surface-variant mb-3">Select payment method:</p>
+        <div class="flex gap-sm flex-wrap">
+          <button
+            v-for="mode in PAYMENT_MODES"
+            :key="mode"
+            type="button"
+            class="px-4 py-2 rounded-full text-data-secondary capitalize transition-all border"
+            :class="paymentMode === mode ? 'border-primary-container bg-primary-container/15 text-primary-container' : 'border-outline-variant text-on-surface-variant hover:bg-surface-variant'"
+            @click="paymentMode = mode"
+          >
+            {{ mode }}
+          </button>
+        </div>
       </div>
     </section>
 
@@ -262,10 +262,10 @@ function handleSaveAndWhatsapp() {
 
     <!-- Sticky Bottom Actions -->
     <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-surface-variant p-4 flex gap-4 z-30">
-      <Button type="button" variant="outline" class="flex-1 rounded-lg" :disabled="props.loading" @click="handleSaveOnly">
+      <Button type="submit" variant="outline" class="flex-1 rounded-lg" :disabled="props.loading" @click="submitMode = 'save-only'">
         Save Only
       </Button>
-      <Button type="button" class="flex-[2] rounded-lg" :disabled="props.loading" @click="handleSaveAndWhatsapp">
+      <Button type="submit" class="flex-[2] rounded-lg" :disabled="props.loading" @click="submitMode = 'save-whatsapp'">
         <LoadingSpinner v-if="props.loading" class="h-4 w-4 mr-2" />
         <Icon v-else name="send" class="text-base mr-2" />
         {{ props.loading ? 'Saving...' : 'Save & WhatsApp Receipt' }}

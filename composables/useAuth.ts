@@ -31,7 +31,11 @@ export function useAuth() {
   }
 
   async function logout() {
-    await $fetch('/api/auth/logout', { method: 'POST' })
+    try {
+      await $fetch('/api/auth/logout', { method: 'POST' })
+    } catch {
+      // Logout endpoint might fail, but still clear local session
+    }
     await clear()
     await navigateTo('/login')
   }
@@ -96,5 +100,19 @@ export function useAuth() {
     }
   }
 
-  return { user, loggedIn, session, login, logout, fetchUsers, createUser, updateUser, changePassword, error, loading }
+  async function deleteUser(userId: number) {
+    error.value = null
+    loading.value = true
+    try {
+      await $fetch(`/api/settings/users/${userId}`, { method: 'DELETE' })
+      return true
+    } catch (err: unknown) {
+      handleError(err, 'Failed to delete user')
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { user, loggedIn, session, login, logout, fetchUsers, createUser, updateUser, changePassword, deleteUser, error, loading }
 }

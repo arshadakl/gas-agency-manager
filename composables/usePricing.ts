@@ -82,5 +82,19 @@ export function usePricing() {
     }
   }
 
-  return { fetchProducts, createProduct, updateProduct, fetchPrices, createPrice, loading, error }
+  async function deleteProduct(productId: number) {
+    error.value = null
+    loading.value = true
+    try {
+      await $fetch(`/api/products/${productId}`, { method: 'DELETE' })
+      return true
+    } catch (err: unknown) {
+      handleError(err, 'Failed to delete product')
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchProducts, createProduct, updateProduct, fetchPrices, createPrice, deleteProduct, loading, error }
 }

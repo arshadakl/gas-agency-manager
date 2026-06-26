@@ -63,5 +63,22 @@ export function useDeliveries() {
     }
   }
 
-  return { fetchDeliveries, fetchToday, createDelivery, loading, error }
+  async function updateDelivery(deliveryId: number, data: DeliveryCreatePayload) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${deliveryId}`, {
+        method: 'PATCH',
+        body: data,
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to update delivery')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchDeliveries, fetchToday, createDelivery, updateDelivery, loading, error }
 }
