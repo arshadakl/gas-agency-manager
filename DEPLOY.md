@@ -1022,6 +1022,8 @@ wrangler pages project list # List all Pages projects
 
 ---
 
+
+<!-- Last deployment configured: 2026-06-26 -->
 *Last updated: 2026-06-25*
 *Maintained by: deployment team*
 *Next review: After first production deployment*
