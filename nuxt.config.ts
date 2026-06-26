@@ -18,6 +18,11 @@ export default defineNuxtConfig({
 
   nitro: {
     preset: 'cloudflare-pages',
+    prerender: {
+      crawlLinks: false,
+      routes: ['/sitemap.xml', '/robots.txt'],
+      ignore: ['/api', '/admin'],
+    },
     cloudflare: {
       deployConfig: true,
       nodeCompat: true,
