@@ -1,13 +1,20 @@
 <script setup lang="ts">
 import { Badge } from '~/components/ui/badge'
+import { Button } from '~/components/ui/button'
 import type { DeliveryWithRelations } from '~/types/database'
 
 defineProps<{
   delivery: DeliveryWithRelations
 }>()
 
+const { user } = useUserSession()
+
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+}
+
+function canEdit() {
+  return user.value?.role === 'admin' || user.value?.role === 'delivery'
 }
 </script>
 
@@ -15,15 +22,31 @@ function initials(name: string) {
   <div class="bg-surface-container-high rounded-xl p-5 border border-outline-variant/10 flex flex-col gap-sm">
     <div class="flex justify-between items-start mb-xs">
       <!-- Level 1: business name -->
-      <h2 class="text-data-primary text-on-surface line-clamp-1">{{ delivery.customer.name }}</h2>
-      <div class="text-right shrink-0 ml-2">
-        <p class="text-data-primary text-on-surface">{{ formatCurrency(delivery.totalAmount) }}</p>
-        <Badge
-          class="mt-0.5"
-          :class="delivery.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-error-container/40 text-error border-error/30'"
-        >
-          {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
-        </Badge>
+      <NuxtLink
+        :to="`/deliveries/${delivery.id}`"
+        class="flex-1 hover:opacity-80 transition-opacity"
+      >
+        <h2 class="text-data-primary text-on-surface line-clamp-1">{{ delivery.customer.name }}</h2>
+      </NuxtLink>
+      <div class="text-right shrink-0 ml-2 flex items-start gap-2">
+        <div>
+          <p class="text-data-primary text-on-surface">{{ formatCurrency(delivery.totalAmount) }}</p>
+          <Badge
+            class="mt-0.5"
+            :class="delivery.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-error-container/40 text-error border-error/30'"
+          >
+            {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
+          </Badge>
+        </div>
+        <div v-if="canEdit()" class="flex gap-1 pt-1">
+          <NuxtLink
+            :to="`/deliveries/${delivery.id}`"
+            class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
+            title="View details"
+          >
+            <Icon name="info" class="text-sm" />
+          </NuxtLink>
+        </div>
       </div>
     </div>
     <!-- Level 2: contact person -->
