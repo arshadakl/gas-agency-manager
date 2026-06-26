@@ -13,6 +13,7 @@ export default defineEventHandler(async (event) => {
     createdBy: user.id,
     createdByName: user.fullName,
   }).returning()
+  if (!created) throw createError({ statusCode: 500, message: 'Failed to record payment' })
 
   return { data: created }
 })

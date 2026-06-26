@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   const [created] = await db.insert(products).values(body).returning()
+  if (!created) throw createError({ statusCode: 500, message: 'Failed to create product' })
 
   return { data: created }
 })

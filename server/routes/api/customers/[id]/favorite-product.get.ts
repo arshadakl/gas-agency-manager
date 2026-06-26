@@ -1,4 +1,4 @@
-import { eq, desc, sql } from 'drizzle-orm'
+import { and, eq, desc, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { deliveryItems, deliveries } from '~/server/database/schema'
 
@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(deliveryItems)
     .innerJoin(deliveries, eq(deliveries.id, deliveryItems.deliveryId))
-    .where(eq(deliveries.customerId, customerId))
+    .where(and(eq(deliveries.customerId, customerId), eq(deliveries.status, 'delivered')))
     .groupBy(deliveryItems.productId)
     .orderBy(desc(sql`count(*)`))
     .limit(1)

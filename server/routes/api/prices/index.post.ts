@@ -9,6 +9,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   const [created] = await db.insert(prices).values(body).returning()
+  if (!created) throw createError({ statusCode: 500, message: 'Failed to create price' })
 
   return { data: created }
 })

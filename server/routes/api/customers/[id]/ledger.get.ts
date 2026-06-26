@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(deliveries.customerId, id), eq(deliveries.status, 'delivered')))
       .get(),
     db.select().from(deliveries)
-      .where(eq(deliveries.customerId, id))
+      .where(and(eq(deliveries.customerId, id), eq(deliveries.status, 'delivered')))
       .orderBy(desc(deliveries.deliveryDate))
       .all(),
     db.select().from(customerPayments)

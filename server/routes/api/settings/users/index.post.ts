@@ -26,6 +26,7 @@ export default defineEventHandler(async (event) => {
     isActive: users.isActive,
     createdAt: users.createdAt,
   })
+  if (!created) throw createError({ statusCode: 500, message: 'Failed to create user' })
 
   return { data: created }
 })
