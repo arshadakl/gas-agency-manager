@@ -6,9 +6,15 @@ withDefaults(defineProps<{
 })
 
 const { logout } = useAuth()
+const loggingOut = ref(false)
 
 async function handleLogout() {
-  await logout()
+  loggingOut.value = true
+  try {
+    await logout()
+  } finally {
+    loggingOut.value = false
+  }
 }
 </script>
 
@@ -30,10 +36,12 @@ async function handleLogout() {
       </NuxtLink>
       <button
         aria-label="Logout"
-        class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant active:scale-95"
+        :disabled="loggingOut"
+        class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
         @click="handleLogout"
       >
-        <Icon name="logout" />
+        <LoadingSpinner v-if="loggingOut" class="h-5 w-5" />
+        <Icon v-else name="logout" />
       </button>
     </div>
   </header>
