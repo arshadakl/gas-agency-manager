@@ -57,7 +57,7 @@ async function handleUpdate(data: NewCustomer) {
           <p v-if="customer.address" class="text-data-secondary text-on-surface-variant mt-1">{{ customer.address }}</p>
         </div>
         <div class="flex gap-2 shrink-0">
-          <Button v-if="user?.role === 'admin'" size="icon" variant="outline" class="rounded-full" as-child>
+          <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" variant="outline" class="rounded-full" as-child>
             <NuxtLink :to="`/payments?customerId=${id}`"><Icon name="payments" class="text-lg" /></NuxtLink>
           </Button>
           <Button v-if="user?.role === 'admin'" size="icon" variant="outline" class="rounded-full" @click="editing = !editing">
