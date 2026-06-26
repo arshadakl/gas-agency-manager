@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
+import { verifyPassword } from '~/server/utils/password'
 
 const LoginSchema = z.object({
   username: z.string().min(1),
