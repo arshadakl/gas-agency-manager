@@ -6,5 +6,5 @@ pages_build_output_dir = "dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "gas-supplier-db"
-database_id = "<your-d1-database-id>"
+database_id = "201ce0a7-2129-46e6-ab92-b9cc300cb786"
 migrations_dir = "server/database/migrations"
