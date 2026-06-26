@@ -25,12 +25,26 @@ const restockProductId = ref<number | null>(null)
 const restockQty = ref(1)
 const customers = ref<Customer[]>([])
 const customerNameById = computed(() => new Map(customers.value.map((c) => [c.id, c.name])))
+const priceByProductId = ref<Map<number, number>>(new Map())
+
+const getProductPrice = (productId: number) => priceByProductId.value.get(productId)
 
 async function load() {
-  const [productRows, inventoryRows, customerRows] = await Promise.all([fetchProducts(), fetchInventory(), fetchCustomers()])
+  const [productRows, inventoryRows, customerRows, allPrices] = await Promise.all([
+    fetchProducts(),
+    fetchInventory(),
+    fetchCustomers(),
+    fetchPrices(),
+  ])
   products.value = productRows
   stockByProductId.value = new Map(inventoryRows.map((r) => [r.productId, r.quantity]))
   customers.value = customerRows
+  // Get default price (customer_id = NULL) for each product
+  priceByProductId.value = new Map(
+    allPrices
+      .filter((p) => !p.customerId) // Only default prices
+      .map((p) => [p.productId, p.price])
+  )
 }
 onMounted(load)
 
@@ -82,11 +96,14 @@ async function handleRestock(productId: number) {
     <div v-else class="space-y-2">
       <div v-for="product in products" :key="product.id" class="rounded-lg border border-border p-3">
         <div class="flex items-center justify-between">
-          <div>
+          <div class="flex-1">
             <p class="text-sm font-medium">{{ product.name }}</p>
             <p class="text-xs text-muted-foreground">
               {{ product.type }}<span v-if="product.cylinderSize"> · {{ product.cylinderSize }}kg</span>
               <span v-if="product.type === 'accessory'"> · {{ stockByProductId.get(product.id) ?? 0 }} in stock</span>
+            </p>
+            <p v-if="getProductPrice(product.id)" class="text-xs text-on-surface-variant mt-1">
+              Price: <span class="font-medium">₹{{ getProductPrice(product.id)?.toFixed(2) }}</span>
             </p>
           </div>
           <div class="flex gap-2">
