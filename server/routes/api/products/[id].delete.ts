@@ -1,6 +1,6 @@
 import { eq, and } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { products, deliveryItems, purchaseItems, inventory, cylinder_stock } from '~/server/database/schema'
+import { products, deliveryItems, purchaseItems, inventory, cylinderStock } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin'])
@@ -47,8 +47,8 @@ export default defineEventHandler(async (event) => {
   // For cylinders, check cylinder stock
   if (product.type === 'cylinder' && product.cylinderSize) {
     const stock = await db.select()
-      .from(cylinder_stock)
-      .where(eq(cylinder_stock.sizeKg, product.cylinderSize))
+      .from(cylinderStock)
+      .where(eq(cylinderStock.sizeKg, product.cylinderSize))
       .get()
 
     if (stock && (stock.fullCount > 0 || stock.emptyCount > 0)) {
