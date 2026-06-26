@@ -65,5 +65,6 @@ export default defineEventHandler(async (event) => {
   }
 
   const updated = await db.select().from(purchases).where(eq(purchases.id, id)).get()
+  if (!updated) throw createError({ statusCode: 500, message: 'Failed to retrieve updated purchase' })
   return { data: { ...updated, items: body.items } }
 })

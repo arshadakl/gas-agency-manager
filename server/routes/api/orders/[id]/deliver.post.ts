@@ -126,6 +126,7 @@ export default defineEventHandler(async (event) => {
       .set({ deliveryId: delivery.id })
       .where(eq(orders.id, id))
       .returning()
+    if (!updatedOrder) throw createError({ statusCode: 500, message: 'Failed to link order to delivery' })
 
     return { data: { order: updatedOrder, delivery } }
   } catch (err) {
