@@ -8,11 +8,14 @@ definePageMeta({
 })
 
 const route = useRoute()
+const { user } = useUserSession()
 const { fetchDeliveries, loading } = useDeliveries()
 
 const deliveries = ref<DeliveryWithRelations[]>([])
 const mineOnly = ref(false)
 const todayOnly = ref(route.query.today === 'true')
+
+const canAdd = computed(() => user.value?.role !== 'delivery')
 
 async function load() {
   const today = toISODate(new Date())
@@ -30,7 +33,7 @@ onMounted(load)
   <div class="px-margin-mobile py-lg flex flex-col gap-lg">
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">{{ todayOnly ? "Today's Deliveries" : 'Deliveries' }}</h1>
-      <Button size="icon" class="rounded-full" as-child>
+      <Button v-if="canAdd" size="icon" class="rounded-full" as-child>
         <NuxtLink to="/deliveries/new"><Icon name="add" /></NuxtLink>
       </Button>
     </div>
