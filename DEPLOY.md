@@ -3,7 +3,7 @@
 Complete end-to-end deployment guide for Cloudflare Pages + D1 + Workers.
 Follow steps **in order**. Do not skip any step.
 
----
+----
 
 ## Table of Contents
 
