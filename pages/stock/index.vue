@@ -37,7 +37,7 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
   <div class="px-margin-mobile py-lg flex flex-col gap-lg">
     <div class="flex justify-between items-end">
       <h1 class="text-headline-md text-on-surface">Cylinder Stock</h1>
-      <Button v-if="user?.role === 'admin'" size="sm" class="rounded-full" @click="showAdjustForm = !showAdjustForm">
+      <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="sm" class="rounded-full" @click="showAdjustForm = !showAdjustForm">
         <Icon name="add" class="text-base mr-1" /> Update Stock
       </Button>
     </div>

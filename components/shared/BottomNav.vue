@@ -4,14 +4,13 @@ import { ROLES, type Role } from '~/types'
 const route = useRoute()
 const { user } = useUserSession()
 
-// 6 primary nav items (scales to visible tabs based on role)
+// 5 primary nav items (scales to visible tabs based on role)
 const items = [
   { to: '/', label: 'Home', icon: 'home', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/deliveries', label: 'Deliveries', icon: 'local_shipping', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/stock', label: 'Stock', icon: 'inventory_2', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/customers', label: 'Customers', icon: 'groups', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/orders', label: 'Orders', icon: 'event_note', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
-  { to: '/reports', label: 'Reports', icon: 'analytics', roles: [ROLES.ADMIN, ROLES.VIEWER] },
 ] satisfies Array<{ to: string; label: string; icon: string; roles: Role[] }>
 
 const visibleItems = computed(() => items.filter((item) => !user.value || item.roles.includes(user.value.role)))

@@ -24,7 +24,7 @@ const loading = ref(true)
 onMounted(async () => {
   const [deliveries, summary, stock, todayPayments, orders] = await Promise.all([
     fetchToday(),
-    user.value?.role !== 'delivery' ? fetchSummary() : Promise.resolve(null),
+    user.value?.role !== 'viewer' ? fetchSummary() : Promise.resolve(null),
     fetchCylinderStock(),
     fetchTodayPayments(),
     fetchOrders('pending'),
@@ -62,7 +62,7 @@ function initials(name: string) {
         <NuxtLink to="/payments/today">
           <KpiCard label="Today's Amount Collected" :value="formatCurrency(collectedToday)" />
         </NuxtLink>
-        <NuxtLink v-if="user?.role !== 'delivery'" to="/customers?filter=outstanding">
+        <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding">
           <KpiCard label="Total Pending" :value="formatCurrency(pendingTotal)" />
         </NuxtLink>
         <NuxtLink to="/orders">
@@ -92,7 +92,7 @@ function initials(name: string) {
       </section>
 
       <NuxtLink
-        v-if="user?.role === 'admin'"
+        v-if="user?.role === 'admin' || user?.role === 'delivery'"
         to="/stock/purchases/new"
         class="w-full bg-surface-container border border-primary-container/60 rounded-xl p-4 flex items-center justify-between group hover:bg-primary-container/5 transition-all active:scale-[0.98]"
       >

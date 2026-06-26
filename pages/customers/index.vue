@@ -43,7 +43,7 @@ async function handleCreate(data: NewCustomer) {
         <h1 class="text-headline-md text-on-surface">Customers</h1>
         <p class="text-data-secondary text-on-surface-variant mt-1">See customers and who owes money.</p>
       </div>
-      <Button v-if="user?.role === 'admin'" size="icon" class="rounded-full shrink-0" @click="showForm = true">
+      <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" class="rounded-full shrink-0" @click="showForm = true">
         <Icon name="add" />
       </Button>
     </div>

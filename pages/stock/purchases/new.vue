@@ -7,7 +7,7 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
-if (user.value?.role !== 'admin') await navigateTo('/stock')
+if (user.value?.role !== 'admin' && user.value?.role !== 'delivery') await navigateTo('/stock')
 
 const { createPurchase, loading, error } = usePurchases()
 

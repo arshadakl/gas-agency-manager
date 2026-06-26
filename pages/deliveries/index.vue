@@ -15,7 +15,7 @@ const deliveries = ref<DeliveryWithRelations[]>([])
 const mineOnly = ref(false)
 const todayOnly = ref(route.query.today === 'true')
 
-const canAdd = computed(() => user.value?.role !== 'delivery')
+const canAdd = computed(() => user.value?.role !== 'viewer')
 
 async function load() {
   const today = toISODate(new Date())

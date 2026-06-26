@@ -7,7 +7,8 @@ definePageMeta({
 const { user } = useUserSession()
 
 const links = computed(() => [
-  ...(user.value?.role === 'admin' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
+  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
+  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/reports', label: 'Reports', icon: 'analytics' }] : []),
   ...(user.value?.role === 'admin' ? [{ to: '/settings/users', label: 'Users', icon: 'groups' }] : []),
   { to: '/settings/account', label: 'My Account', icon: 'account_circle' },
 ])
