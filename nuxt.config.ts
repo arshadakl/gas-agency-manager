@@ -3,9 +3,6 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-09-23',
   devtools: { enabled: true },
   ssr: false,
-  experimental: {
-    viteEnvironmentApi: true,
-  },
 
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', 'nuxt-auth-utils'],
 
@@ -63,11 +60,22 @@ export default defineNuxtConfig({
     head: {
       title: 'Tuvvur Super gas',
       viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+      link: [
+        { rel: 'manifest', href: '/manifest.webmanifest' },
+      ],
+      meta: [
+        { name: 'theme-color', content: '#1d100c' },
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
+        { name: 'apple-mobile-web-app-title', content: 'Tuvvur' },
+      ],
     },
   },
 
   pwa: {
     registerType: 'autoUpdate',
+    injectRegister: 'auto',
     manifest: {
       name: 'Tuvvur Super gas',
       short_name: 'Tuvvur',
