@@ -2,7 +2,7 @@
 withDefaults(defineProps<{
   title?: string
 }>(), {
-  title: 'Super gas',
+  title: 'Tuvvur Super gas',
 })
 </script>
 

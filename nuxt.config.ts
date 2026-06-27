@@ -52,13 +52,13 @@ export default defineNuxtConfig({
     sessionPassword: process.env.NUXT_SESSION_PASSWORD,
     backupSecret: process.env.BACKUP_SECRET,
     public: {
-      appName: 'Gas Supplier App',
+      appName: 'Tuvvur Super gas',
     },
   },
 
   app: {
     head: {
-      title: 'Gas Supplier App',
+      title: 'Tuvvur Super gas',
       viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
     },
   },
@@ -66,14 +66,15 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'Gas Supplier App',
-      short_name: 'GasSupplier',
+      name: 'Tuvvur Super gas',
+      short_name: 'Tuvvur',
       description: 'Gas cylinder supplier management',
       theme_color: '#1d100c',
       background_color: '#1d100c',
       display: 'standalone',
       start_url: '/',
       icons: [
+        { src: '/logo/supergas-logo.png', sizes: 'any', type: 'image/png' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },
         { src: '/icons/icon-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
