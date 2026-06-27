@@ -97,6 +97,8 @@ export default <Partial<Config>>{
         'error-container':              'rgb(var(--color-error-container) / <alpha-value>)',
         'on-error':                     'rgb(var(--color-on-error) / <alpha-value>)',
         'on-error-container':           'rgb(var(--color-on-error-container) / <alpha-value>)',
+        success:                        'rgb(var(--color-success) / <alpha-value>)',
+        warning:                        'rgb(var(--color-warning) / <alpha-value>)',
       },
       fontFamily: {
         sans: ['Hanken Grotesk', 'ui-sans-serif', 'system-ui', 'sans-serif'],

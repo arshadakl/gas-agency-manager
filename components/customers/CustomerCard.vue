@@ -26,9 +26,9 @@ const isClear = computed(() => props.customer.balance <= 0)
       </div>
       <div
         class="px-sm py-xs rounded-full text-label-caps flex items-center gap-xs border shrink-0"
-        :class="isClear ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-error-container text-on-error-container border-error-container/50'"
+        :class="isClear ? 'bg-success/10 text-success border-success/20' : 'bg-error-container text-on-error-container border-error-container/50'"
       >
-        <div class="w-1.5 h-1.5 rounded-full" :class="isClear ? 'bg-emerald-400' : 'bg-error'" />
+        <div class="w-1.5 h-1.5 rounded-full" :class="isClear ? 'bg-success' : 'bg-error'" />
         {{ isClear ? 'Clear' : 'Pending' }}
       </div>
     </div>

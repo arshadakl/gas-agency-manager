@@ -130,13 +130,13 @@ onMounted(load)
             </div>
             <div class="flex justify-between items-center">
               <span class="text-data-tertiary text-on-surface-variant">Status</span>
-              <Badge :class="delivery.status === 'delivered' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-amber-500/15 text-amber-400 border-amber-500/30'">
+              <Badge :class="delivery.status === 'delivered' ? 'bg-success/15 text-success border-success/30' : 'bg-warning/15 text-warning border-warning/30'">
                 {{ delivery.status }}
               </Badge>
             </div>
             <div class="flex justify-between items-center">
               <span class="text-data-tertiary text-on-surface-variant">Payment</span>
-              <Badge :class="delivery.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-error-container/40 text-error border-error/30'">
+              <Badge :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'">
                 {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
               </Badge>
             </div>

@@ -33,7 +33,7 @@ function canEdit() {
           <p class="text-data-primary text-on-surface">{{ formatCurrency(delivery.totalAmount) }}</p>
           <Badge
             class="mt-0.5"
-            :class="delivery.paymentStatus === 'paid' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : 'bg-error-container/40 text-error border-error/30'"
+            :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'"
           >
             {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
           </Badge>

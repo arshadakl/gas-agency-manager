@@ -72,6 +72,8 @@
     --color-error-container:           147 0 10;
     --color-on-error:                  105 0 5;
     --color-on-error-container:        255 218 214;
+    --color-success:                   52 211 153;
+    --color-warning:                   251 191 36;
   }
 
   /* ─── Light theme ────────────────────────────────────────────────────────── */
@@ -124,7 +126,7 @@
     --color-on-secondary:              255 255 255;
     --color-on-secondary-container:    19 27 46;
     --color-secondary-fixed:           218 226 253;
-    --color-secondary-fixed-dim:       190 198 224;
+    --color-secondary-fixed-dim:       63 70 92;
     --color-on-secondary-fixed:        19 27 46;
     --color-on-secondary-fixed-variant:63 70 92;
     --color-tertiary:                  0 101 136;
@@ -132,13 +134,15 @@
     --color-on-tertiary:               255 255 255;
     --color-on-tertiary-container:     0 31 42;
     --color-tertiary-fixed:            191 233 255;
-    --color-tertiary-fixed-dim:        108 210 255;
+    --color-tertiary-fixed-dim:        0 77 101;
     --color-on-tertiary-fixed:         0 31 42;
     --color-on-tertiary-fixed-variant: 0 77 101;
     --color-error:                     186 26 26;
     --color-error-container:           255 218 214;
     --color-on-error:                  255 255 255;
     --color-on-error-container:        65 0 2;
+    --color-success:                   4 120 87;
+    --color-warning:                   146 64 14;
   }
 
   * {
