@@ -8,6 +8,31 @@ const { user } = useUserSession()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 
+type ClearTarget = 'deliveries' | 'customers' | 'stock'
+const confirmClear = ref<ClearTarget | null>(null)
+const clearing = ref(false)
+const clearError = ref<string | null>(null)
+
+const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string }> = {
+  deliveries: { label: 'Clear All Deliveries', desc: 'Removes all delivery records and resets order statuses', icon: 'local_shipping' },
+  customers:  { label: 'Clear All Customers', desc: 'Removes customers, deliveries, payments and orders', icon: 'groups' },
+  stock:      { label: 'Reset Stock Data', desc: 'Resets all cylinder counts to zero and clears movement history', icon: 'inventory_2' },
+}
+
+async function handleClear() {
+  if (!confirmClear.value) return
+  clearing.value = true
+  clearError.value = null
+  try {
+    await $fetch(`/api/admin/clear/${confirmClear.value}`, { method: 'DELETE' })
+    confirmClear.value = null
+  } catch (e: any) {
+    clearError.value = e?.data?.message ?? 'Failed to clear data'
+  } finally {
+    clearing.value = false
+  }
+}
+
 const links = computed(() => [
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/reports', label: 'Reports', icon: 'analytics' }] : []),
@@ -74,5 +99,61 @@ const links = computed(() => [
         />
       </div>
     </button>
+    <!-- Danger zone — admin only -->
+    <template v-if="user?.role === 'admin'">
+      <div class="mt-lg pt-lg border-t border-error/20">
+        <p class="text-data-secondary text-error mb-sm uppercase tracking-wider">Danger Zone</p>
+        <div class="flex flex-col gap-sm">
+          <button
+            v-for="(meta, key) in clearMeta"
+            :key="key"
+            class="flex items-center gap-3 rounded-xl bg-error-container/10 p-4 border border-error/20 hover:bg-error-container/20 transition-colors w-full text-left"
+            @click="confirmClear = key as ClearTarget; clearError = null"
+          >
+            <Icon :name="meta.icon" class="text-error" />
+            <div class="flex-1">
+              <span class="text-data-primary text-error">{{ meta.label }}</span>
+              <p class="text-data-tertiary text-on-surface-variant mt-0.5">{{ meta.desc }}</p>
+            </div>
+            <Icon name="delete_forever" class="text-error/60 ml-auto" />
+          </button>
+        </div>
+      </div>
+    </template>
+
+    <!-- Clear confirm modal -->
+    <div
+      v-if="confirmClear"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-8 sm:pb-0"
+      @click.self="confirmClear = null"
+    >
+      <div class="w-full max-w-sm bg-surface-container-high rounded-2xl p-6 space-y-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-error-container/30 flex items-center justify-center">
+            <Icon name="warning" class="text-error" />
+          </div>
+          <div>
+            <p class="text-data-primary text-on-surface font-semibold">{{ clearMeta[confirmClear].label }}</p>
+            <p class="text-data-tertiary text-on-surface-variant mt-0.5">This cannot be undone</p>
+          </div>
+        </div>
+        <p class="text-body-base text-on-surface-variant">{{ clearMeta[confirmClear].desc }}. All deleted data is permanent.</p>
+        <p v-if="clearError" class="text-sm text-error">{{ clearError }}</p>
+        <div class="flex gap-2 pt-1">
+          <button
+            class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+            @click="confirmClear = null"
+          >Cancel</button>
+          <button
+            class="flex-1 rounded-xl bg-error text-on-error py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            :disabled="clearing"
+            @click="handleClear"
+          >
+            <LoadingSpinner v-if="clearing" class="h-4 w-4 mx-auto" />
+            <span v-else>Yes, Delete</span>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

@@ -32,7 +32,7 @@ const selectedCustomer = computed(() => props.customers.find((c) => c.id === sel
 const filteredCustomers = computed(() => {
   if (!customerSearch.value || selectedCustomerId.value) return []
   const q = customerSearch.value.toLowerCase()
-  return props.customers.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q)).slice(0, 6)
+  return props.customers.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q)).slice(0, 3)
 })
 
 async function selectCustomer(customer: Customer) {
@@ -112,14 +112,14 @@ function handleSubmit() {
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
       <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Customer</label>
       <div v-if="!selectedCustomer" class="relative">
-        <Icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg" />
+        <Icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" style="font-size:18px" />
         <input
           v-model="customerSearch"
           type="text"
           placeholder="Search customer..."
-          class="block w-full pl-10 pr-3 py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base placeholder-on-surface-variant focus:outline-none focus:border-primary"
+          class="block w-full pl-9 pr-3 py-3 border border-surface-variant rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
         >
-        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container z-50">
+        <div v-if="filteredCustomers.length > 0" class="absolute left-0 right-0 top-full mt-1 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container-high shadow-lg z-50">
           <button
             v-for="c in filteredCustomers"
             :key="c.id"
