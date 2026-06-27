@@ -22,7 +22,7 @@ async function handleSubmit() {
 <template>
   <Card class="w-full max-w-sm">
     <CardHeader>
-      <CardTitle class="text-center text-headline-md text-primary-fixed-dim">Super gas</CardTitle>
+      <CardTitle class="text-center text-headline-md text-primary-fixed-dim">Tuvvur Super gas</CardTitle>
     </CardHeader>
     <CardContent>
       <form class="space-y-4" @submit.prevent="handleSubmit">

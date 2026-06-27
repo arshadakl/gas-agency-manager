@@ -5,6 +5,7 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
+const { theme, toggleTheme } = useTheme()
 
 const links = computed(() => [
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
@@ -17,6 +18,7 @@ const links = computed(() => [
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-sm pb-40">
     <h1 class="text-headline-md text-on-surface mb-sm">Settings</h1>
+
     <NuxtLink
       v-for="link in links"
       :key="link.to"
@@ -27,5 +29,28 @@ const links = computed(() => [
       <span class="text-data-primary text-on-surface">{{ link.label }}</span>
       <Icon name="chevron_right" class="text-on-surface-variant ml-auto" />
     </NuxtLink>
+
+    <!-- Theme toggle -->
+    <button
+      class="flex items-center gap-3 rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors w-full text-left"
+      @click="toggleTheme"
+    >
+      <Icon :name="theme === 'dark' ? 'dark_mode' : 'light_mode'" class="text-primary-fixed-dim" />
+      <div class="flex-1">
+        <span class="text-data-primary text-on-surface">Theme</span>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">
+          {{ theme === 'dark' ? 'Dark — tap to switch to Light' : 'Light — tap to switch to Dark' }}
+        </p>
+      </div>
+      <div
+        class="w-12 h-6 rounded-full transition-colors flex items-center px-1"
+        :class="theme === 'light' ? 'bg-tertiary-container' : 'bg-surface-container-highest'"
+      >
+        <div
+          class="w-4 h-4 rounded-full bg-on-surface transition-all"
+          :class="theme === 'light' ? 'translate-x-6' : 'translate-x-0'"
+        />
+      </div>
+    </button>
   </div>
 </template>

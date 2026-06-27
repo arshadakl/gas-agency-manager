@@ -5,9 +5,10 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Aura Gas Management — single fixed dark theme (no light/dark toggle). */
+/* ─── Dark theme (default) ─────────────────────────────────────────────────── */
 @layer base {
   :root {
+    /* shadcn semantic tokens — dark */
     --background: 14 41% 8%;
     --foreground: 14 68% 90%;
     --card: 16 29% 13%;
@@ -26,6 +27,118 @@
     --input: 15 22% 29%;
     --ring: 18 100% 59%;
     --radius: 0.5rem;
+
+    /* Aura Gas Management M3 tokens — dark (RGB channels, space-separated) */
+    --color-surface:                   29 16 12;
+    --color-surface-dim:               29 16 12;
+    --color-surface-bright:            70 54 48;
+    --color-surface-container-lowest:  23 11 7;
+    --color-surface-container-low:     38 24 19;
+    --color-surface-container:         42 28 23;
+    --color-surface-container-high:    53 39 33;
+    --color-surface-container-highest: 65 49 44;
+    --color-surface-variant:           65 49 44;
+    --color-surface-tint:              255 181 154;
+    --color-on-surface:                247 221 213;
+    --color-on-surface-variant:        226 191 179;
+    --color-inverse-surface:           247 221 213;
+    --color-inverse-on-surface:        60 45 39;
+    --color-outline:                   169 138 127;
+    --color-outline-variant:           89 65 57;
+    --color-primary-container:         255 107 44;
+    --color-on-primary-container:      92 28 0;
+    --color-on-primary:                91 27 0;
+    --color-primary-fixed:             255 219 207;
+    --color-primary-fixed-dim:         255 181 154;
+    --color-on-primary-fixed:          56 13 0;
+    --color-on-primary-fixed-variant:  128 41 0;
+    --color-inverse-primary:           168 57 0;
+    --color-secondary-container:       63 70 92;
+    --color-on-secondary:              40 48 68;
+    --color-on-secondary-container:    173 180 206;
+    --color-secondary-fixed:           218 226 253;
+    --color-secondary-fixed-dim:       190 198 224;
+    --color-on-secondary-fixed:        19 27 46;
+    --color-on-secondary-fixed-variant:63 70 92;
+    --color-tertiary:                  108 210 255;
+    --color-tertiary-container:        0 166 214;
+    --color-on-tertiary:               0 53 71;
+    --color-on-tertiary-container:     0 54 72;
+    --color-tertiary-fixed:            191 233 255;
+    --color-tertiary-fixed-dim:        108 210 255;
+    --color-on-tertiary-fixed:         0 31 42;
+    --color-on-tertiary-fixed-variant: 0 77 101;
+    --color-error:                     255 180 171;
+    --color-error-container:           147 0 10;
+    --color-on-error:                  105 0 5;
+    --color-on-error-container:        255 218 214;
+  }
+
+  /* ─── Light theme ────────────────────────────────────────────────────────── */
+  .light {
+    /* shadcn semantic tokens — light */
+    --background: 20 100% 98%;
+    --foreground: 20 55% 9%;
+    --card: 20 77% 93%;
+    --card-foreground: 20 55% 9%;
+    --primary: 18 100% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 20 30% 90%;
+    --secondary-foreground: 20 55% 9%;
+    --muted: 20 25% 92%;
+    --muted-foreground: 20 15% 42%;
+    --accent: 20 25% 90%;
+    --accent-foreground: 20 55% 9%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 20 20% 80%;
+    --input: 20 20% 80%;
+    --ring: 18 100% 59%;
+
+    /* Aura Gas Management M3 tokens — light */
+    --color-surface:                   255 248 245;
+    --color-surface-dim:               240 231 226;
+    --color-surface-bright:            255 248 245;
+    --color-surface-container-lowest:  255 255 255;
+    --color-surface-container-low:     255 242 237;
+    --color-surface-container:         252 232 222;
+    --color-surface-container-high:    245 224 213;
+    --color-surface-container-highest: 236 221 214;
+    --color-surface-variant:           244 221 213;
+    --color-surface-tint:              168 57 0;
+    --color-on-surface:                35 18 9;
+    --color-on-surface-variant:        83 67 61;
+    --color-inverse-surface:           35 18 9;
+    --color-inverse-on-surface:        247 221 213;
+    --color-outline:                   133 116 105;
+    --color-outline-variant:           216 194 186;
+    --color-primary-container:         255 107 44;
+    --color-on-primary-container:      57 13 0;
+    --color-on-primary:                255 255 255;
+    --color-primary-fixed:             255 219 207;
+    --color-primary-fixed-dim:         128 41 0;
+    --color-on-primary-fixed:          56 13 0;
+    --color-on-primary-fixed-variant:  128 41 0;
+    --color-inverse-primary:           255 181 154;
+    --color-secondary-container:       218 226 253;
+    --color-on-secondary:              255 255 255;
+    --color-on-secondary-container:    19 27 46;
+    --color-secondary-fixed:           218 226 253;
+    --color-secondary-fixed-dim:       190 198 224;
+    --color-on-secondary-fixed:        19 27 46;
+    --color-on-secondary-fixed-variant:63 70 92;
+    --color-tertiary:                  0 101 136;
+    --color-tertiary-container:        0 166 214;
+    --color-on-tertiary:               255 255 255;
+    --color-on-tertiary-container:     0 31 42;
+    --color-tertiary-fixed:            191 233 255;
+    --color-tertiary-fixed-dim:        108 210 255;
+    --color-on-tertiary-fixed:         0 31 42;
+    --color-on-tertiary-fixed-variant: 0 77 101;
+    --color-error:                     186 26 26;
+    --color-error-container:           255 218 214;
+    --color-on-error:                  255 255 255;
+    --color-on-error-container:        65 0 2;
   }
 
   * {
