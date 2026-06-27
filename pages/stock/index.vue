@@ -14,7 +14,7 @@ const { fetchCylinderStock, fetchMovements, adjustStock, loading, error } = useI
 const stock = ref<CylinderStock[]>([])
 const movements = ref<StockMovement[]>([])
 const editMode = ref(false)
-const adjustmentChanges = ref<Record<number, { fullChange: number; emptyChange: number }>>({})
+const debounceTimers = ref<Record<number, NodeJS.Timeout>>({})
 const { showToast } = useToast()
 
 async function load() {
@@ -25,21 +25,24 @@ async function load() {
 onMounted(load)
 
 async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange: number) {
-  adjustmentChanges.value[sizeKg] = { fullChange, emptyChange }
-  await new Promise(resolve => setTimeout(resolve, 500))
-  if (adjustmentChanges.value[sizeKg]?.fullChange === fullChange && adjustmentChanges.value[sizeKg]?.emptyChange === emptyChange) {
+  if (debounceTimers.value[sizeKg]) {
+    clearTimeout(debounceTimers.value[sizeKg])
+  }
+
+  debounceTimers.value[sizeKg] = setTimeout(async () => {
     const ok = await adjustStock({ sizeKg: sizeKg as any, fullChange, emptyChange })
     if (ok) {
       showToast(`${sizeKg}kg stock updated`)
       await load()
-      delete adjustmentChanges.value[sizeKg]
+      delete debounceTimers.value[sizeKg]
     }
-  }
+  }, 600)
 }
 
 function exitEditMode() {
   editMode.value = false
-  adjustmentChanges.value = {}
+  Object.values(debounceTimers.value).forEach(timer => clearTimeout(timer))
+  debounceTimers.value = {}
 }
 
 const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type === 'delivery' ? 'upload' : 'sync_alt')
