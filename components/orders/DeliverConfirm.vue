@@ -47,7 +47,7 @@ function handleConfirm() {
           <button
             type="button"
             class="flex-1 px-3 py-2 rounded-full text-data-secondary border transition-all"
-            :class="!paidNow ? 'border-error text-error bg-error/10' : 'border-outline-variant text-on-surface-variant'"
+            :class="!paidNow ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
             @click="paidNow = false"
           >
             Pending
