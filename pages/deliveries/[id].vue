@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
+import { PAYMENT_MODES } from '~/types'
 import type { Delivery, DeliveryWithRelations } from '~/types/database'
+import type { PaymentMode } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -11,7 +13,7 @@ definePageMeta({
 const route = useRoute()
 const { user } = useUserSession()
 const { t } = useLocale()
-const { fetchDeliveries, updateDelivery, loading, error } = useDeliveries()
+const { fetchDeliveries, updateDelivery, markAsPaid, loading, error } = useDeliveries()
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
 
@@ -21,6 +23,8 @@ const customers = ref([])
 const products = ref([])
 const isEditing = ref(false)
 const markingDelivered = ref(false)
+const showPaymentPicker = ref(false)
+const selectedPaymentMode = ref<PaymentMode>('cash')
 
 const canEdit = computed(() => user.value?.role === 'admin' || (user.value?.role === 'delivery' && user.value?.id === delivery.value?.createdBy))
 const canMarkDelivered = computed(() => delivery.value?.status !== 'delivered' && canEdit.value)
@@ -53,6 +57,14 @@ async function handleMarkDelivered() {
     }
   } finally {
     markingDelivered.value = false
+  }
+}
+
+async function handleMarkPaid() {
+  const ok = await markAsPaid(id, selectedPaymentMode.value)
+  if (ok) {
+    delivery.value = { ...delivery.value!, paymentStatus: 'paid' }
+    showPaymentPicker.value = false
   }
 }
 
@@ -137,9 +149,50 @@ onMounted(load)
             </div>
             <div class="flex justify-between items-center">
               <span class="text-data-tertiary text-on-surface-variant">Payment</span>
-              <Badge :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'">
-                {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
-              </Badge>
+              <div class="flex items-center gap-2">
+                <Badge :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'">
+                  {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pay Later' }}
+                </Badge>
+                <button
+                  v-if="canEdit && delivery.paymentStatus === 'pending'"
+                  class="flex items-center gap-1 rounded-full bg-success/15 border border-success/30 text-success px-2 py-0.5 text-data-tertiary hover:bg-success/25 transition-colors"
+                  @click="showPaymentPicker = !showPaymentPicker"
+                >
+                  <Icon name="payments" class="text-sm" />
+                  Mark Paid
+                </button>
+              </div>
+            </div>
+            <!-- Inline payment picker on detail page -->
+            <div v-if="showPaymentPicker && delivery.paymentStatus === 'pending'" class="border-t border-outline-variant/20 pt-3 flex flex-col gap-sm">
+              <p class="text-data-tertiary text-on-surface-variant">Payment method collected</p>
+              <div class="flex gap-1.5 flex-wrap">
+                <button
+                  v-for="mode in PAYMENT_MODES"
+                  :key="mode"
+                  class="px-3 py-1.5 rounded-full text-data-tertiary capitalize border transition-all"
+                  :class="selectedPaymentMode === mode
+                    ? 'bg-primary-container/20 border-primary-container text-primary-fixed-dim font-medium'
+                    : 'border-outline-variant/40 text-on-surface-variant hover:bg-surface-variant'"
+                  @click="selectedPaymentMode = mode"
+                >
+                  {{ mode }}
+                </button>
+              </div>
+              <div class="flex gap-2">
+                <button
+                  class="flex-1 rounded-xl bg-success/20 border border-success/40 text-success py-2 text-data-secondary font-medium hover:bg-success/30 transition-colors disabled:opacity-50"
+                  :disabled="loading"
+                  @click="handleMarkPaid"
+                >
+                  <LoadingSpinner v-if="loading" class="h-3 w-3 inline mr-1" />
+                  Confirm Paid
+                </button>
+                <button
+                  class="px-4 rounded-xl border border-outline-variant/30 text-on-surface-variant text-data-secondary"
+                  @click="showPaymentPicker = false"
+                >Cancel</button>
+              </div>
             </div>
           </div>
         </div>

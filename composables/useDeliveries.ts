@@ -80,5 +80,22 @@ export function useDeliveries() {
     }
   }
 
-  return { fetchDeliveries, fetchToday, createDelivery, updateDelivery, loading, error }
+  async function markAsPaid(deliveryId: number, paymentMode: PaymentMode) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${deliveryId}/mark-paid`, {
+        method: 'POST',
+        body: { paymentMode },
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to mark delivery as paid')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchDeliveries, fetchToday, createDelivery, updateDelivery, markAsPaid, loading, error }
 }

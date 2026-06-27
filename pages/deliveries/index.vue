@@ -68,7 +68,7 @@ onMounted(load)
     </div>
     <EmptyState v-else-if="deliveries.length === 0" title="No deliveries yet" />
     <div v-else class="flex flex-col gap-md">
-      <DeliveryCard v-for="delivery in deliveries" :key="delivery.id" :delivery="delivery" />
+      <DeliveryCard v-for="delivery in deliveries" :key="delivery.id" :delivery="delivery" @paid="load()" />
     </div>
   </div>
 </template>
