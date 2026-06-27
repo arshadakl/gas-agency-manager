@@ -215,16 +215,16 @@ function handleSubmit() {
       <div class="flex gap-sm">
         <button
           type="button"
-          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border"
-          :class="!paidNow ? 'border-primary-container bg-primary-container/15 text-primary-container' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
+          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border-2"
+          :class="!paidNow ? 'border-primary-container bg-primary-container/30 text-on-primary-container font-bold' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
           @click="paidNow = false"
         >
           Pending — Pay Later
         </button>
         <button
           type="button"
-          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border"
-          :class="paidNow ? 'border-tertiary-container bg-tertiary-container/15 text-tertiary-container' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
+          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border-2"
+          :class="paidNow ? 'border-tertiary-container bg-tertiary-container/30 text-on-tertiary font-bold' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
           @click="paidNow = true"
         >
           Paid Now — Collect
