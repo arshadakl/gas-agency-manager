@@ -10,6 +10,7 @@ definePageMeta({
 
 const route = useRoute()
 const { user } = useUserSession()
+const { t } = useLocale()
 const { fetchDeliveries, updateDelivery, loading, error } = useDeliveries()
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
@@ -173,7 +174,7 @@ onMounted(load)
 
         <!-- Card: Meta -->
         <div class="bg-surface-container rounded-xl p-4 border border-outline-variant/30">
-          <p class="text-data-secondary text-on-surface-variant mb-2">Logged by</p>
+          <p class="text-data-secondary text-on-surface-variant mb-2">{{ t('recorded_by') }}</p>
           <p class="text-data-primary text-on-surface">{{ delivery.createdByName }}</p>
           <p class="text-data-tertiary text-on-surface-variant mt-1">{{ formatDate(delivery.createdAt) }}</p>
         </div>

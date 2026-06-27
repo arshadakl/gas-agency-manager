@@ -5,6 +5,7 @@ const props = defineProps<{
   customer: CustomerWithBalance
 }>()
 
+const { t } = useLocale()
 const isClear = computed(() => props.customer.balance <= 0)
 </script>
 
@@ -29,12 +30,12 @@ const isClear = computed(() => props.customer.balance <= 0)
         :class="isClear ? 'bg-success/10 text-success border-success/20' : 'bg-error-container text-on-error-container border-error-container/50'"
       >
         <div class="w-1.5 h-1.5 rounded-full" :class="isClear ? 'bg-success' : 'bg-error'" />
-        {{ isClear ? 'Clear' : 'Pending' }}
+        {{ isClear ? t('balance_clear') : t('balance_pending') }}
       </div>
     </div>
     <div class="pt-sm border-t border-outline-variant/20 flex justify-between items-end">
       <div>
-        <p class="text-data-tertiary text-on-surface-variant">Current Balance</p>
+        <p class="text-data-tertiary text-on-surface-variant">{{ t('current_balance') }}</p>
         <p class="text-data-primary mt-1" :class="isClear ? 'text-on-surface' : 'text-error font-bold'">{{ formatCurrency(customer.balance) }}</p>
       </div>
       <span class="w-8 h-8 rounded-full border border-outline-variant/50 flex items-center justify-center text-on-surface-variant group-hover:text-primary group-hover:border-primary transition-all">

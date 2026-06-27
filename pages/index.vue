@@ -8,6 +8,7 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
+const { t } = useLocale()
 const { fetchToday } = useDeliveries()
 const { fetchSummary } = useReports()
 const { fetchCylinderStock } = useInventory()
@@ -45,9 +46,9 @@ function initials(name: string) {
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
-      <h2 class="text-headline-md text-on-surface">Hi, {{ user?.fullName }}</h2>
+      <h2 class="text-headline-md text-on-surface">{{ t('hi') }}, {{ user?.fullName }}</h2>
       <Button v-if="user?.role !== 'viewer'" size="sm" class="rounded-full" as-child>
-        <NuxtLink to="/deliveries/new"><Icon name="add" class="text-base mr-1" /> New Delivery</NuxtLink>
+        <NuxtLink to="/deliveries/new"><Icon name="add" class="text-base mr-1" /> {{ t('new_delivery') }}</NuxtLink>
       </Button>
     </div>
 
@@ -57,16 +58,16 @@ function initials(name: string) {
     <template v-else>
       <section aria-label="Key Performance Indicators" class="grid grid-cols-2 gap-sm items-stretch">
         <NuxtLink to="/deliveries?today=true" class="block h-full">
-          <KpiCard label="Today's Deliveries" :value="String(todayDeliveries.length)" />
+          <KpiCard :label="t('today_deliveries')" :value="String(todayDeliveries.length)" />
         </NuxtLink>
         <NuxtLink to="/payments/today" class="block h-full">
-          <KpiCard label="Today's Collected" :value="formatCurrency(collectedToday)" />
+          <KpiCard :label="t('today_collected')" :value="formatCurrency(collectedToday)" />
         </NuxtLink>
         <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding" class="block h-full">
-          <KpiCard label="Total Pending" :value="formatCurrency(pendingTotal)" />
+          <KpiCard :label="t('total_pending')" :value="formatCurrency(pendingTotal)" />
         </NuxtLink>
         <NuxtLink to="/orders" class="block h-full">
-          <KpiCard label="Orders" :value="String(pendingOrderCount)" />
+          <KpiCard :label="t('orders')" :value="String(pendingOrderCount)" />
         </NuxtLink>
       </section>
 
@@ -76,16 +77,16 @@ function initials(name: string) {
       >
         <div class="flex items-center gap-3">
           <Icon name="receipt_long" class="text-primary-fixed-dim" />
-          <span class="text-data-secondary text-on-surface">All Payments</span>
+          <span class="text-data-secondary text-on-surface">{{ t('all_payments') }}</span>
         </div>
         <Icon name="chevron_right" class="text-on-surface-variant" />
       </NuxtLink>
 
       <section aria-labelledby="stock-heading">
         <div class="flex items-center justify-between mb-sm">
-          <h2 id="stock-heading" class="text-data-primary text-on-surface">Cylinder Stock</h2>
+          <h2 id="stock-heading" class="text-data-primary text-on-surface">{{ t('cylinder_stock') }}</h2>
           <NuxtLink to="/stock" class="text-data-tertiary text-primary-fixed-dim hover:underline flex items-center">
-            View Details <Icon name="chevron_right" class="text-xs ml-1" />
+            {{ t('view_details') }} <Icon name="chevron_right" class="text-xs ml-1" />
           </NuxtLink>
         </div>
         <CylinderStockCard :stock="cylinderStock" />
@@ -100,14 +101,14 @@ function initials(name: string) {
           <div class="bg-primary-container/20 p-2 rounded-full text-primary-fixed-dim flex items-center justify-center">
             <Icon name="add" class="text-lg" />
           </div>
-          <span class="text-data-secondary text-primary-fixed-dim">Record new purchase from supplier</span>
+          <span class="text-data-secondary text-primary-fixed-dim">{{ t('record_purchase') }}</span>
         </div>
         <Icon name="arrow_forward" class="text-primary-fixed-dim group-hover:translate-x-1 transition-transform" />
       </NuxtLink>
 
       <section aria-labelledby="delivery-heading">
-        <h2 id="delivery-heading" class="text-data-primary text-on-surface mb-sm">Active Deliveries</h2>
-        <EmptyState v-if="todayDeliveries.length === 0" title="No deliveries yet today" />
+        <h2 id="delivery-heading" class="text-data-primary text-on-surface mb-sm">{{ t('active_deliveries') }}</h2>
+        <EmptyState v-if="todayDeliveries.length === 0" :title="t('no_deliveries_today')" />
         <div v-else class="flex flex-col gap-sm">
           <NuxtLink
             v-for="delivery in todayDeliveries"
@@ -127,7 +128,7 @@ function initials(name: string) {
               <span class="flex h-5 w-5 items-center justify-center rounded-full bg-secondary-container text-[9px] font-bold text-on-secondary-container">
                 {{ initials(delivery.createdByName) }}
               </span>
-              <span class="text-data-tertiary text-on-surface">Delivered by {{ delivery.createdByName }}</span>
+              <span class="text-data-tertiary text-on-surface">{{ t('delivered_by') }} {{ delivery.createdByName }}</span>
             </div>
           </NuxtLink>
         </div>

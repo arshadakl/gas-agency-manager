@@ -7,6 +7,7 @@ definePageMeta({
 const { user } = useUserSession()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
+const { locale, t, toggleLocale } = useLocale()
 
 type ClearTarget = 'deliveries' | 'customers' | 'stock'
 const confirmClear = ref<ClearTarget | null>(null)
@@ -34,16 +35,16 @@ async function handleClear() {
 }
 
 const links = computed(() => [
-  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
-  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/reports', label: 'Reports', icon: 'analytics' }] : []),
-  ...(user.value?.role === 'admin' ? [{ to: '/settings/users', label: 'Users', icon: 'groups' }] : []),
-  { to: '/settings/account', label: 'My Account', icon: 'account_circle' },
+  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: t('products_pricing'), icon: 'inventory_2' }] : []),
+  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/reports', label: t('reports'), icon: 'analytics' }] : []),
+  ...(user.value?.role === 'admin' ? [{ to: '/settings/users', label: t('users'), icon: 'groups' }] : []),
+  { to: '/settings/account', label: t('my_account'), icon: 'account_circle' },
 ])
 </script>
 
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-sm pb-40">
-    <h1 class="text-headline-md text-on-surface mb-sm">Settings</h1>
+    <h1 class="text-headline-md text-on-surface mb-sm">{{ t('settings') }}</h1>
 
     <NuxtLink
       v-for="link in links"
@@ -64,8 +65,8 @@ const links = computed(() => [
     >
       <Icon name="install_mobile" class="text-primary-fixed-dim" />
       <div class="flex-1">
-        <span class="text-data-primary text-on-surface">Install App</span>
-        <p class="text-data-tertiary text-on-surface-variant mt-0.5">Add SuperGas to your home screen</p>
+        <span class="text-data-primary text-on-surface">{{ t('install_app') }}</span>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">{{ t('install_hint') }}</p>
       </div>
       <Icon name="download" class="text-primary-fixed-dim ml-auto" />
     </button>
@@ -74,7 +75,7 @@ const links = computed(() => [
       class="flex items-center gap-3 rounded-xl bg-success/10 p-4 border border-success/20"
     >
       <Icon name="check_circle" class="text-success" />
-      <span class="text-data-primary text-on-surface">App installed</span>
+      <span class="text-data-primary text-on-surface">{{ t('app_installed') }}</span>
     </div>
 
     <!-- Theme toggle -->
@@ -84,9 +85,9 @@ const links = computed(() => [
     >
       <Icon :name="theme === 'dark' ? 'dark_mode' : 'light_mode'" class="text-primary-fixed-dim" />
       <div class="flex-1">
-        <span class="text-data-primary text-on-surface">Theme</span>
+        <span class="text-data-primary text-on-surface">{{ t('theme') }}</span>
         <p class="text-data-tertiary text-on-surface-variant mt-0.5">
-          {{ theme === 'dark' ? 'Dark — tap to switch to Light' : 'Light — tap to switch to Dark' }}
+          {{ theme === 'dark' ? t('theme_dark_hint') : t('theme_light_hint') }}
         </p>
       </div>
       <div
@@ -99,6 +100,29 @@ const links = computed(() => [
         />
       </div>
     </button>
+    <!-- Language toggle -->
+    <button
+      class="flex items-center gap-3 rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors w-full text-left"
+      @click="toggleLocale"
+    >
+      <Icon name="translate" class="text-primary-fixed-dim" />
+      <div class="flex-1">
+        <span class="text-data-primary text-on-surface">{{ t('language') }}</span>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">
+          {{ locale === 'en' ? t('language_hint') : 'English — tap to switch to Malayalam' }}
+        </p>
+      </div>
+      <div
+        class="w-12 h-6 rounded-full transition-colors flex items-center px-1"
+        :class="locale === 'ml' ? 'bg-tertiary-container' : 'bg-surface-container-highest'"
+      >
+        <div
+          class="w-4 h-4 rounded-full bg-on-surface transition-all"
+          :class="locale === 'ml' ? 'translate-x-6' : 'translate-x-0'"
+        />
+      </div>
+    </button>
+
     <!-- Danger zone — admin only -->
     <template v-if="user?.role === 'admin'">
       <div class="mt-lg pt-lg border-t border-error/20">

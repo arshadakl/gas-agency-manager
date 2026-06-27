@@ -4,6 +4,8 @@ import type { CustomerPaymentWithRelations } from '~/composables/usePayments'
 defineProps<{
   payments: CustomerPaymentWithRelations[]
 }>()
+
+const { t } = useLocale()
 </script>
 
 <template>
@@ -20,7 +22,7 @@ defineProps<{
       <p v-if="payment.items.length > 0" class="text-data-tertiary text-on-surface-variant mt-2">
         {{ payment.items.map((i) => `${i.product.name} x${i.quantity}`).join(', ') }}
       </p>
-      <p class="text-data-tertiary text-on-surface-variant mt-2 pt-2 border-t border-outline-variant/20">Collected by {{ payment.createdByName }}</p>
+      <p class="text-data-tertiary text-on-surface-variant mt-2 pt-2 border-t border-outline-variant/20">{{ t('collected_by') }} {{ payment.createdByName }}</p>
     </div>
   </div>
 </template>

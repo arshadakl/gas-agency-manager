@@ -4,6 +4,8 @@ import type { OrderWithRelations } from '~/types/database'
 defineProps<{
   order: OrderWithRelations
 }>()
+
+const { t } = useLocale()
 </script>
 
 <template>
@@ -20,6 +22,6 @@ defineProps<{
       <span class="text-data-secondary">{{ order.customer.contactPerson }}</span>
     </div>
     <p class="text-data-tertiary text-on-surface-variant">{{ formatDate(order.orderDate) }} · {{ order.items.length }} item(s)</p>
-    <p class="text-data-tertiary text-on-surface-variant">Booked by {{ order.createdByName }}</p>
+    <p class="text-data-tertiary text-on-surface-variant">{{ t('booked_by') }} {{ order.createdByName }}</p>
   </NuxtLink>
 </template>

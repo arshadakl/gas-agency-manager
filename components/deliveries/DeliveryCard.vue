@@ -8,6 +8,7 @@ defineProps<{
 }>()
 
 const { user } = useUserSession()
+const { t } = useLocale()
 
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -62,7 +63,7 @@ function canEdit() {
         <span class="flex h-4 w-4 items-center justify-center rounded-full bg-secondary-container text-[8px] font-bold text-on-secondary-container">
           {{ initials(delivery.createdByName) }}
         </span>
-        <span class="text-data-tertiary">Delivered by {{ delivery.createdByName }}</span>
+        <span class="text-data-tertiary">{{ t('delivered_by') }} {{ delivery.createdByName }}</span>
       </div>
     </div>
   </div>
