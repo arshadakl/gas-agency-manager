@@ -17,6 +17,9 @@ const users = ref<User[]>([])
 const showForm = ref(false)
 const userToDelete = ref<User | null>(null)
 const showDeleteConfirm = ref(false)
+const userToResetPw = ref<User | null>(null)
+const newPassword = ref('')
+const pwError = ref<string | null>(null)
 
 async function load() {
   users.value = await fetchUsers()
@@ -43,6 +46,27 @@ async function handleDeleteConfirm() {
     showDeleteConfirm.value = false
     userToDelete.value = null
     await load()
+  }
+}
+
+function openPasswordReset(u: User) {
+  userToResetPw.value = u
+  newPassword.value = ''
+  pwError.value = null
+}
+
+async function handleResetPassword() {
+  pwError.value = null
+  if (newPassword.value.length < 8) {
+    pwError.value = 'Password must be at least 8 characters'
+    return
+  }
+  const updated = await updateUser(userToResetPw.value!.id, { newPassword: newPassword.value })
+  if (updated) {
+    userToResetPw.value = null
+    newPassword.value = ''
+  } else {
+    pwError.value = error.value
   }
 }
 </script>
@@ -72,10 +96,56 @@ async function handleDeleteConfirm() {
           </Badge>
           <button
             class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
-            @click="userToDelete = u; showDeleteConfirm = true"
+            title="Reset password"
+            @click="openPasswordReset(u)"
+          >
+            <Icon name="key" class="text-sm" />
+          </button>
+          <button
+            class="flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error-container/30 transition-colors"
             title="Delete user"
+            @click="userToDelete = u; showDeleteConfirm = true"
           >
             <Icon name="delete" class="text-sm" />
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Password reset modal -->
+    <div
+      v-if="userToResetPw"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-8 sm:pb-0"
+      @click.self="userToResetPw = null"
+    >
+      <div class="w-full max-w-sm bg-surface-container-high rounded-2xl p-6 space-y-4">
+        <div>
+          <p class="text-data-primary text-on-surface font-semibold">Reset Password</p>
+          <p class="text-data-secondary text-on-surface-variant mt-0.5">{{ userToResetPw.fullName }}</p>
+        </div>
+        <div class="space-y-1">
+          <label class="text-data-secondary text-on-surface-variant">New Password</label>
+          <input
+            v-model="newPassword"
+            type="password"
+            placeholder="Min 8 characters"
+            class="w-full rounded-xl bg-surface-container-highest border border-outline-variant/40 px-3 py-2.5 text-on-surface text-body-base outline-none focus:border-tertiary-container transition-colors"
+            @keyup.enter="handleResetPassword"
+          />
+        </div>
+        <p v-if="pwError" class="text-sm text-error">{{ pwError }}</p>
+        <div class="flex gap-2 pt-1">
+          <button
+            class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+            @click="userToResetPw = null"
+          >Cancel</button>
+          <button
+            class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            :disabled="loading"
+            @click="handleResetPassword"
+          >
+            <LoadingSpinner v-if="loading" class="h-4 w-4 mx-auto" />
+            <span v-else>Reset</span>
           </button>
         </div>
       </div>
