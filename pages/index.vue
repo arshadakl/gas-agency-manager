@@ -55,17 +55,17 @@ function initials(name: string) {
       <LoadingSpinner />
     </div>
     <template v-else>
-      <section aria-label="Key Performance Indicators" class="grid grid-cols-2 gap-sm">
-        <NuxtLink to="/deliveries?today=true">
+      <section aria-label="Key Performance Indicators" class="grid grid-cols-2 gap-sm items-stretch">
+        <NuxtLink to="/deliveries?today=true" class="block h-full">
           <KpiCard label="Today's Deliveries" :value="String(todayDeliveries.length)" />
         </NuxtLink>
-        <NuxtLink to="/payments/today">
-          <KpiCard label="Today's Amount Collected" :value="formatCurrency(collectedToday)" />
+        <NuxtLink to="/payments/today" class="block h-full">
+          <KpiCard label="Today's Collected" :value="formatCurrency(collectedToday)" />
         </NuxtLink>
-        <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding">
+        <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding" class="block h-full">
           <KpiCard label="Total Pending" :value="formatCurrency(pendingTotal)" />
         </NuxtLink>
-        <NuxtLink to="/orders">
+        <NuxtLink to="/orders" class="block h-full">
           <KpiCard label="Orders" :value="String(pendingOrderCount)" />
         </NuxtLink>
       </section>
