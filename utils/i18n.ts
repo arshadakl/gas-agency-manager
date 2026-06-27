@@ -68,7 +68,7 @@ export const ml: typeof en = {
   customers: 'ഉപഭോക്താക്കൾ',
   orders: 'ഓർഡർ',
   settings: 'ക്രമീകരണം',
-  reports: 'Report',
+  reports: 'റിപ്പോർട്ട്',
   back: 'തിരിച്ച്',
 
   // Dashboard
@@ -76,13 +76,13 @@ export const ml: typeof en = {
   new_delivery: 'പുതിയ ഡെലിവറി',
   today_deliveries: 'ഇന്നത്തെ ഡെലിവറി',
   today_collected: 'ഇന്ന് ശേഖരിച്ചത്',
-  total_pending: 'കുടിശ്ശിക',
+  total_pending: 'ആകെ കുടിശ്ശിക',
   active_deliveries: 'ഇന്നത്തെ ഡെലിവറികൾ',
   cylinder_stock: 'സിലിണ്ടർ സ്റ്റോക്ക്',
   view_details: 'കൂടുതൽ കാണുക',
   record_purchase: 'പുതിയ ഗ്യാസ് വരവ് ചേർക്കുക',
-  no_deliveries_today: 'ഇന്ന് ഡെലിവറികൾ ഒന്നും ഇല്ല',
-  all_payments: 'എല്ലാ പേമെന്റും',
+  no_deliveries_today: 'ഇന്ന് ഡെലിവറികൾ ഒന്നുമില്ല',
+  all_payments: 'എല്ലാ പേയ്‌മെന്റുകളും',
 
   // Attribution
   delivered_by: 'ഡെലിവർ ചെയ്തത്',
@@ -98,7 +98,7 @@ export const ml: typeof en = {
 
   // Stock
   full: 'നിറഞ്ഞ',
-  empty: 'ശൂന്യം',
+  empty: 'കാലി',
 
   // Settings
   theme: 'തീം',
@@ -112,7 +112,7 @@ export const ml: typeof en = {
   products_pricing: 'ഉൽപ്പന്നങ്ങളും വിലയും',
   users: 'ഉപയോക്താക്കൾ',
   my_account: 'എന്റെ അക്കൗണ്ട്',
-  danger_zone: 'Danger Zone',
+  danger_zone: 'അപകട മേഖല',
 
   // Actions
   save: 'സേവ് ചെയ്യുക',
