@@ -17,13 +17,10 @@ export interface PurchaseWithItems extends Purchase {
 export interface PurchaseFormData {
   supplier: string
   purchaseDate: string
-  invoiceNo?: string
   totalAmount: number
   amountPaid: number
   paymentMode?: 'cash' | 'upi' | 'bank' | 'credit'
-  paymentReference?: string
   dueDate?: string
-  notes?: string
   items: PurchaseLineItem[]
 }
 
