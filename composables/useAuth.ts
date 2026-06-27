@@ -37,7 +37,8 @@ export function useAuth() {
       // Logout endpoint might fail, but still clear local session
     }
     await clear()
-    await navigateTo('/login')
+    // Hard redirect resets all in-memory Vue state — navigateTo alone is insufficient in SPA mode
+    window.location.replace('/login')
   }
 
   async function fetchUsers() {
