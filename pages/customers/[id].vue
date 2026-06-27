@@ -80,6 +80,7 @@ async function handleUpdate(data: NewCustomer) {
         :balance="balance"
         :deliveries="deliveries"
         :payments="payments"
+        @paid="load()"
       />
     </template>
   </div>
