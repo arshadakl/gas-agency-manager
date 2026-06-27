@@ -51,6 +51,9 @@ export default defineNuxtConfig({
   runtimeConfig: {
     sessionPassword: process.env.NUXT_SESSION_PASSWORD,
     backupSecret: process.env.BACKUP_SECRET,
+    session: {
+      maxAge: 60 * 60 * 24 * 30, // 30 days — persistent cookie, survives browser restarts
+    },
     public: {
       appName: 'Tuvvur Super gas',
     },
