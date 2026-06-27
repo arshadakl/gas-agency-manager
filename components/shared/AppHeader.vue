@@ -4,6 +4,15 @@ withDefaults(defineProps<{
 }>(), {
   title: 'Tuvvur Super gas',
 })
+
+const route = useRoute()
+const segments = computed(() => route.path.split('/').filter(Boolean))
+const isSubRoute = computed(() => segments.value.length >= 2)
+const parentPath = computed(() => {
+  const segs = segments.value
+  if (segs.length === 0) return '/'
+  return '/' + segs.slice(0, -1).join('/')
+})
 </script>
 
 <template>
@@ -16,6 +25,15 @@ withDefaults(defineProps<{
     </div>
     <div class="flex items-center gap-1">
       <NuxtLink
+        v-if="isSubRoute"
+        :to="parentPath"
+        aria-label="Back"
+        class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant active:scale-95"
+      >
+        <Icon name="arrow_back" />
+      </NuxtLink>
+      <NuxtLink
+        v-else
         to="/settings"
         aria-label="Settings"
         class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant active:scale-95"
