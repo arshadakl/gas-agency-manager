@@ -18,8 +18,8 @@ const parentPath = computed(() => {
 <template>
   <header class="sticky top-0 z-40 flex items-center justify-between bg-surface-container-low px-margin-mobile h-16 shadow-sm">
     <div class="flex items-center gap-sm">
-      <div class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-container-high text-primary-fixed-dim">
-        <Icon name="local_gas_station" class="text-lg" />
+      <div class="flex h-8 w-8 items-center justify-center text-primary-fixed-dim shrink-0">
+        <AppLogo :size="32" />
       </div>
       <h1 class="font-bold text-headline-md text-primary-fixed-dim tracking-tight truncate">{{ title }}</h1>
     </div>
