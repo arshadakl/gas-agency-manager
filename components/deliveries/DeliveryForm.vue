@@ -216,7 +216,7 @@ function handleSubmit() {
         <button
           type="button"
           class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border"
-          :class="!paidNow ? 'border-error bg-error/15 text-error' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
+          :class="!paidNow ? 'border-primary-container bg-primary-container/15 text-primary-container' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
           @click="paidNow = false"
         >
           Pending — Pay Later
