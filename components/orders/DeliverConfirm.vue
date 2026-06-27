@@ -46,16 +46,16 @@ function handleConfirm() {
         <div class="flex gap-sm">
           <button
             type="button"
-            class="flex-1 px-3 py-2 rounded-full text-data-secondary border-2 transition-all font-medium"
-            :class="!paidNow ? 'border-primary-container bg-primary-container/30 text-on-primary-container' : 'border-outline-variant text-on-surface-variant bg-surface'"
+            class="flex-1 px-3 py-2 rounded-full border-2 transition-all font-medium"
+            :class="!paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface' : 'border-outline-variant text-on-surface-variant bg-surface'"
             @click="paidNow = false"
           >
             Pending
           </button>
           <button
             type="button"
-            class="flex-1 px-3 py-2 rounded-full text-data-secondary border-2 transition-all font-medium"
-            :class="paidNow ? 'border-tertiary-container bg-tertiary-container/30 text-on-tertiary' : 'border-outline-variant text-on-surface-variant bg-surface'"
+            class="flex-1 px-3 py-2 rounded-full border-2 transition-all font-medium"
+            :class="paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface' : 'border-outline-variant text-on-surface-variant bg-surface'"
             @click="paidNow = true"
           >
             Paid now
