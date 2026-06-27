@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import { Badge } from '~/components/ui/badge'
 import type { User } from '~/types/database'
 
 definePageMeta({
@@ -69,31 +68,43 @@ async function handleResetPassword() {
     pwError.value = error.value
   }
 }
+
+function closePasswordReset() {
+  userToResetPw.value = null
+  pwError.value = null
+  newPassword.value = ''
+}
 </script>
 
 <template>
-  <div class="px-4 py-4">
-    <div class="flex items-center justify-between mb-4">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
+    <div class="flex items-center justify-between">
       <h2 class="text-headline-md text-on-surface">Users</h2>
       <Button size="icon" class="rounded-full" @click="showForm = true">
         <Icon name="add" />
       </Button>
     </div>
 
-    <div v-if="showForm" class="mb-4 rounded-lg border border-border p-4">
+    <div v-if="showForm" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
       <UserForm :loading="loading" :error="error" @submit="handleCreate" @cancel="showForm = false" />
     </div>
 
-    <div class="rounded-lg border border-border overflow-hidden">
-      <div v-for="u in users" :key="u.id" class="flex items-center justify-between border-b border-border px-4 py-3 last:border-0 gap-2">
+    <div class="rounded-xl border border-outline-variant/30 bg-surface-container overflow-hidden">
+      <div v-for="u in users" :key="u.id" class="flex items-center justify-between border-b border-outline-variant/20 px-4 py-3 last:border-0 gap-2">
         <div class="flex-1">
-          <p class="text-sm font-medium">{{ u.fullName }}</p>
-          <p class="text-xs text-muted-foreground">@{{ u.username }} · {{ u.role }}</p>
+          <p class="text-data-primary text-on-surface">{{ u.fullName }}</p>
+          <p class="text-data-tertiary text-on-surface-variant mt-0.5">@{{ u.username }} · {{ u.role }}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
-          <Badge :variant="u.isActive ? 'default' : 'secondary'" class="cursor-pointer" @click="toggleActive(u)">
-            {{ u.isActive ? 'active' : 'inactive' }}
-          </Badge>
+          <button
+            class="rounded-full px-3 py-1 text-data-tertiary border transition-colors"
+            :class="u.isActive
+              ? 'border-success/40 bg-success/10 text-success'
+              : 'border-outline-variant/30 bg-surface-container-highest text-on-surface-variant'"
+            @click="toggleActive(u)"
+          >
+            {{ u.isActive ? 'Active' : 'Inactive' }}
+          </button>
           <button
             class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
             title="Reset password"
@@ -116,7 +127,7 @@ async function handleResetPassword() {
     <div
       v-if="userToResetPw"
       class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-8 sm:pb-0"
-      @click.self="userToResetPw = null"
+      @click.self="closePasswordReset"
     >
       <div class="w-full max-w-sm bg-surface-container-high rounded-2xl p-6 space-y-4">
         <div>
@@ -137,7 +148,7 @@ async function handleResetPassword() {
         <div class="flex gap-2 pt-1">
           <button
             class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
-            @click="userToResetPw = null"
+            @click="closePasswordReset"
           >Cancel</button>
           <button
             class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"

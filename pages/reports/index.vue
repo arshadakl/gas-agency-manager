@@ -17,7 +17,7 @@ const links = [
   { to: '/reports/payments', label: 'Payment Types', icon: 'account_balance_wallet' },
   { to: '/reports/customers', label: 'Top Customers', icon: 'groups' },
   { to: '/reports/staff', label: 'Staff Work', icon: 'badge' },
-  { to: '/reports/procurement', label: 'Buying vs Selling', icon: 'local_shipping' },
+  { to: '/reports/procurement', label: 'Buying vs Selling', icon: 'swap_horiz' },
 ]
 </script>
 

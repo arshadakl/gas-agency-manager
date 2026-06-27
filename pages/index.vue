@@ -13,28 +13,23 @@ const { fetchToday } = useDeliveries()
 const { fetchSummary } = useReports()
 const { fetchCylinderStock } = useInventory()
 const { fetchTodayPayments } = usePayments()
-const { fetchOrders } = useOrders()
-
 const todayDeliveries = ref<DeliveryWithRelations[]>([])
 const collectedToday = ref(0)
 const pendingTotal = ref(0)
-const pendingOrderCount = ref(0)
 const cylinderStock = ref<CylinderStock[]>([])
 const loading = ref(true)
 
 onMounted(async () => {
-  const [deliveries, summary, stock, todayPayments, orders] = await Promise.all([
+  const [deliveries, summary, stock, todayPayments] = await Promise.all([
     fetchToday(),
     user.value?.role !== 'viewer' ? fetchSummary() : Promise.resolve(null),
     fetchCylinderStock(),
     fetchTodayPayments(),
-    fetchOrders('pending'),
   ])
   todayDeliveries.value = deliveries
   pendingTotal.value = summary?.outstanding ?? 0
   cylinderStock.value = stock
   collectedToday.value = todayPayments.reduce((sum, p) => sum + p.amount, 0)
-  pendingOrderCount.value = orders.length
   loading.value = false
 })
 
@@ -63,11 +58,8 @@ function initials(name: string) {
         <NuxtLink to="/payments/today" class="block h-full">
           <KpiCard :label="t('today_collected')" :value="formatCurrency(collectedToday)" />
         </NuxtLink>
-        <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding" class="block h-full">
+        <NuxtLink v-if="user?.role !== 'viewer'" to="/customers?filter=outstanding" class="block col-span-2 h-full">
           <KpiCard :label="t('total_pending')" :value="formatCurrency(pendingTotal)" />
-        </NuxtLink>
-        <NuxtLink to="/orders" class="block h-full">
-          <KpiCard :label="t('orders')" :value="String(pendingOrderCount)" />
         </NuxtLink>
       </section>
 
@@ -91,20 +83,6 @@ function initials(name: string) {
         </div>
         <CylinderStockCard :stock="cylinderStock" />
       </section>
-
-      <NuxtLink
-        v-if="user?.role === 'admin' || user?.role === 'delivery'"
-        to="/stock/purchases/new"
-        class="w-full bg-surface-container border border-primary-container/60 rounded-xl p-4 flex items-center justify-between group hover:bg-primary-container/5 transition-all active:scale-[0.98]"
-      >
-        <div class="flex items-center gap-3">
-          <div class="bg-primary-container/20 p-2 rounded-full text-primary-fixed-dim flex items-center justify-center">
-            <Icon name="add" class="text-lg" />
-          </div>
-          <span class="text-data-secondary text-primary-fixed-dim">{{ t('record_purchase') }}</span>
-        </div>
-        <Icon name="arrow_forward" class="text-primary-fixed-dim group-hover:translate-x-1 transition-transform" />
-      </NuxtLink>
 
       <section aria-labelledby="delivery-heading">
         <h2 id="delivery-heading" class="text-data-primary text-on-surface mb-sm">{{ t('active_deliveries') }}</h2>

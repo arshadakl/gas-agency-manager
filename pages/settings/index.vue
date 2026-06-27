@@ -36,7 +36,6 @@ async function handleClear() {
 
 const links = computed(() => [
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: t('products_pricing'), icon: 'inventory_2' }] : []),
-  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/reports', label: t('reports'), icon: 'analytics' }] : []),
   ...(user.value?.role === 'admin' ? [{ to: '/settings/users', label: t('users'), icon: 'groups' }] : []),
   { to: '/settings/account', label: t('my_account'), icon: 'account_circle' },
 ])

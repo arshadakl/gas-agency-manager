@@ -68,14 +68,14 @@ async function handleCreate(data: NewCustomer) {
           :class="filter === 'active' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"
           @click="filter = 'active'"
         >
-          Active
+          All
         </button>
         <button
           class="flex-1 px-lg py-xs rounded-md text-data-primary text-sm transition-colors"
           :class="filter === 'outstanding' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"
           @click="filter = 'outstanding'"
         >
-          Pending
+          Outstanding
         </button>
       </div>
     </div>

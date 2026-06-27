@@ -3,7 +3,7 @@ import { useDB } from '~/server/database'
 import { purchases } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin', 'viewer'])
+  await requireRole(event, ['admin', 'delivery', 'viewer'])
 
   const query = getQuery(event) as { from?: string; to?: string }
   const db = useDB(event)

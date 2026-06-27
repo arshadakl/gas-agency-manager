@@ -10,7 +10,7 @@ const NAV_DEFS = [
   { to: '/deliveries', key: 'deliveries' as const, icon: 'local_shipping', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/stock', key: 'stock' as const, icon: 'inventory_2', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
   { to: '/customers', key: 'customers' as const, icon: 'groups', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
-  { to: '/orders', key: 'orders' as const, icon: 'event_note', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
+  { to: '/reports', key: 'reports' as const, icon: 'analytics', roles: [ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER] },
 ] satisfies Array<{ to: string; key: import('~/utils/i18n').TranslationKey; icon: string; roles: Role[] }>
 
 const visibleDefs = computed(() => NAV_DEFS.filter((item) => !user.value || item.roles.includes(user.value.role)))

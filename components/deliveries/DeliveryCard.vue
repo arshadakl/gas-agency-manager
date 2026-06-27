@@ -36,7 +36,7 @@ function canEdit() {
             class="mt-0.5"
             :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'"
           >
-            {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pending' }}
+            {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pay Later' }}
           </Badge>
         </div>
         <div v-if="canEdit()" class="flex gap-1 pt-1">

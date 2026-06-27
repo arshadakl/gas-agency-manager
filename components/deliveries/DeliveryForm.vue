@@ -262,9 +262,14 @@ function handleSubmit() {
 
     <!-- Sticky Bottom Actions -->
     <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-surface-variant p-4 flex gap-4 z-30">
-      <Button type="submit" variant="outline" class="flex-1 rounded-lg" :disabled="props.loading" @click="submitMode = 'save-only'">
+      <button
+        type="submit"
+        class="flex-1 rounded-lg bg-surface-container-highest text-on-surface border border-outline-variant/40 py-2 px-4 font-medium hover:bg-surface-variant transition-colors disabled:opacity-50"
+        :disabled="props.loading"
+        @click="submitMode = 'save-only'"
+      >
         Save Only
-      </Button>
+      </button>
       <Button type="submit" class="flex-[2] rounded-lg" :disabled="props.loading" @click="submitMode = 'save-whatsapp'">
         <LoadingSpinner v-if="props.loading" class="h-4 w-4 mr-2" />
         <Icon v-else name="send" class="text-base mr-2" />

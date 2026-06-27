@@ -4,7 +4,7 @@ import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['admin'])
+  const user = await requireRole(event, ['admin', 'delivery'])
 
   const body = await parseBody(event, PurchaseSchema)
   const db = useDB(event)

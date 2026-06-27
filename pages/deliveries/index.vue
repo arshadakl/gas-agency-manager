@@ -38,27 +38,28 @@ onMounted(load)
       </Button>
     </div>
 
-    <div class="flex gap-1.5 flex-wrap">
+    <div class="flex gap-1.5 flex-wrap items-center">
       <button
         class="rounded-full px-4 py-1.5 text-data-secondary transition-colors"
         :class="!mineOnly ? 'bg-primary-container text-on-primary-container font-bold' : 'border border-outline text-on-surface-variant'"
         @click="mineOnly = false"
       >
-        All Deliveries
+        All
       </button>
       <button
         class="rounded-full px-4 py-1.5 text-data-secondary transition-colors"
         :class="mineOnly ? 'bg-primary-container text-on-primary-container font-bold' : 'border border-outline text-on-surface-variant'"
         @click="mineOnly = true"
       >
-        My Deliveries
+        Mine
       </button>
+      <span class="w-px h-5 bg-outline-variant/50 mx-1" />
       <button
-        class="rounded-full px-4 py-1.5 text-data-secondary transition-colors border"
-        :class="todayOnly ? 'border-primary text-primary bg-primary/10' : 'border-outline text-on-surface-variant'"
+        class="rounded-full px-4 py-1.5 text-data-secondary transition-colors"
+        :class="todayOnly ? 'bg-tertiary-container/30 border border-tertiary-container text-on-surface font-medium' : 'border border-outline-variant/50 text-on-surface-variant'"
         @click="todayOnly = !todayOnly"
       >
-        Today only
+        Today
       </button>
     </div>
 

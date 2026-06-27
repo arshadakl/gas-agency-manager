@@ -1952,16 +1952,30 @@ requireRole(event, ['admin'])          // POST, PATCH, DELETE
 requireRole(event, ['admin', 'viewer']) // GET list and detail
 ```
 
-### 24.7 Updated permission matrix (additions)
+### 24.7 Role permission matrix (authoritative)
+
+**Admin-only actions** — only `admin` can do these:
+- Add / edit / delete users (`/settings/users`)
+- Danger zone: clear all deliveries / customers / stock data
+
+**Admin + Delivery** — both roles can do all other operations:
+- Create/view deliveries, record payments, manage customers
+- Create purchases from supplier, view purchase history
+- Edit products and prices, adjust stock counts
+- View reports
+
+**Viewer** — read-only access to deliveries, customers, ledger, reports, stock.
 
 | Action                       | Admin | Delivery | Viewer |
 |------------------------------|-------|----------|--------|
 | View cylinder stock          | ✅    | ✅       | ✅     |
-| View purchase history        | ✅    | ❌       | ✅     |
-| Create purchase              | ✅    | ❌       | ❌     |
+| View purchase history        | ✅    | ✅       | ✅     |
+| Create purchase              | ✅    | ✅       | ❌     |
 | Edit / delete purchase       | ✅    | ❌       | ❌     |
-| Manual stock adjustment      | ✅    | ❌       | ❌     |
+| Manual stock adjustment      | ✅    | ✅       | ❌     |
 | View stock movement log      | ✅    | ✅       | ✅     |
+| Add / edit users             | ✅    | ❌       | ❌     |
+| Danger zone (clear data)     | ✅    | ❌       | ❌     |
 
 ---
 

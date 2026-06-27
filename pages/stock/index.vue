@@ -15,22 +15,27 @@ const stock = ref<CylinderStock[]>([])
 const movements = ref<StockMovement[]>([])
 const editMode = ref(false)
 const debounceTimers = ref<Record<number, NodeJS.Timeout>>({})
+const pendingSizes = ref<number[]>([])
 const { showToast } = useToast()
 
 async function load() {
-  const [stockRows, movementRows] = await Promise.all([fetchCylinderStock(), fetchMovements(10)])
+  const [stockRows, movementRows] = await Promise.all([fetchCylinderStock(), fetchMovements(20)])
   stock.value = stockRows
   movements.value = movementRows
 }
 onMounted(load)
 
 async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange: number) {
+  if (!pendingSizes.value.includes(sizeKg)) {
+    pendingSizes.value = [...pendingSizes.value, sizeKg]
+  }
   if (debounceTimers.value[sizeKg]) {
     clearTimeout(debounceTimers.value[sizeKg])
   }
 
   debounceTimers.value[sizeKg] = setTimeout(async () => {
     const ok = await adjustStock({ sizeKg: sizeKg as any, fullChange, emptyChange })
+    pendingSizes.value = pendingSizes.value.filter(s => s !== sizeKg)
     if (ok) {
       showToast(`${sizeKg}kg stock updated`)
       await load()
@@ -43,6 +48,7 @@ function exitEditMode() {
   editMode.value = false
   Object.values(debounceTimers.value).forEach(timer => clearTimeout(timer))
   debounceTimers.value = {}
+  pendingSizes.value = []
 }
 
 const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type === 'delivery' ? 'upload' : 'sync_alt')
@@ -53,7 +59,8 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
     <div class="flex justify-between items-center">
       <h1 class="text-headline-md text-on-surface">Cylinder Stock</h1>
       <div v-if="user?.role === 'admin' || user?.role === 'delivery'" class="flex items-center gap-3 bg-surface-container rounded-full px-4 py-2 border border-outline-variant/30">
-        <span class="text-data-tertiary text-on-surface-variant">Edit</span>
+        <span v-if="pendingSizes.length > 0" class="text-data-tertiary text-primary-fixed-dim animate-pulse">Saving...</span>
+        <span v-else class="text-data-tertiary text-on-surface-variant">Edit</span>
         <button
           class="w-10 h-6 rounded-full transition-colors"
           :class="editMode ? 'bg-primary-container' : 'bg-surface-container-highest'"
@@ -94,7 +101,7 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
       <section class="space-y-md">
         <div class="flex items-center justify-between border-b border-surface-container-highest pb-2">
           <h3 class="text-label-caps text-on-surface-variant tracking-widest uppercase">Stock History</h3>
-          <NuxtLink to="/stock/purchases" class="text-data-tertiary text-primary-fixed-dim">Purchase history →</NuxtLink>
+          <NuxtLink to="/stock/purchases" class="text-data-tertiary text-primary-fixed-dim">All purchases →</NuxtLink>
         </div>
         <EmptyState v-if="movements.length === 0" title="No stock movements yet" />
         <div v-else class="flex flex-col">

@@ -61,9 +61,9 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
     </div>
 
     <div class="flex gap-sm flex-wrap items-center">
-      <input v-model="filterFrom" type="date" class="rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 text-body-base text-on-surface" >
-      <input v-model="filterTo" type="date" class="rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 text-body-base text-on-surface" >
-      <select v-model="filterMode" class="rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 text-body-base text-on-surface capitalize">
+      <input v-model="filterFrom" type="date" class="rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface focus:outline-none focus:border-primary-container transition-colors" >
+      <input v-model="filterTo" type="date" class="rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface focus:outline-none focus:border-primary-container transition-colors" >
+      <select v-model="filterMode" class="rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface capitalize focus:outline-none focus:border-primary-container transition-colors appearance-none pr-8">
         <option value="">All modes</option>
         <option v-for="mode in PAYMENT_MODES" :key="mode" :value="mode">{{ mode }}</option>
       </select>

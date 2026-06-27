@@ -32,7 +32,7 @@ export const en = {
   // Customer
   current_balance: 'Current Balance',
   balance_clear: 'Clear',
-  balance_pending: 'Pending',
+  balance_pending: 'Owing',
 
   // Stock
   full: 'Full',
