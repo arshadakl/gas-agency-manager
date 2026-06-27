@@ -45,7 +45,11 @@ async function handleUpdate(data: NewCustomer) {
 
 <template>
   <div class="px-margin-mobile py-lg">
-    <div v-if="!customer" class="flex justify-center py-12">
+    <div v-if="error && !customer" class="flex flex-col items-center py-12 gap-3">
+      <Icon name="error" class="text-error text-4xl" />
+      <p class="text-data-secondary text-error">{{ error }}</p>
+    </div>
+    <div v-else-if="!customer" class="flex justify-center py-12">
       <LoadingSpinner />
     </div>
     <template v-else>
