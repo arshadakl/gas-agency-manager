@@ -1,6 +1,10 @@
 <script setup lang="ts">
 const { initTheme } = useTheme()
-onMounted(initTheme)
+const { init: initPwa } = usePwaInstall()
+onMounted(() => {
+  initTheme()
+  initPwa()
+})
 </script>
 
 <template>

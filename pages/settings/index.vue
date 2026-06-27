@@ -6,6 +6,7 @@ definePageMeta({
 
 const { user } = useUserSession()
 const { theme, toggleTheme } = useTheme()
+const { isInstallable, isInstalled, install } = usePwaInstall()
 
 const links = computed(() => [
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: 'Products & Pricing', icon: 'inventory_2' }] : []),
@@ -29,6 +30,27 @@ const links = computed(() => [
       <span class="text-data-primary text-on-surface">{{ link.label }}</span>
       <Icon name="chevron_right" class="text-on-surface-variant ml-auto" />
     </NuxtLink>
+
+    <!-- Install app -->
+    <button
+      v-if="isInstallable"
+      class="flex items-center gap-3 rounded-xl bg-primary-container/20 p-4 border border-primary-container/40 hover:bg-primary-container/30 transition-colors w-full text-left"
+      @click="install"
+    >
+      <Icon name="install_mobile" class="text-primary-fixed-dim" />
+      <div class="flex-1">
+        <span class="text-data-primary text-on-surface">Install App</span>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">Add Tuvvur to your home screen</p>
+      </div>
+      <Icon name="download" class="text-primary-fixed-dim ml-auto" />
+    </button>
+    <div
+      v-else-if="isInstalled"
+      class="flex items-center gap-3 rounded-xl bg-success/10 p-4 border border-success/20"
+    >
+      <Icon name="check_circle" class="text-success" />
+      <span class="text-data-primary text-on-surface">App installed</span>
+    </div>
 
     <!-- Theme toggle -->
     <button
