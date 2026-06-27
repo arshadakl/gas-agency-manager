@@ -40,7 +40,7 @@ const links = computed(() => [
       <Icon name="install_mobile" class="text-primary-fixed-dim" />
       <div class="flex-1">
         <span class="text-data-primary text-on-surface">Install App</span>
-        <p class="text-data-tertiary text-on-surface-variant mt-0.5">Add Tuvvur to your home screen</p>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">Add SuperGas to your home screen</p>
       </div>
       <Icon name="download" class="text-primary-fixed-dim ml-auto" />
     </button>

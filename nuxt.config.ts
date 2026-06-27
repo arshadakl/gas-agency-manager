@@ -68,7 +68,7 @@ export default defineNuxtConfig({
         { name: 'mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-capable', content: 'yes' },
         { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
-        { name: 'apple-mobile-web-app-title', content: 'Tuvvur' },
+        { name: 'apple-mobile-web-app-title', content: 'SuperGas' },
       ],
     },
   },
@@ -77,8 +77,8 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     injectRegister: 'auto',
     manifest: {
-      name: 'Tuvvur Super gas',
-      short_name: 'Tuvvur',
+      name: 'SuperGas',
+      short_name: 'SuperGas',
       description: 'Gas cylinder supplier management',
       theme_color: '#1d100c',
       background_color: '#1d100c',
@@ -87,6 +87,7 @@ export default defineNuxtConfig({
       scope: '/',
       start_url: '/',
       icons: [
+        { src: '/logo/supergas-logo.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
         { src: '/icons/icon-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
