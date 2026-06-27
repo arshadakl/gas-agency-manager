@@ -4,18 +4,6 @@ withDefaults(defineProps<{
 }>(), {
   title: 'Super gas',
 })
-
-const { logout } = useAuth()
-const loggingOut = ref(false)
-
-async function handleLogout() {
-  loggingOut.value = true
-  try {
-    await logout()
-  } finally {
-    loggingOut.value = false
-  }
-}
 </script>
 
 <template>
@@ -34,15 +22,6 @@ async function handleLogout() {
       >
         <Icon name="settings" />
       </NuxtLink>
-      <button
-        aria-label="Logout"
-        :disabled="loggingOut"
-        class="flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-variant active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="handleLogout"
-      >
-        <LoadingSpinner v-if="loggingOut" class="h-5 w-5" />
-        <Icon v-else name="logout" />
-      </button>
     </div>
   </header>
 </template>
