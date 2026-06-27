@@ -43,7 +43,7 @@ function initials(name: string) {
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
       <h2 class="text-headline-md text-on-surface">Hi, {{ user?.fullName }}</h2>
       <Button v-if="user?.role !== 'viewer'" size="sm" class="rounded-full" as-child>

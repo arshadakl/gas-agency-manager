@@ -5,12 +5,49 @@ const LOW_STOCK_RATIO = 0.3
 
 const props = defineProps<{
   stock: CylinderStock
+  editMode?: boolean
 }>()
 
-const total = computed(() => props.stock.fullCount + props.stock.emptyCount)
-const fullPct = computed(() => (total.value > 0 ? (props.stock.fullCount / total.value) * 100 : 0))
-const emptyPct = computed(() => (total.value > 0 ? (props.stock.emptyCount / total.value) * 100 : 0))
+const emit = defineEmits<{
+  adjust: [fullChange: number, emptyChange: number]
+}>()
+
+const localFullCount = ref(props.stock.fullCount)
+const localEmptyCount = ref(props.stock.emptyCount)
+
+watch(() => props.stock, (newStock) => {
+  localFullCount.value = newStock.fullCount
+  localEmptyCount.value = newStock.emptyCount
+}, { deep: true })
+
+const total = computed(() => localFullCount.value + localEmptyCount.value)
+const fullPct = computed(() => (total.value > 0 ? (localFullCount.value / total.value) * 100 : 0))
+const emptyPct = computed(() => (total.value > 0 ? (localEmptyCount.value / total.value) * 100 : 0))
 const isLow = computed(() => total.value > 0 && fullPct.value / 100 < LOW_STOCK_RATIO)
+
+function incFull() {
+  localFullCount.value++
+  emit('adjust', localFullCount.value - props.stock.fullCount, 0)
+}
+
+function decFull() {
+  if (localFullCount.value > 0) {
+    localFullCount.value--
+    emit('adjust', localFullCount.value - props.stock.fullCount, 0)
+  }
+}
+
+function incEmpty() {
+  localEmptyCount.value++
+  emit('adjust', 0, localEmptyCount.value - props.stock.emptyCount)
+}
+
+function decEmpty() {
+  if (localEmptyCount.value > 0) {
+    localEmptyCount.value--
+    emit('adjust', 0, localEmptyCount.value - props.stock.emptyCount)
+  }
+}
 </script>
 
 <template>
@@ -23,7 +60,25 @@ const isLow = computed(() => total.value > 0 && fullPct.value / 100 < LOW_STOCK_
       <div>
         <div class="flex justify-between items-center mb-1">
           <span class="text-data-secondary text-on-surface">Full / Ready</span>
-          <span class="text-data-primary text-on-surface">{{ stock.fullCount }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-data-primary text-on-surface">{{ localFullCount }}</span>
+            <div v-if="editMode" class="flex items-center gap-1 bg-surface-container-highest rounded p-0.5">
+              <button
+                type="button"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
+                @click="decFull"
+              >
+                <Icon name="remove" class="text-sm" />
+              </button>
+              <button
+                type="button"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
+                @click="incFull"
+              >
+                <Icon name="add" class="text-sm" />
+              </button>
+            </div>
+          </div>
         </div>
         <div class="w-full bg-surface-container-low rounded-full h-2">
           <div class="h-2 rounded-full" :class="isLow ? 'bg-error-container' : 'bg-primary-container'" :style="{ width: `${fullPct}%` }" />
@@ -32,7 +87,25 @@ const isLow = computed(() => total.value > 0 && fullPct.value / 100 < LOW_STOCK_
       <div>
         <div class="flex justify-between items-center mb-1">
           <span class="text-data-secondary text-on-surface-variant">Empty / Returned</span>
-          <span class="text-data-primary text-on-surface-variant">{{ stock.emptyCount }}</span>
+          <div class="flex items-center gap-2">
+            <span class="text-data-primary text-on-surface-variant">{{ localEmptyCount }}</span>
+            <div v-if="editMode" class="flex items-center gap-1 bg-surface-container-highest rounded p-0.5">
+              <button
+                type="button"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
+                @click="decEmpty"
+              >
+                <Icon name="remove" class="text-sm" />
+              </button>
+              <button
+                type="button"
+                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
+                @click="incEmpty"
+              >
+                <Icon name="add" class="text-sm" />
+              </button>
+            </div>
+          </div>
         </div>
         <div class="w-full bg-surface-container-low rounded-full h-2">
           <div class="bg-surface-variant h-2 rounded-full" :style="{ width: `${emptyPct}%` }" />

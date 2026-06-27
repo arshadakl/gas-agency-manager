@@ -48,7 +48,7 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">All Payments</h1>
       <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" class="rounded-full" @click="showForm = true">

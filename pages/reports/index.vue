@@ -22,7 +22,7 @@ const links = [
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <h1 class="text-headline-md text-on-surface">Reports</h1>
     <DateRangeFilter />
 

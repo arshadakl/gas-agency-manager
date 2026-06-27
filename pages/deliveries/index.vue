@@ -30,7 +30,7 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">{{ todayOnly ? "Today's Deliveries" : 'Deliveries' }}</h1>
       <Button v-if="canAdd" size="icon" class="rounded-full" as-child>

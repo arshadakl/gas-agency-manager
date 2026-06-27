@@ -37,7 +37,7 @@ async function handleCreate(data: NewCustomer) {
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-end justify-between gap-md">
       <div>
         <h1 class="text-headline-md text-on-surface">Customers</h1>

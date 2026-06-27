@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Input } from '~/components/ui/input'
-import { Textarea } from '~/components/ui/textarea'
 import { CYLINDER_SIZES, PURCHASE_PAYMENT_MODES } from '~/types'
 import type { PurchaseFormData } from '~/composables/usePurchases'
 
@@ -26,13 +25,10 @@ const seededItems = CYLINDER_SIZES.map((sizeKg) => initialItemBySize.get(sizeKg)
 const form = reactive<PurchaseFormData>({
   supplier: props.initial?.supplier ?? 'Super Gas',
   purchaseDate: props.initial?.purchaseDate ?? toISODate(new Date()),
-  invoiceNo: props.initial?.invoiceNo ?? '',
   totalAmount: props.initial?.totalAmount ?? 0,
   amountPaid: props.initial?.amountPaid ?? 0,
   paymentMode: props.initial?.paymentMode ?? 'cash',
-  paymentReference: props.initial?.paymentReference ?? '',
   dueDate: props.initial?.dueDate ?? '',
-  notes: props.initial?.notes ?? '',
   items: seededItems,
 })
 
@@ -60,7 +56,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <form class="space-y-lg" @submit.prevent="handleSubmit">
+  <form class="space-y-lg pb-40" @submit.prevent="handleSubmit">
     <!-- Part 1: Basic Details -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <div class="flex items-center gap-sm mb-md">
@@ -72,15 +68,9 @@ function handleSubmit() {
           <label class="block text-data-secondary text-on-surface-variant mb-sm">Supplier</label>
           <Input v-model="form.supplier" placeholder="HP Gas / Indane / Bharat Gas" required />
         </div>
-        <div class="grid grid-cols-2 gap-md">
-          <div>
-            <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
-            <Input v-model="form.purchaseDate" type="date" required />
-          </div>
-          <div>
-            <label class="block text-data-secondary text-on-surface-variant mb-sm">Invoice # (optional)</label>
-            <Input v-model="form.invoiceNo" placeholder="INV-0000" class="uppercase" />
-          </div>
+        <div>
+          <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
+          <Input v-model="form.purchaseDate" type="date" required />
         </div>
       </div>
     </section>
@@ -180,14 +170,6 @@ function handleSubmit() {
       <div v-if="form.paymentMode === 'credit'" class="mt-md">
         <label class="block text-data-secondary text-on-surface-variant mb-sm">Due Date</label>
         <Input v-model="form.dueDate" type="date" />
-      </div>
-      <div class="mt-md">
-        <label class="block text-data-secondary text-on-surface-variant mb-sm">Reference Number (optional)</label>
-        <Input v-model="form.paymentReference" />
-      </div>
-      <div class="mt-md">
-        <label class="block text-data-secondary text-on-surface-variant mb-sm">Notes</label>
-        <Textarea v-model="form.notes" />
       </div>
     </section>
 

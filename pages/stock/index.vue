@@ -13,7 +13,9 @@ const { fetchCylinderStock, fetchMovements, adjustStock, loading, error } = useI
 
 const stock = ref<CylinderStock[]>([])
 const movements = ref<StockMovement[]>([])
-const showAdjustForm = ref(false)
+const editMode = ref(false)
+const adjustmentChanges = ref<Record<number, { fullChange: number; emptyChange: number }>>({})
+const { showToast } = useToast()
 
 async function load() {
   const [stockRows, movementRows] = await Promise.all([fetchCylinderStock(), fetchMovements(10)])
@@ -22,24 +24,41 @@ async function load() {
 }
 onMounted(load)
 
-async function handleAdjust(data: StockAdjustmentInput) {
-  const ok = await adjustStock(data)
-  if (ok) {
-    showAdjustForm.value = false
-    await load()
+async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange: number) {
+  adjustmentChanges.value[sizeKg] = { fullChange, emptyChange }
+  await new Promise(resolve => setTimeout(resolve, 500))
+  if (adjustmentChanges.value[sizeKg]?.fullChange === fullChange && adjustmentChanges.value[sizeKg]?.emptyChange === emptyChange) {
+    const ok = await adjustStock({ sizeKg: sizeKg as any, fullChange, emptyChange })
+    if (ok) {
+      showToast(`${sizeKg}kg stock updated`)
+      await load()
+      delete adjustmentChanges.value[sizeKg]
+    }
   }
+}
+
+function exitEditMode() {
+  editMode.value = false
+  adjustmentChanges.value = {}
 }
 
 const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type === 'delivery' ? 'upload' : 'sync_alt')
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
-    <div class="flex justify-between items-end">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
+    <div class="flex justify-between items-center">
       <h1 class="text-headline-md text-on-surface">Cylinder Stock</h1>
-      <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="sm" class="rounded-full" @click="showAdjustForm = !showAdjustForm">
-        <Icon name="add" class="text-base mr-1" /> Update Stock
-      </Button>
+      <div v-if="user?.role === 'admin' || user?.role === 'delivery'" class="flex items-center gap-3 bg-surface-container rounded-full px-4 py-2 border border-outline-variant/30">
+        <span class="text-data-tertiary text-on-surface-variant">Edit</span>
+        <button
+          class="w-10 h-6 rounded-full transition-colors"
+          :class="editMode ? 'bg-primary-container' : 'bg-surface-container-highest'"
+          @click="editMode ? exitEditMode() : (editMode = true)"
+        >
+          <div class="w-5 h-5 rounded-full bg-surface-container-highest transition-all" :class="editMode ? 'ml-4' : 'ml-0.5'" />
+        </button>
+      </div>
     </div>
 
     <div v-if="loading && stock.length === 0" class="flex justify-center py-12">
@@ -47,16 +66,15 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
     </div>
 
     <template v-else>
-      <StockAdjustForm
-        v-if="showAdjustForm"
-        :loading="loading"
-        :error="error"
-        @submit="handleAdjust"
-        @cancel="showAdjustForm = false"
-      />
 
       <section class="grid grid-cols-1 gap-md">
-        <CylinderStockDetailCard v-for="row in stock" :key="row.sizeKg" :stock="row" />
+        <CylinderStockDetailCard
+          v-for="row in stock"
+          :key="row.sizeKg"
+          :stock="row"
+          :edit-mode="editMode"
+          @adjust="(fullChange, emptyChange) => handleQuickAdjust(row.sizeKg, fullChange, emptyChange)"
+        />
       </section>
 
       <NuxtLink

@@ -89,7 +89,7 @@ function handleSubmit() {
 </script>
 
 <template>
-  <form class="space-y-lg" @submit.prevent="handleSubmit">
+  <form class="space-y-lg pb-40" @submit.prevent="handleSubmit">
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
       <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Customer</label>
       <div v-if="!selectedCustomer" class="relative">
@@ -100,7 +100,7 @@ function handleSubmit() {
           placeholder="Search customer..."
           class="block w-full pl-10 pr-3 py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base placeholder-on-surface-variant focus:outline-none focus:border-primary"
         >
-        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden">
+        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container z-50">
           <button
             v-for="c in filteredCustomers"
             :key="c.id"

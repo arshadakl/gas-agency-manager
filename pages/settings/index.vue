@@ -15,7 +15,7 @@ const links = computed(() => [
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-sm">
+  <div class="px-margin-mobile py-lg flex flex-col gap-sm pb-40">
     <h1 class="text-headline-md text-on-surface mb-sm">Settings</h1>
     <NuxtLink
       v-for="link in links"
