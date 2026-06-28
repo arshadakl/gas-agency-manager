@@ -3,7 +3,7 @@ import { useDB } from '~/server/database'
 import { products, deliveryItems, purchaseItems, inventory, cylinderStock } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  await requireRole(event, ['admin', 'delivery'])
   const productId = parseInt(getRouterParam(event, 'id') || '0')
 
   if (!productId) throw createError({ statusCode: 400, message: 'Invalid product ID' })
