@@ -8,7 +8,7 @@ definePageMeta({
 })
 
 const { createDelivery, loading, error } = useDeliveries()
-const { fetchCustomers } = useCustomers()
+const { fetchCustomers, fetchLedger } = useCustomers()
 const { fetchProducts } = usePricing()
 const { fetchCylinderStock } = useInventory()
 const { showToast } = useToast()
@@ -40,7 +40,13 @@ async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }
   if (whatsapp && result.delivery) {
     const customer = customers.value.find((c) => c.id === payload.customerId)
     if (customer) {
-      const message = `Hi ${customer.name}, your delivery on ${formatDate(result.delivery.deliveryDate)} for ${formatCurrency(result.delivery.totalAmount)} has been completed. Thank you!`
+      const ledger = customer.publicId ? await fetchLedger(customer.publicId) : null
+      const pendingBalance = ledger?.balance ?? 0
+      let message = `Hi ${customer.name},\n\nYour delivery on ${formatDate(result.delivery.deliveryDate)}:\nAmount: ${formatCurrency(result.delivery.totalAmount)}`
+      if (pendingBalance > 0) {
+        message += `\nPending balance: ${formatCurrency(pendingBalance)}`
+      }
+      message += '\n\nThank you!'
       window.open(buildWhatsAppLink(customer.whatsappNumber ?? customer.phone, message), '_blank')
     }
   }
