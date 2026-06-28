@@ -1,6 +1,6 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
-import type { Product, NewProduct, Price, NewPrice } from '~/types/database'
+import type { Product, NewProduct } from '~/types/database'
 
 export function usePricing() {
   const error = ref<string | null>(null)
@@ -52,36 +52,6 @@ export function usePricing() {
     }
   }
 
-  async function fetchPrices(productId?: number) {
-    error.value = null
-    loading.value = true
-    try {
-      const result = await $fetch<ApiListResponse<Price>>('/api/prices', {
-        query: productId ? { productId } : {},
-      })
-      return result.data
-    } catch (err: unknown) {
-      handleError(err, 'Failed to load prices')
-      return []
-    } finally {
-      loading.value = false
-    }
-  }
-
-  async function createPrice(data: NewPrice) {
-    error.value = null
-    loading.value = true
-    try {
-      const result = await $fetch<ApiResponse<Price>>('/api/prices', { method: 'POST', body: data })
-      return result.data
-    } catch (err: unknown) {
-      handleError(err, 'Failed to create price')
-      return null
-    } finally {
-      loading.value = false
-    }
-  }
-
   async function deleteProduct(productId: number) {
     error.value = null
     loading.value = true
@@ -96,5 +66,5 @@ export function usePricing() {
     }
   }
 
-  return { fetchProducts, createProduct, updateProduct, fetchPrices, createPrice, deleteProduct, loading, error }
+  return { fetchProducts, createProduct, updateProduct, deleteProduct, loading, error }
 }

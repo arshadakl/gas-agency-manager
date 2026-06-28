@@ -11,6 +11,7 @@ interface DeliveryFormItem {
 export interface DeliveryCreatePayload {
   customerId: number
   deliveryDate: string
+  totalAmount: number
   items: DeliveryFormItem[]
   notes?: string
   paymentStatus?: DeliveryPaymentStatus

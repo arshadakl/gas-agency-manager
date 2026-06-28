@@ -13,7 +13,6 @@ export default defineEventHandler(async (event) => {
     .select({
       sizeKg: products.cylinderSize,
       totalDelivered: sql<number>`coalesce(sum(${deliveryItems.quantity}), 0)`,
-      totalRevenue: sql<number>`coalesce(sum(${deliveryItems.subtotal}), 0)`,
     })
     .from(deliveryItems)
     .innerJoin(deliveries, eq(deliveries.id, deliveryItems.deliveryId))

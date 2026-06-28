@@ -23,6 +23,7 @@ const selectedCustomerId = ref<number | undefined>(undefined)
 const deliveryDate = ref(toISODate(new Date()))
 const notes = ref('')
 const quantities = reactive<Record<number, number>>({})
+const totalAmount = ref<number | ''>('')
 const paidNow = ref(false)
 const paymentMode = ref<typeof PAYMENT_MODES[number]>('cash')
 const validationError = ref('')
@@ -86,9 +87,14 @@ function buildPayload(): DeliveryCreatePayload | null {
     validationError.value = 'Add at least one item.'
     return null
   }
+  if (!totalAmount.value || totalAmount.value <= 0) {
+    validationError.value = 'Enter the total amount for this delivery.'
+    return null
+  }
   return {
     customerId: selectedCustomerId.value,
     deliveryDate: deliveryDate.value,
+    totalAmount: totalAmount.value,
     items: selectedItems.value,
     notes: notes.value || undefined,
     paymentStatus: paidNow.value ? 'paid' : 'pending',
@@ -209,7 +215,23 @@ function handleSubmit() {
       <Textarea v-model="notes" placeholder="e.g., Deliver to rear entrance..." class="min-h-[80px]" />
     </section>
 
-    <!-- 5. Payment -->
+    <!-- 5. Total Amount -->
+    <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
+      <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Total Amount (₹)</label>
+      <input
+        v-model.number="totalAmount"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        step="1"
+        placeholder="e.g. 3600"
+        class="block w-full px-3 py-3 border border-surface-variant rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
+        required
+      >
+      <p class="text-data-tertiary text-on-surface-variant">Enter the agreed total for this delivery.</p>
+    </section>
+
+    <!-- 6. Payment -->
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
       <label class="text-data-secondary text-on-surface-variant block mb-3 uppercase tracking-wider">Payment Status</label>
       <div class="flex gap-sm">
@@ -247,14 +269,19 @@ function handleSubmit() {
       </div>
     </section>
 
-    <!-- 6. Order Summary -->
+    <!-- 7. Order Summary -->
     <section class="bg-surface-container-high border border-surface-variant p-6 rounded-xl space-y-2">
       <h3 class="text-data-secondary text-on-surface-variant uppercase tracking-wider mb-2">Order Summary</h3>
       <div class="flex justify-between items-center text-body-base text-on-surface">
-        <span>Items selected</span>
+        <span>Items</span>
         <span>{{ selectedItems.length }} ({{ totalUnits }} units)</span>
       </div>
-      <p class="text-data-tertiary text-on-surface-variant">Final pricing is calculated on save using each item's active price.</p>
+      <div class="flex justify-between items-center text-body-base text-on-surface border-t border-surface-variant pt-2 mt-2">
+        <span class="font-medium">Total</span>
+        <span class="text-headline-md text-primary-fixed-dim font-bold">
+          {{ totalAmount ? formatCurrency(Number(totalAmount)) : '—' }}
+        </span>
+      </div>
     </section>
 
     <p v-if="validationError" class="text-data-secondary text-error">{{ validationError }}</p>

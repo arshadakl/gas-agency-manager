@@ -39,18 +39,6 @@ export const products = sqliteTable('products', {
   typeIdx: index('products_type_idx').on(table.type),
 }))
 
-export const prices = sqliteTable('prices', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  productId: integer('product_id').references(() => products.id).notNull(),
-  customerId: integer('customer_id').references(() => customers.id),
-  price: real('price').notNull(),
-  effectiveFrom: text('effective_from').notNull(),
-  ...timestamps,
-}, (table) => ({
-  productIdx: index('prices_product_idx').on(table.productId),
-  customerIdx: index('prices_customer_idx').on(table.customerId),
-  effectiveFromIdx: index('prices_effective_from_idx').on(table.effectiveFrom),
-}))
 
 export const inventory = sqliteTable('inventory', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -91,8 +79,6 @@ export const deliveryItems = sqliteTable('delivery_items', {
   deliveryId: integer('delivery_id').references(() => deliveries.id).notNull(),
   productId: integer('product_id').references(() => products.id).notNull(),
   quantity: real('quantity').notNull(),
-  unitPrice: real('unit_price').notNull(),
-  subtotal: real('subtotal').notNull(),
   ...timestamps,
 }, (table) => ({
   deliveryIdx: index('delivery_items_delivery_idx').on(table.deliveryId),

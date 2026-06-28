@@ -21,16 +21,10 @@ export const ProductSchema = z.object({
   unit: z.string().min(1).max(20).default('pcs'),
 })
 
-export const PriceSchema = z.object({
-  productId: z.number().int().positive(),
-  customerId: z.number().int().positive().optional(),
-  price: z.number().positive(),
-  effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-})
-
 export const DeliverySchema = z.object({
   customerId: z.number().int().positive(),
   deliveryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  totalAmount: z.number().positive(),
   items: z.array(z.object({
     productId: z.number().int().positive(),
     quantity: z.number().positive(),

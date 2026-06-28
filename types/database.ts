@@ -3,7 +3,6 @@ import type {
   users,
   customers,
   products,
-  prices,
   inventory,
   deliveries,
   deliveryItems,
@@ -25,8 +24,6 @@ export type NewCustomer = InferInsertModel<typeof customers>
 export type Product = InferSelectModel<typeof products>
 export type NewProduct = InferInsertModel<typeof products>
 
-export type Price = InferSelectModel<typeof prices>
-export type NewPrice = InferInsertModel<typeof prices>
 
 export type InventoryItem = InferSelectModel<typeof inventory>
 export type NewInventoryItem = InferInsertModel<typeof inventory>

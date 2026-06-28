@@ -206,7 +206,7 @@ onMounted(load)
                 <p class="text-data-primary text-on-surface">{{ item.product.name }}</p>
                 <p class="text-data-tertiary text-on-surface-variant">Qty: {{ item.quantity }}</p>
               </div>
-              <p class="text-data-primary text-on-surface font-medium">{{ formatCurrency(item.subtotal) }}</p>
+              <p class="text-data-primary text-on-surface font-medium">× {{ item.quantity }}</p>
             </div>
           </div>
         </div>
