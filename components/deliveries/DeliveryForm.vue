@@ -8,6 +8,7 @@ import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
 const props = defineProps<{
   customers: Customer[]
   products: Product[]
+  cylinderFullStock?: Record<number, number>  // sizeKg → fullCount
   loading?: boolean
   error?: string | null
 }>()
@@ -33,8 +34,18 @@ const selectedCustomer = computed(() => props.customers.find((c) => c.id === sel
 const filteredCustomers = computed(() => {
   if (!customerSearch.value || selectedCustomerId.value) return []
   const q = customerSearch.value.toLowerCase()
-  return props.customers.filter((c) => c.name.toLowerCase().includes(q) || c.phone.includes(q)).slice(0, 3)
+  return props.customers.filter((c) =>
+    c.name.toLowerCase().includes(q) ||
+    c.phone.includes(q) ||
+    (c.contactPerson?.toLowerCase().includes(q) ?? false),
+  ).slice(0, 5)
 })
+
+function isOutOfStock(product: Product): boolean {
+  if (product.type !== 'cylinder' || !product.cylinderSize) return false
+  const full = props.cylinderFullStock?.[product.cylinderSize]
+  return full !== undefined && full <= 0
+}
 
 async function selectCustomer(customer: Customer) {
   selectedCustomerId.value = customer.id
@@ -134,7 +145,9 @@ function handleSubmit() {
             @click="selectCustomer(c)"
           >
             <p class="text-data-secondary text-on-surface">{{ c.name }}</p>
-            <p class="text-data-tertiary text-on-surface-variant">{{ formatPhone(c.phone) }}</p>
+            <p class="text-data-tertiary text-on-surface-variant">
+              {{ formatPhone(c.phone) }}<span v-if="c.contactPerson"> · {{ c.contactPerson }}</span>
+            </p>
           </button>
         </div>
       </div>
@@ -173,7 +186,10 @@ function handleSubmit() {
         v-for="product in products"
         :key="product.id"
         class="flex items-center justify-between p-4 bg-surface rounded-lg border mb-3 last:mb-0 transition-colors"
-        :class="(quantities[product.id] ?? 0) > 0 ? 'border-primary/50' : 'border-surface-variant'"
+        :class="[
+          isOutOfStock(product) ? 'border-surface-variant opacity-50' :
+          (quantities[product.id] ?? 0) > 0 ? 'border-primary/50' : 'border-surface-variant'
+        ]"
       >
         <div class="flex items-center gap-3">
           <div
@@ -186,13 +202,15 @@ function handleSubmit() {
             <h4 class="text-data-primary text-on-surface">{{ product.name }}</h4>
             <p class="text-data-secondary text-on-surface-variant mt-1">
               {{ product.type === 'cylinder' ? `${product.cylinderSize}kg · Cylinder` : 'Accessory' }}
+              <span v-if="isOutOfStock(product)" class="ml-1 text-error font-medium">· No stock</span>
             </p>
           </div>
         </div>
         <div class="flex items-center gap-3">
           <button
             type="button"
-            class="w-8 h-8 rounded-full border border-surface-variant text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-all"
+            class="w-8 h-8 rounded-full border border-surface-variant text-on-surface flex items-center justify-center hover:bg-surface-variant active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="isOutOfStock(product)"
             @click="dec(product.id)"
           >
             <Icon name="remove" class="text-lg" />
@@ -200,7 +218,8 @@ function handleSubmit() {
           <span class="text-data-primary text-on-surface w-6 text-center">{{ quantities[product.id] ?? 0 }}</span>
           <button
             type="button"
-            class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:opacity-90 active:scale-95 transition-all"
+            class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            :disabled="isOutOfStock(product)"
             @click="inc(product.id)"
           >
             <Icon name="add" class="text-lg" />

@@ -4,6 +4,7 @@ import type { Customer, NewCustomer, Delivery, CustomerPayment, CustomerWithBala
 
 interface CustomerLedger {
   customer: Customer
+  openingBalance: number
   totalBilled: number
   totalPaid: number
   balance: number
@@ -100,5 +101,22 @@ export function useCustomers() {
     }
   }
 
-  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, loading, error }
+  async function setOpeningBalance(publicId: string, openingBalance: number) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${publicId}/opening-balance`, {
+        method: 'PATCH',
+        body: { openingBalance },
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to update opening balance')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, loading, error }
 }

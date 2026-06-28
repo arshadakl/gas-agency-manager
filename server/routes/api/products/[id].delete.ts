@@ -1,83 +1,36 @@
-import { eq, and } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { products, deliveryItems, purchaseItems, inventory, cylinderStock } from '~/server/database/schema'
+import { products, deliveryItems, inventory } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery'])
-  const productId = parseInt(getRouterParam(event, 'id') || '0')
 
+  const productId = parseInt(getRouterParam(event, 'id') || '0')
   if (!productId) throw createError({ statusCode: 400, message: 'Invalid product ID' })
 
   const db = useDB(event)
 
-  // Check if product exists
-  const product = await db.select()
-    .from(products)
-    .where(eq(products.id, productId))
-    .get()
-
+  const product = await db.select().from(products).where(eq(products.id, productId)).get()
   if (!product) throw createError({ statusCode: 404, message: 'Product not found' })
 
-  // Check if product appears in any deliveries
-  const deliveryCount = await db.select({ count: 'count' })
+  // Check if this product appears in any delivery history
+  const [deliveryRow] = await db
+    .select({ count: sql<number>`count(*)` })
     .from(deliveryItems)
     .where(eq(deliveryItems.productId, productId))
-    .get()
+    .all()
 
-  if (deliveryCount && Number(deliveryCount.count) > 0) {
-    throw createError({
-      statusCode: 409,
-      message: `Cannot delete. This product has ${deliveryCount.count} delivery records. History must be preserved.`,
-    })
+  const hasHistory = (deliveryRow?.count ?? 0) > 0
+
+  if (hasHistory) {
+    // Soft delete — keep for referential integrity with delivery_items
+    await db.update(products).set({ isActive: 0 }).where(eq(products.id, productId))
+    return { data: { softDeleted: true, message: 'Product hidden from active list. Delivery history preserved.' } }
   }
 
-  // Check if product appears in any purchases
-  const purchaseCount = await db.select({ count: 'count' })
-    .from(purchaseItems)
-    .where(eq(purchaseItems.productId, productId))
-    .get()
+  // No history — hard delete. Clean up inventory row first.
+  await db.delete(inventory).where(eq(inventory.productId, productId))
+  await db.delete(products).where(eq(products.id, productId))
 
-  if (purchaseCount && Number(purchaseCount.count) > 0) {
-    throw createError({
-      statusCode: 409,
-      message: `Cannot delete. This product has ${purchaseCount.count} purchase records. History must be preserved.`,
-    })
-  }
-
-  // For cylinders, check cylinder stock
-  if (product.type === 'cylinder' && product.cylinderSize) {
-    const stock = await db.select()
-      .from(cylinderStock)
-      .where(eq(cylinderStock.sizeKg, product.cylinderSize))
-      .get()
-
-    if (stock && (stock.fullCount > 0 || stock.emptyCount > 0)) {
-      throw createError({
-        statusCode: 409,
-        message: `Cannot delete. Stock available: ${stock.fullCount} full, ${stock.emptyCount} empty. Clear stock first.`,
-      })
-    }
-  }
-
-  // For accessories, check inventory
-  if (product.type === 'accessory') {
-    const inv = await db.select()
-      .from(inventory)
-      .where(eq(inventory.productId, productId))
-      .get()
-
-    if (inv && inv.quantity > 0) {
-      throw createError({
-        statusCode: 409,
-        message: `Cannot delete. Inventory stock: ${inv.quantity} units. Clear stock first.`,
-      })
-    }
-  }
-
-  // Soft delete — set is_active to 0
-  await db.update(products)
-    .set({ isActive: 0 })
-    .where(eq(products.id, productId))
-
-  return { data: { message: 'Product deactivated' } }
+  return { data: { softDeleted: false, message: 'Product deleted.' } }
 })

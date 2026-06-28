@@ -8,17 +8,24 @@ definePageMeta({
 })
 
 const { createDelivery, loading, error } = useDeliveries()
-const { fetchCustomers } = useCustomers()
+const { fetchCustomers, fetchLedger } = useCustomers()
 const { fetchProducts } = usePricing()
+const { fetchCylinderStock } = useInventory()
 const { showToast } = useToast()
 
 const customers = ref<Customer[]>([])
 const products = ref<Product[]>([])
+const cylinderFullStock = ref<Record<number, number>>({})
 
 onMounted(async () => {
-  const [customerRows, productRows] = await Promise.all([fetchCustomers(), fetchProducts()])
+  const [customerRows, productRows, stockRows] = await Promise.all([
+    fetchCustomers(),
+    fetchProducts(),
+    fetchCylinderStock(),
+  ])
   customers.value = customerRows
   products.value = productRows
+  cylinderFullStock.value = Object.fromEntries(stockRows.map((s) => [s.sizeKg, s.fullCount]))
 })
 
 async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }) {
@@ -33,7 +40,13 @@ async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }
   if (whatsapp && result.delivery) {
     const customer = customers.value.find((c) => c.id === payload.customerId)
     if (customer) {
-      const message = `Hi ${customer.name}, your delivery on ${formatDate(result.delivery.deliveryDate)} for ${formatCurrency(result.delivery.totalAmount)} has been completed. Thank you!`
+      const ledger = customer.publicId ? await fetchLedger(customer.publicId) : null
+      const pendingBalance = ledger?.balance ?? 0
+      let message = `Hi ${customer.name},\n\nYour delivery on ${formatDate(result.delivery.deliveryDate)}:\nAmount: ${formatCurrency(result.delivery.totalAmount)}`
+      if (pendingBalance > 0) {
+        message += `\nPending balance: ${formatCurrency(pendingBalance)}`
+      }
+      message += '\n\nThank you!'
       window.open(buildWhatsAppLink(customer.whatsappNumber ?? customer.phone, message), '_blank')
     }
   }
@@ -44,6 +57,13 @@ async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }
 <template>
   <div class="px-margin-mobile py-lg pb-8">
     <h1 class="text-headline-md text-on-surface mb-lg">New Delivery</h1>
-    <DeliveryForm :customers="customers" :products="products" :loading="loading" :error="error" @submit="handleSubmit" />
+    <DeliveryForm
+      :customers="customers"
+      :products="products"
+      :cylinder-full-stock="cylinderFullStock"
+      :loading="loading"
+      :error="error"
+      @submit="handleSubmit"
+    />
   </div>
 </template>
