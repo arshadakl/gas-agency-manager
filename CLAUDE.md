@@ -1956,25 +1956,41 @@ requireRole(event, ['admin', 'viewer']) // GET list and detail
 
 **Admin-only actions** — only `admin` can do these:
 - Add / edit / delete users (`/settings/users`)
+- Delete product
+- Edit / delete purchase
 - Danger zone: clear all deliveries / customers / stock data
 
-**Admin + Delivery** — both roles can do all other operations:
-- Create/view deliveries, record payments, manage customers
+**Admin + Delivery** — both roles can do ALL other operations:
+- Create/view/edit deliveries, mark paid
+- Add / edit customers
+- Record payments (manual + mark-paid on delivery)
 - Create purchases from supplier, view purchase history
-- Edit products and prices, adjust stock counts
-- View reports
+- Add / edit products
+- Set / update prices
+- Adjust cylinder stock, stock-in accessories
+- View all reports
 
-**Viewer** — read-only access to deliveries, customers, ledger, reports, stock.
+**Viewer** — read-only. Can view everything but cannot write anything.
 
 | Action                       | Admin | Delivery | Viewer |
 |------------------------------|-------|----------|--------|
+| View deliveries / customers  | ✅    | ✅       | ✅     |
+| Add / edit customers         | ✅    | ✅       | ❌     |
+| Create delivery              | ✅    | ✅       | ❌     |
+| Mark delivery paid           | ✅    | ✅       | ❌     |
+| Record payment (manual)      | ✅    | ✅       | ❌     |
+| Add / edit products          | ✅    | ✅       | ❌     |
+| Delete product               | ✅    | ❌       | ❌     |
+| Set / update prices          | ✅    | ✅       | ❌     |
 | View cylinder stock          | ✅    | ✅       | ✅     |
+| Manual stock adjustment      | ✅    | ✅       | ❌     |
+| Stock-in accessories         | ✅    | ✅       | ❌     |
+| View stock movement log      | ✅    | ✅       | ✅     |
 | View purchase history        | ✅    | ✅       | ✅     |
 | Create purchase              | ✅    | ✅       | ❌     |
 | Edit / delete purchase       | ✅    | ❌       | ❌     |
-| Manual stock adjustment      | ✅    | ✅       | ❌     |
-| View stock movement log      | ✅    | ✅       | ✅     |
-| Add / edit users             | ✅    | ❌       | ❌     |
+| View reports                 | ✅    | ✅       | ✅     |
+| Add / edit / delete users    | ✅    | ❌       | ❌     |
 | Danger zone (clear data)     | ✅    | ❌       | ❌     |
 
 ---

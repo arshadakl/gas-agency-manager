@@ -4,7 +4,7 @@ import { deliveries, deliveryItems, products } from '~/server/database/schema'
 import { ReportQuerySchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin', 'viewer'])
+  await requireRole(event, ['admin', 'delivery', 'viewer'])
 
   const { from, to } = parseQuery(event, ReportQuerySchema)
   const db = useDB(event)

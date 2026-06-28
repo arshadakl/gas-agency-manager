@@ -18,7 +18,7 @@ async function fetchSummary(db: ReturnType<typeof useDB>, from: string, to: stri
 }
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin', 'viewer'])
+  await requireRole(event, ['admin', 'delivery', 'viewer'])
 
   const { from, to } = parseQuery(event, ReportQuerySchema)
   const db = useDB(event)

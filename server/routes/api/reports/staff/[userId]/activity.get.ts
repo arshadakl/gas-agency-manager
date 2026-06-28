@@ -4,7 +4,7 @@ import { deliveries, orders, customerPayments } from '~/server/database/schema'
 import { ReportQuerySchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin', 'viewer'])
+  await requireRole(event, ['admin', 'delivery', 'viewer'])
 
   const userId = Number(getRouterParam(event, 'userId'))
   const { from, to } = parseQuery(event, ReportQuerySchema)
