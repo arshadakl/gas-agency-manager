@@ -2,7 +2,7 @@ import { useDB } from '~/server/database'
 import { cylinderStock, stockMovements } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
-  requireRole(event, ['admin'])
+  await requireRole(event, ['admin'])
   const db = useDB(event)
 
   await db.delete(stockMovements)
