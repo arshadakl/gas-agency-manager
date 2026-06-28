@@ -9,7 +9,7 @@ const UpdateProductSchema = ProductSchema.partial().extend({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  await requireRole(event, ['admin', 'delivery'])
 
   const id = Number(getRouterParam(event, 'id'))
   const body = await parseBody(event, UpdateProductSchema)

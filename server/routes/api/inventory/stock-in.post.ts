@@ -9,7 +9,7 @@ const StockInSchema = z.object({
 })
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  await requireRole(event, ['admin', 'delivery'])
 
   const body = await parseBody(event, StockInSchema)
   const db = useDB(event)

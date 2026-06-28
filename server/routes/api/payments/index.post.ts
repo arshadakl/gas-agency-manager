@@ -3,7 +3,7 @@ import { customerPayments } from '~/server/database/schema'
 import { PaymentSchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['admin'])
+  const user = await requireRole(event, ['admin', 'delivery'])
 
   const body = await parseBody(event, PaymentSchema)
   const db = useDB(event)

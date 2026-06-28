@@ -3,7 +3,7 @@ import { products } from '~/server/database/schema'
 import { ProductSchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  await requireRole(event, ['admin', 'delivery'])
 
   const body = await parseBody(event, ProductSchema)
   const db = useDB(event)
