@@ -6,7 +6,7 @@ import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 import type { CylinderSize } from '~/types'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['admin'])
+  const user = await requireRole(event, ['admin', 'delivery'])
 
   const id = Number(getRouterParam(event, 'id'))
   const body = await parseBody(event, PurchaseSchema)

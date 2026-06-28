@@ -1956,7 +1956,6 @@ requireRole(event, ['admin', 'viewer']) // GET list and detail
 
 **Admin-only actions** — only `admin` can do these:
 - Add / edit / delete users (`/settings/users`)
-- Edit / delete purchase
 - Danger zone: clear all deliveries / customers / stock data (full wipe only)
 
 **Admin + Delivery** — both roles can do ALL other operations:
@@ -1986,7 +1985,7 @@ requireRole(event, ['admin', 'viewer']) // GET list and detail
 | View stock movement log      | ✅    | ✅       | ✅     |
 | View purchase history        | ✅    | ✅       | ✅     |
 | Create purchase              | ✅    | ✅       | ❌     |
-| Edit / delete purchase       | ✅    | ❌       | ❌     |
+| Edit / delete purchase       | ✅    | ✅       | ❌     |
 | View reports                 | ✅    | ✅       | ✅     |
 | Add / edit / delete users    | ✅    | ❌       | ❌     |
 | Danger zone (clear data)     | ✅    | ❌       | ❌     |

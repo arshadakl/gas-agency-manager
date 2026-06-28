@@ -4,7 +4,7 @@ import { purchases, purchaseItems } from '~/server/database/schema'
 import { applyStockChanges } from '~/server/utils/stock'
 
 export default defineEventHandler(async (event) => {
-  const user = await requireRole(event, ['admin'])
+  const user = await requireRole(event, ['admin', 'delivery'])
 
   const id = Number(getRouterParam(event, 'id'))
   const db = useDB(event)
