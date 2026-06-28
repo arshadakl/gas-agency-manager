@@ -33,11 +33,10 @@ export function useAuth() {
   async function logout() {
     try {
       await $fetch('/api/auth/logout', { method: 'POST' })
-    } catch {
-      // Logout endpoint might fail, but still clear local session
-    }
-    await clear()
-    // Hard redirect resets all in-memory Vue state — navigateTo alone is insufficient in SPA mode
+    } catch { /* ignore — server session may already be expired */ }
+    try {
+      await clear()
+    } catch { /* ignore — clear() may fail if cookie already gone */ }
     window.location.replace('/login')
   }
 
