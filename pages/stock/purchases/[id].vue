@@ -145,7 +145,7 @@ async function handleDelete() {
 
         <p v-if="purchase.notes" class="text-data-secondary text-on-surface-variant">{{ purchase.notes }}</p>
 
-        <div v-if="user?.role === 'admin'" class="flex flex-col sm:flex-row gap-sm justify-end">
+        <div v-if="user?.role === 'admin' || user?.role === 'delivery'" class="flex flex-col sm:flex-row gap-sm justify-end">
           <Button variant="outline" class="rounded-lg border-error text-error hover:bg-error/10" @click="handleDelete">
             <Icon name="delete" class="text-lg mr-2" /> Delete Record
           </Button>
