@@ -1,6 +1,6 @@
 import { useDB } from '~/server/database'
 import {
-  customers, products, prices, inventory, deliveries, deliveryItems, customerPayments, users,
+  customers, products, inventory, deliveries, deliveryItems, customerPayments, users,
   purchases, purchaseItems, cylinderStock, stockMovements, orders, orderItems,
 } from '~/server/database/schema'
 
@@ -15,14 +15,13 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   const [
-    customerRows, productRows, priceRows, inventoryRows,
+    customerRows, productRows, inventoryRows,
     deliveryRows, deliveryItemRows, paymentRows, userRows,
     purchaseRows, purchaseItemRows, cylinderStockRows, stockMovementRows,
     orderRows, orderItemRows,
   ] = await Promise.all([
     db.select().from(customers).all(),
     db.select().from(products).all(),
-    db.select().from(prices).all(),
     db.select().from(inventory).all(),
     db.select().from(deliveries).all(),
     db.select().from(deliveryItems).all(),
@@ -47,7 +46,6 @@ export default defineEventHandler(async (event) => {
     data: {
       customers: customerRows,
       products: productRows,
-      prices: priceRows,
       inventory: inventoryRows,
       deliveries: deliveryRows,
       deliveryItems: deliveryItemRows,
