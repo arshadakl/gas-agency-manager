@@ -10,15 +10,22 @@ definePageMeta({
 const { createDelivery, loading, error } = useDeliveries()
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
+const { fetchCylinderStock } = useInventory()
 const { showToast } = useToast()
 
 const customers = ref<Customer[]>([])
 const products = ref<Product[]>([])
+const cylinderFullStock = ref<Record<number, number>>({})
 
 onMounted(async () => {
-  const [customerRows, productRows] = await Promise.all([fetchCustomers(), fetchProducts()])
+  const [customerRows, productRows, stockRows] = await Promise.all([
+    fetchCustomers(),
+    fetchProducts(),
+    fetchCylinderStock(),
+  ])
   customers.value = customerRows
   products.value = productRows
+  cylinderFullStock.value = Object.fromEntries(stockRows.map((s) => [s.sizeKg, s.fullCount]))
 })
 
 async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }) {
@@ -44,6 +51,13 @@ async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }
 <template>
   <div class="px-margin-mobile py-lg pb-8">
     <h1 class="text-headline-md text-on-surface mb-lg">New Delivery</h1>
-    <DeliveryForm :customers="customers" :products="products" :loading="loading" :error="error" @submit="handleSubmit" />
+    <DeliveryForm
+      :customers="customers"
+      :products="products"
+      :cylinder-full-stock="cylinderFullStock"
+      :loading="loading"
+      :error="error"
+      @submit="handleSubmit"
+    />
   </div>
 </template>

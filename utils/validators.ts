@@ -12,6 +12,7 @@ export const CustomerSchema = z.object({
   phone: phoneSchema,
   whatsappNumber: phoneSchema.optional(),
   address: z.string().max(300).optional(),
+  openingBalance: z.number().min(0).optional(),
 })
 
 export const ProductSchema = z.object({
@@ -65,7 +66,7 @@ export const PurchaseSchema = z.object({
   amountPaid: z.number().min(0),
   paymentMode: z.enum(PURCHASE_PAYMENT_MODES).optional(),
   paymentReference: z.string().max(100).optional(),
-  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dueDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   notes: z.string().max(500).optional(),
   items: z.array(z.object({
     sizeKg: cylinderSizeSchema,

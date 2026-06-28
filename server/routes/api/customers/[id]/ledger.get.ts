@@ -32,11 +32,14 @@ export default defineEventHandler(async (event) => {
 
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const totalBilled = totals?.totalBilled ?? 0
-  const balance = Math.round((totalBilled - totalPaid) * 100) / 100
+  // openingBalance = pre-app debt; positive = customer owes this amount.
+  const openingBalance = customer.openingBalance ?? 0
+  const balance = Math.round((openingBalance + totalBilled - totalPaid) * 100) / 100
 
   return {
     data: {
       customer,
+      openingBalance,
       totalBilled,
       totalPaid,
       balance,

@@ -24,6 +24,8 @@ export const customers = sqliteTable('customers', {
   phone: text('phone').notNull(),
   whatsappNumber: text('whatsapp_number'),
   address: text('address'),
+  // Pre-existing balance owed before the app was started — added to ledger total.
+  openingBalance: real('opening_balance').default(0).notNull(),
   isActive: integer('is_active').default(1).notNull(),
   ...timestamps,
 })
