@@ -50,7 +50,7 @@ export type PurchaseItem = InferSelectModel<typeof purchaseItems>
 export type NewPurchaseItem = InferInsertModel<typeof purchaseItems>
 
 export type DeliveryWithRelations = Delivery & {
-  customer: Pick<Customer, 'id' | 'name' | 'contactPerson' | 'area'>
+  customer: Pick<Customer, 'id' | 'publicId' | 'name' | 'contactPerson' | 'area'>
   items: Array<DeliveryItem & { product: Product }>
 }
 

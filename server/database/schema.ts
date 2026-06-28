@@ -17,6 +17,7 @@ export const users = sqliteTable('users', {
 
 export const customers = sqliteTable('customers', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   name: text('name').notNull(),
   contactPerson: text('contact_person'),
   area: text('area'),
@@ -51,6 +52,7 @@ export const inventory = sqliteTable('inventory', {
 
 export const deliveries = sqliteTable('deliveries', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   customerId: integer('customer_id').references(() => customers.id).notNull(),
   deliveryDate: text('delivery_date').notNull(),
   status: text('status', { enum: ['pending', 'delivered', 'cancelled'] })
@@ -135,6 +137,7 @@ export const stockMovements = sqliteTable('stock_movements', {
 
 export const purchases = sqliteTable('purchases', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   supplier: text('supplier').notNull(),
   purchaseDate: text('purchase_date').notNull(),
   invoiceNo: text('invoice_no'),

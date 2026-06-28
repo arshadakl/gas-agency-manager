@@ -6,12 +6,13 @@ import { applyStockChanges } from '~/server/utils/stock'
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const publicId = getRouterParam(event, 'id')!
   const db = useDB(event)
 
-  const existing = await db.select().from(purchases).where(eq(purchases.id, id)).get()
+  const existing = await db.select().from(purchases).where(eq(purchases.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Purchase not found' })
 
+  const id = existing.id
   const items = await db.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, id)).all()
 
   const reversal = items

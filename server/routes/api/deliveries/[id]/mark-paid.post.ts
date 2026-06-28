@@ -10,13 +10,12 @@ const MarkPaidSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
-  const deliveryId = parseInt(getRouterParam(event, 'id') || '0')
-  if (!deliveryId) throw createError({ statusCode: 400, message: 'Invalid delivery ID' })
+  const publicId = getRouterParam(event, 'id')!
 
   const body = await parseBody(event, MarkPaidSchema)
   const db = useDB(event)
 
-  const delivery = await db.select().from(deliveries).where(eq(deliveries.id, deliveryId)).get()
+  const delivery = await db.select().from(deliveries).where(eq(deliveries.publicId, publicId)).get()
   if (!delivery) throw createError({ statusCode: 404, message: 'Delivery not found' })
   if (delivery.paymentStatus === 'paid') throw createError({ statusCode: 409, message: 'Delivery is already marked as paid' })
 
@@ -24,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
   await db.update(deliveries)
     .set({ paymentStatus: 'paid' })
-    .where(eq(deliveries.id, deliveryId))
+    .where(eq(deliveries.id, delivery.id))
 
   await recordDeliveryPayment(db, {
     customerId: delivery.customerId,

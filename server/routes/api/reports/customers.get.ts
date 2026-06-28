@@ -12,6 +12,7 @@ export default defineEventHandler(async (event) => {
   const rows = await db
     .select({
       customerId: customers.id,
+      customerPublicId: customers.publicId,
       name: customers.name,
       totalBilled: sql<number>`coalesce(sum(${deliveries.totalAmount}), 0)`,
       deliveryCount: sql<number>`count(${deliveries.id})`,

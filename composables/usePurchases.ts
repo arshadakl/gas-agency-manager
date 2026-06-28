@@ -46,11 +46,11 @@ export function usePurchases() {
     }
   }
 
-  async function fetchPurchase(id: number) {
+  async function fetchPurchase(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<PurchaseWithItems>>(`/api/purchases/${id}`)
+      const result = await $fetch<ApiResponse<PurchaseWithItems>>(`/api/purchases/${publicId}`)
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to load purchase')
@@ -74,11 +74,11 @@ export function usePurchases() {
     }
   }
 
-  async function updatePurchase(id: number, data: PurchaseFormData) {
+  async function updatePurchase(publicId: string, data: PurchaseFormData) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<PurchaseWithItems>>(`/api/purchases/${id}`, { method: 'PATCH', body: data })
+      const result = await $fetch<ApiResponse<PurchaseWithItems>>(`/api/purchases/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to update purchase')
@@ -88,11 +88,11 @@ export function usePurchases() {
     }
   }
 
-  async function deletePurchase(id: number) {
+  async function deletePurchase(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/purchases/${id}`, { method: 'DELETE' })
+      await $fetch(`/api/purchases/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
       handleError(err, 'Failed to delete purchase')

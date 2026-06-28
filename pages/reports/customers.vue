@@ -26,7 +26,7 @@ watch(dateRange, load, { immediate: true })
       <NuxtLink
         v-for="(row, index) in rows"
         :key="row.customerId"
-        :to="`/customers/${row.customerId}`"
+        :to="`/customers/${row.customerPublicId}`"
         class="flex items-center justify-between p-4 transition-colors"
         :class="index === 0 ? 'bg-surface-container-high/50' : 'hover:bg-surface-container-high/30'"
       >

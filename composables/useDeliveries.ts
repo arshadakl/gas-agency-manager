@@ -64,11 +64,11 @@ export function useDeliveries() {
     }
   }
 
-  async function updateDelivery(deliveryId: number, data: DeliveryCreatePayload) {
+  async function updateDelivery(publicId: string, data: DeliveryCreatePayload) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${deliveryId}`, {
+      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${publicId}`, {
         method: 'PATCH',
         body: data,
       })
@@ -81,11 +81,11 @@ export function useDeliveries() {
     }
   }
 
-  async function markAsPaid(deliveryId: number, paymentMode: PaymentMode) {
+  async function markAsPaid(publicId: string, paymentMode: PaymentMode) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${deliveryId}/mark-paid`, {
+      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${publicId}/mark-paid`, {
         method: 'POST',
         body: { paymentMode },
       })

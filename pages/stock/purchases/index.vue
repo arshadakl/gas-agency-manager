@@ -50,7 +50,7 @@ function initials(name: string) {
       <NuxtLink
         v-for="p in purchases"
         :key="p.id"
-        :to="`/stock/purchases/${p.id}`"
+        :to="`/stock/purchases/${p.publicId}`"
         class="bg-surface-container rounded-xl p-md flex flex-col gap-md border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"
       >
         <div class="flex justify-between items-start">

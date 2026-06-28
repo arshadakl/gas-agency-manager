@@ -4,6 +4,7 @@ import { deliveries, deliveryItems, inventory, products, customers } from '~/ser
 import { DeliverySchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 import { recordDeliveryPayment } from '~/server/utils/payment'
+import { generateId } from '~/server/utils/id'
 import type { CylinderSize } from '~/types'
 
 export default defineEventHandler(async (event) => {
@@ -38,6 +39,7 @@ export default defineEventHandler(async (event) => {
   if (cylinderChanges.length > 0) await validateStockChanges(db, cylinderChanges)
 
   const [delivery] = await db.insert(deliveries).values({
+    publicId: generateId(),
     customerId: body.customerId,
     deliveryDate: body.deliveryDate,
     status: 'delivered',

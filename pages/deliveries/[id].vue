@@ -17,7 +17,7 @@ const { fetchDeliveries, updateDelivery, markAsPaid, loading, error } = useDeliv
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
 
-const id = Number(route.params.id)
+const id = route.params.id as string
 const delivery = ref<DeliveryWithRelations | null>(null)
 const customers = ref([])
 const products = ref([])
@@ -35,7 +35,7 @@ async function load() {
     fetchCustomers(),
     fetchProducts(),
   ])
-  delivery.value = deliveries.find(d => d.id === id) || null
+  delivery.value = deliveries.find(d => d.publicId === id) || null
   customers.value = customerList
   products.value = productList
 
@@ -127,7 +127,7 @@ onMounted(load)
         <!-- Card: Customer Info -->
         <div class="bg-surface-container rounded-xl p-4 border border-outline-variant/30">
           <p class="text-data-secondary text-on-surface-variant mb-2">Customer</p>
-          <NuxtLink :to="`/customers/${delivery.customer.id}`" class="block hover:opacity-80 transition-opacity">
+          <NuxtLink :to="`/customers/${delivery.customer.publicId}`" class="block hover:opacity-80 transition-opacity">
             <p class="text-data-primary text-on-surface">{{ delivery.customer.name }}</p>
             <p class="text-data-tertiary text-on-surface-variant mt-1">{{ delivery.customer.contactPerson }}</p>
           </NuxtLink>

@@ -35,11 +35,11 @@ export function useCustomers() {
     }
   }
 
-  async function fetchCustomer(id: number) {
+  async function fetchCustomer(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${id}`)
+      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${publicId}`)
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to load customer')
@@ -49,11 +49,11 @@ export function useCustomers() {
     }
   }
 
-  async function fetchLedger(id: number) {
+  async function fetchLedger(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<CustomerLedger>>(`/api/customers/${id}/ledger`)
+      const result = await $fetch<ApiResponse<CustomerLedger>>(`/api/customers/${publicId}/ledger`)
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to load ledger')
@@ -77,11 +77,11 @@ export function useCustomers() {
     }
   }
 
-  async function updateCustomer(id: number, data: Partial<NewCustomer>) {
+  async function updateCustomer(publicId: string, data: Partial<NewCustomer>) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${id}`, { method: 'PATCH', body: data })
+      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to update customer')
@@ -91,9 +91,9 @@ export function useCustomers() {
     }
   }
 
-  async function fetchFavoriteProductId(id: number) {
+  async function fetchFavoriteProductId(publicId: string) {
     try {
-      const result = await $fetch<ApiResponse<{ productId: number } | null>>(`/api/customers/${id}/favorite-product`)
+      const result = await $fetch<ApiResponse<{ productId: number } | null>>(`/api/customers/${publicId}/favorite-product`)
       return result.data?.productId ?? null
     } catch {
       return null

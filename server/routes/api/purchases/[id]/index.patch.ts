@@ -8,13 +8,14 @@ import type { CylinderSize } from '~/types'
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const publicId = getRouterParam(event, 'id')!
   const body = await parseBody(event, PurchaseSchema)
   const db = useDB(event)
 
-  const existing = await db.select().from(purchases).where(eq(purchases.id, id)).get()
+  const existing = await db.select().from(purchases).where(eq(purchases.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Purchase not found' })
 
+  const id = existing.id
   const oldItems = await db.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, id)).all()
 
   // Net stock impact of the edit = new changes minus old changes, validated
@@ -39,7 +40,6 @@ export default defineEventHandler(async (event) => {
 
   if (netChanges.length > 0) await validateStockChanges(db, netChanges)
 
-  // Update purchase record + replace items
   const paymentStatus =
     body.amountPaid >= body.totalAmount ? 'paid' :
     body.amountPaid > 0 ? 'partial' : 'pending'

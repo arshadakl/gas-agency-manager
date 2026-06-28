@@ -11,7 +11,7 @@ const isClear = computed(() => props.customer.balance <= 0)
 
 <template>
   <NuxtLink
-    :to="`/customers/${customer.id}`"
+    :to="`/customers/${customer.publicId}`"
     class="bg-surface-container-low border rounded-xl p-[20px] flex flex-col gap-md hover:bg-surface-container transition-colors group relative overflow-hidden"
     :class="isClear ? 'border-outline-variant/20' : 'border-error-container/40'"
   >

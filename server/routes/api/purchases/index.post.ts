@@ -2,6 +2,7 @@ import { useDB } from '~/server/database'
 import { purchases, purchaseItems } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
+import { generateId } from '~/server/utils/id'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -23,6 +24,7 @@ export default defineEventHandler(async (event) => {
   if (changes.length > 0) await validateStockChanges(db, changes)
 
   const [purchase] = await db.insert(purchases).values({
+    publicId: generateId(),
     supplier: body.supplier,
     purchaseDate: body.purchaseDate,
     invoiceNo: body.invoiceNo,

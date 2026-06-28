@@ -21,6 +21,7 @@ export default defineEventHandler(async (event) => {
     delivery: deliveries,
     customer: {
       id: customers.id,
+      publicId: customers.publicId,
       name: customers.name,
       contactPerson: customers.contactPerson,
       area: customers.area,

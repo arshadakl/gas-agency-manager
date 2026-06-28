@@ -9,7 +9,7 @@ definePageMeta({
 
 const { user } = useUserSession()
 const route = useRoute()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const { fetchPurchase, updatePurchase, deletePurchase, loading, error } = usePurchases()
 const purchase = ref<PurchaseWithItems | null>(null)

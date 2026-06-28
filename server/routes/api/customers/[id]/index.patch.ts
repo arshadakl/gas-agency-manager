@@ -11,11 +11,11 @@ const UpdateCustomerSchema = CustomerSchema.partial().extend({
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const publicId = getRouterParam(event, 'id')!
   const body = await parseBody(event, UpdateCustomerSchema)
   const db = useDB(event)
 
-  const existing = await db.select().from(customers).where(eq(customers.id, id)).get()
+  const existing = await db.select().from(customers).where(eq(customers.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Customer not found' })
 
   const { isActive, ...rest } = body
@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
       ...(rest.address !== undefined ? { address: rest.address } : {}),
       ...(isActive !== undefined ? { isActive: Number(isActive) } : {}),
     })
-    .where(eq(customers.id, id))
+    .where(eq(customers.id, existing.id))
     .returning()
 
   if (!updated) throw createError({ statusCode: 500, message: 'Failed to update customer' })

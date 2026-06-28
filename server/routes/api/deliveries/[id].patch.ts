@@ -5,16 +5,14 @@ import { DeliverySchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
-  const deliveryId = parseInt(getRouterParam(event, 'id') || '0')
-
-  if (!deliveryId) throw createError({ statusCode: 400, message: 'Invalid delivery ID' })
+  const publicId = getRouterParam(event, 'id')!
 
   const body = await parseBody(event, DeliverySchema)
   const db = useDB(event)
 
   const originalDelivery = await db.select()
     .from(deliveries)
-    .where(eq(deliveries.id, deliveryId))
+    .where(eq(deliveries.publicId, publicId))
     .get()
 
   if (!originalDelivery) throw createError({ statusCode: 404, message: 'Delivery not found' })
@@ -27,15 +25,15 @@ export default defineEventHandler(async (event) => {
       totalAmount: body.totalAmount,
       notes: body.notes,
     })
-    .where(eq(deliveries.id, deliveryId))
+    .where(eq(deliveries.id, originalDelivery.id))
 
   await db.delete(deliveryItems)
-    .where(eq(deliveryItems.deliveryId, deliveryId))
+    .where(eq(deliveryItems.deliveryId, originalDelivery.id))
 
   if (body.items.length > 0) {
     await db.insert(deliveryItems).values(
       body.items.map((item) => ({
-        deliveryId,
+        deliveryId: originalDelivery.id,
         productId: item.productId,
         quantity: item.quantity,
       }))

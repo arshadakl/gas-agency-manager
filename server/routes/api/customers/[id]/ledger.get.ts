@@ -5,11 +5,13 @@ import { customers, deliveries, customerPayments } from '~/server/database/schem
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const publicId = getRouterParam(event, 'id')!
   const db = useDB(event)
 
-  const customer = await db.select().from(customers).where(eq(customers.id, id)).get()
+  const customer = await db.select().from(customers).where(eq(customers.publicId, publicId)).get()
   if (!customer) throw createError({ statusCode: 404, message: 'Customer not found' })
+
+  const id = customer.id
 
   const [totals, customerDeliveries, payments] = await Promise.all([
     db.select({

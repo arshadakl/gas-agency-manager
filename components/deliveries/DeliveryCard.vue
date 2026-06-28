@@ -28,7 +28,7 @@ function canEdit() {
 }
 
 async function handleMarkPaid(delivery: DeliveryWithRelations) {
-  const ok = await markAsPaid(delivery.id, selectedMode.value)
+  const ok = await markAsPaid(delivery.publicId!, selectedMode.value)
   if (ok) {
     showPaymentPicker.value = false
     emit('paid')
@@ -41,7 +41,7 @@ async function handleMarkPaid(delivery: DeliveryWithRelations) {
     <div class="flex justify-between items-start mb-xs">
       <!-- Level 1: business name -->
       <NuxtLink
-        :to="`/deliveries/${delivery.id}`"
+        :to="`/deliveries/${delivery.publicId}`"
         class="flex-1 hover:opacity-80 transition-opacity"
       >
         <h2 class="text-data-primary text-on-surface line-clamp-1">{{ delivery.customer.name }}</h2>
@@ -58,7 +58,7 @@ async function handleMarkPaid(delivery: DeliveryWithRelations) {
         </div>
         <div v-if="canEdit()" class="flex gap-1 pt-1">
           <NuxtLink
-            :to="`/deliveries/${delivery.id}`"
+            :to="`/deliveries/${delivery.publicId}`"
             class="flex h-8 w-8 items-center justify-center rounded-full hover:bg-surface-variant transition-colors"
             title="View details"
           >

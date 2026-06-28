@@ -8,7 +8,7 @@ definePageMeta({
 })
 
 const route = useRoute()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const { fetchLedger, updateCustomer, loading, error } = useCustomers()
 const { user } = useUserSession()
@@ -62,7 +62,7 @@ async function handleUpdate(data: NewCustomer) {
         </div>
         <div class="flex gap-2 shrink-0">
           <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" variant="outline" class="rounded-full" as-child>
-            <NuxtLink :to="`/payments?customerId=${id}`"><Icon name="payments" class="text-lg" /></NuxtLink>
+            <NuxtLink :to="`/payments?customerId=${customer?.id}`"><Icon name="payments" class="text-lg" /></NuxtLink>
           </Button>
           <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" variant="outline" class="rounded-full" @click="editing = !editing">
             <Icon name="edit" class="text-lg" />

@@ -91,7 +91,7 @@ function initials(name: string) {
           <NuxtLink
             v-for="delivery in todayDeliveries"
             :key="delivery.id"
-            :to="`/deliveries/${delivery.id}`"
+            :to="`/deliveries/${delivery.publicId}`"
             class="bg-surface-container p-4 rounded-xl border border-outline-variant/30 flex flex-col gap-3 relative overflow-hidden"
           >
             <div class="absolute top-0 left-0 w-1 h-full bg-tertiary-container" />
