@@ -1,0 +1,1 @@
+ALTER TABLE `deliveries` ADD `amount_collected` real DEFAULT 0 NOT NULL;

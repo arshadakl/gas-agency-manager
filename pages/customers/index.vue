@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { CustomerWithBalance, NewCustomer } from '~/types/database'
+import { getOutstandingLevel, OUTSTANDING_LEVELS, type OutstandingLevel } from '~/utils/outstanding'
 
 definePageMeta({
   layout: 'default',
@@ -9,12 +10,19 @@ definePageMeta({
 
 const { fetchCustomers, createCustomer, loading, error } = useCustomers()
 const { user } = useUserSession()
+const { t } = useLocale()
 
 const route = useRoute()
 const search = ref('')
 const customers = ref<CustomerWithBalance[]>([])
 const showForm = ref(false)
 const filter = ref<'active' | 'outstanding'>(route.query.filter === 'outstanding' ? 'outstanding' : 'active')
+const levelFilter = ref<OutstandingLevel | null>(null)
+const severityLevels = OUTSTANDING_LEVELS.filter((l): l is Exclude<OutstandingLevel, 'clear'> => l !== 'clear')
+
+function levelLabel(level: Exclude<OutstandingLevel, 'clear'>) {
+  return level === 'warning' ? t('level_warning') : level === 'high' ? t('level_high') : t('level_critical')
+}
 
 async function load() {
   customers.value = await fetchCustomers(search.value || undefined)
@@ -23,9 +31,23 @@ async function load() {
 watch(search, () => load())
 onMounted(load)
 
-const filteredCustomers = computed(() =>
-  filter.value === 'outstanding' ? customers.value.filter((c) => c.balance > 0) : customers.value,
-)
+function selectAll() {
+  filter.value = 'active'
+  levelFilter.value = null
+}
+
+function toggleLevelFilter(level: Exclude<OutstandingLevel, 'clear'>) {
+  levelFilter.value = levelFilter.value === level ? null : level
+}
+
+const filteredCustomers = computed(() => {
+  if (filter.value !== 'outstanding') return customers.value
+  return customers.value.filter((c) => {
+    const level = getOutstandingLevel(c.pendingDeliveryCount)
+    if (level === 'clear') return false
+    return levelFilter.value ? level === levelFilter.value : true
+  })
+})
 
 async function handleCreate(data: NewCustomer) {
   const created = await createCustomer(data)
@@ -66,7 +88,7 @@ async function handleCreate(data: NewCustomer) {
         <button
           class="flex-1 px-lg py-xs rounded-md text-data-primary text-sm transition-colors"
           :class="filter === 'active' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"
-          @click="filter = 'active'"
+          @click="selectAll"
         >
           All
         </button>
@@ -76,6 +98,22 @@ async function handleCreate(data: NewCustomer) {
           @click="filter = 'outstanding'"
         >
           Outstanding
+        </button>
+      </div>
+      <div v-if="filter === 'outstanding'" class="flex gap-xs">
+        <button
+          v-for="level in severityLevels"
+          :key="level"
+          class="flex-1 px-sm py-xs rounded-full text-data-tertiary border transition-colors"
+          :class="[
+            levelFilter === level ? 'font-medium' : 'opacity-60',
+            level === 'warning' ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : '',
+            level === 'high' ? 'bg-red-400/10 text-red-400 border-red-400/30' : '',
+            level === 'critical' ? 'bg-error-container/40 text-error border-error/30' : '',
+          ]"
+          @click="toggleLevelFilter(level)"
+        >
+          {{ levelLabel(level) }}
         </button>
       </div>
     </div>

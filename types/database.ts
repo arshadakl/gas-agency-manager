@@ -58,6 +58,7 @@ export type CustomerWithBalance = Customer & {
   totalBilled: number
   totalPaid: number
   balance: number
+  pendingDeliveryCount: number
 }
 
 export type Order = InferSelectModel<typeof orders>

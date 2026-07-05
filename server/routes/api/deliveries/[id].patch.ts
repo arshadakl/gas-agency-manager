@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { deliveries, deliveryItems } from '~/server/database/schema'
 import { DeliverySchema } from '~/utils/validators'
+import { deriveStatus } from '~/server/utils/payment'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -17,11 +18,14 @@ export default defineEventHandler(async (event) => {
 
   if (!originalDelivery) throw createError({ statusCode: 404, message: 'Delivery not found' })
 
+  // Editing item/date/customer details never touches money already collected —
+  // only re-derive the label since a changed totalAmount can shift which
+  // bucket the existing amountCollected falls into.
   await db.update(deliveries)
     .set({
       customerId: body.customerId,
       deliveryDate: body.deliveryDate,
-      paymentStatus: body.paymentStatus,
+      paymentStatus: deriveStatus(originalDelivery.amountCollected, body.totalAmount),
       totalAmount: body.totalAmount,
       notes: body.notes,
     })
@@ -40,5 +44,12 @@ export default defineEventHandler(async (event) => {
     )
   }
 
-  return { data: { ...originalDelivery, totalAmount: body.totalAmount, items: body.items } }
+  return {
+    data: {
+      ...originalDelivery,
+      totalAmount: body.totalAmount,
+      paymentStatus: deriveStatus(originalDelivery.amountCollected, body.totalAmount),
+      items: body.items,
+    },
+  }
 })

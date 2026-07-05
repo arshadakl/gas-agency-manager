@@ -35,7 +35,8 @@ const filteredCustomers = computed(() => {
 async function selectCustomer(customer: Customer) {
   selectedCustomerId.value = customer.id
   customerSearch.value = customer.name
-  const favoriteProductId = await fetchFavoriteProductId(customer.id)
+  if (!customer.publicId) return
+  const favoriteProductId = await fetchFavoriteProductId(customer.publicId)
   if (favoriteProductId && !quantities[favoriteProductId]) {
     quantities[favoriteProductId] = 1
   }

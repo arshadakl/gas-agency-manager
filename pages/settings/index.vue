@@ -9,13 +9,14 @@ const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 const { locale, t, toggleLocale } = useLocale()
 
-type ClearTarget = 'deliveries' | 'customers' | 'stock'
+type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock'
 const confirmClear = ref<ClearTarget | null>(null)
 const clearing = ref(false)
 const clearError = ref<string | null>(null)
 
 const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string }> = {
-  deliveries: { label: 'Clear All Deliveries', desc: 'Removes all delivery records and resets order statuses', icon: 'local_shipping' },
+  deliveries: { label: 'Clear All Deliveries', desc: 'Removes all delivery (selling) records and resets order statuses', icon: 'local_shipping' },
+  purchases:  { label: 'Clear All Purchases', desc: 'Removes all purchase (buying) records from suppliers', icon: 'shopping_cart' },
   customers:  { label: 'Clear All Customers', desc: 'Removes customers, deliveries, payments and orders', icon: 'groups' },
   stock:      { label: 'Reset Stock Data', desc: 'Resets all cylinder counts to zero and clears movement history', icon: 'inventory_2' },
 }

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ROLES, PAYMENT_MODES, PRODUCT_TYPES, PURCHASE_PAYMENT_MODES, DELIVERY_PAYMENT_STATUSES } from '~/types'
+import { ROLES, PAYMENT_MODES, PRODUCT_TYPES, PURCHASE_PAYMENT_MODES } from '~/types'
 
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit phone number')
 
@@ -31,11 +31,16 @@ export const DeliverySchema = z.object({
     quantity: z.number().positive(),
   })).min(1),
   notes: z.string().max(500).optional(),
-  paymentStatus: z.enum(DELIVERY_PAYMENT_STATUSES).default('pending'),
+  amountCollected: z.number().min(0).default(0),
   paymentMode: z.enum(PAYMENT_MODES).optional(),
-}).refine((data) => data.paymentStatus !== 'paid' || !!data.paymentMode, {
-  message: 'paymentMode is required when paymentStatus is paid',
+}).refine((data) => data.amountCollected === 0 || !!data.paymentMode, {
+  message: 'paymentMode is required when collecting an amount',
   path: ['paymentMode'],
+})
+
+export const CollectPaymentSchema = z.object({
+  amount: z.number().positive(),
+  paymentMode: z.enum(PAYMENT_MODES),
 })
 
 export const PaymentSchema = z.object({

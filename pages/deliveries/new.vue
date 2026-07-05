@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Customer, Product } from '~/types/database'
+import type { CustomerWithBalance, Product } from '~/types/database'
 import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
 
 definePageMeta({
@@ -13,7 +13,7 @@ const { fetchProducts } = usePricing()
 const { fetchCylinderStock } = useInventory()
 const { showToast } = useToast()
 
-const customers = ref<Customer[]>([])
+const customers = ref<CustomerWithBalance[]>([])
 const products = ref<Product[]>([])
 const cylinderFullStock = ref<Record<number, number>>({})
 
