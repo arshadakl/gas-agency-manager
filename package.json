@@ -10,9 +10,11 @@
     "typecheck": "nuxt typecheck",
     "db:generate": "drizzle-kit generate",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
-    "db:migrate": "wrangler d1 migrations apply DB",
+    "db:migrate": "wrangler d1 migrations apply DB --remote",
+    "db:migrate:dev": "wrangler d1 migrations apply DB --env preview --remote",
     "db:studio": "drizzle-kit studio",
-    "deploy": "nuxt build && wrangler pages deploy dist"
+    "deploy": "nuxt build && wrangler pages deploy dist",
+    "deploy:dev": "nuxt build && wrangler pages deploy dist --branch=dev"
   },
   "dependencies": {
     "@lucide/vue": "^1.21.0",

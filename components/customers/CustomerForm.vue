@@ -16,6 +16,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const INDIAN_PHONE = /^[6-9]\d{9}$/
+
 const form = reactive({
   name: props.customer?.name ?? '',
   contactPerson: props.customer?.contactPerson ?? '',
@@ -25,13 +27,33 @@ const form = reactive({
   address: props.customer?.address ?? '',
 })
 
+const phoneTouched = ref(false)
+const whatsappTouched = ref(false)
+
+const phoneError = computed(() => {
+  if (!phoneTouched.value && !form.phone) return ''
+  if (!form.phone) return 'Phone number required'
+  if (!INDIAN_PHONE.test(form.phone.replace(/\s/g, ''))) return 'Must be a 10-digit Indian mobile number (starts with 6–9)'
+  return ''
+})
+
+const whatsappError = computed(() => {
+  if (!whatsappTouched.value || !form.whatsappNumber) return ''
+  if (!INDIAN_PHONE.test(form.whatsappNumber.replace(/\s/g, ''))) return 'Must be a 10-digit Indian mobile number (starts with 6–9)'
+  return ''
+})
+
+const formValid = computed(() => !phoneError.value && !whatsappError.value && form.name.length >= 2)
+
 function handleSubmit() {
+  phoneTouched.value = true
+  if (!formValid.value) return
   emit('submit', {
     name: form.name,
     contactPerson: form.contactPerson || undefined,
     area: form.area || undefined,
-    phone: form.phone,
-    whatsappNumber: form.whatsappNumber || undefined,
+    phone: form.phone.replace(/\s/g, ''),
+    whatsappNumber: form.whatsappNumber ? form.whatsappNumber.replace(/\s/g, '') : undefined,
     address: form.address || undefined,
   })
 }
@@ -53,11 +75,34 @@ function handleSubmit() {
     </div>
     <div class="space-y-1">
       <Label for="phone">Phone</Label>
-      <Input id="phone" v-model="form.phone" type="tel" required />
+      <Input
+        id="phone"
+        v-model="form.phone"
+        type="tel"
+        inputmode="numeric"
+        maxlength="10"
+        placeholder="e.g. 9876543210"
+        required
+        :class="phoneTouched && phoneError ? 'border-destructive focus-visible:ring-destructive' : ''"
+        @blur="phoneTouched = true"
+        @input="phoneTouched = true"
+      />
+      <p v-if="phoneTouched && phoneError" class="text-xs text-destructive mt-1">{{ phoneError }}</p>
     </div>
     <div class="space-y-1">
-      <Label for="whatsapp">WhatsApp Number (if different)</Label>
-      <Input id="whatsapp" v-model="form.whatsappNumber" type="tel" />
+      <Label for="whatsapp">WhatsApp Number <span class="text-muted-foreground">(if different)</span></Label>
+      <Input
+        id="whatsapp"
+        v-model="form.whatsappNumber"
+        type="tel"
+        inputmode="numeric"
+        maxlength="10"
+        placeholder="e.g. 9876543210"
+        :class="whatsappTouched && whatsappError ? 'border-destructive focus-visible:ring-destructive' : ''"
+        @blur="whatsappTouched = true"
+        @input="whatsappTouched = !!form.whatsappNumber"
+      />
+      <p v-if="whatsappTouched && whatsappError" class="text-xs text-destructive mt-1">{{ whatsappError }}</p>
     </div>
     <div class="space-y-1">
       <Label for="address">Address</Label>

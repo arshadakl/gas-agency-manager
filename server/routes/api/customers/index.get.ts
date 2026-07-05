@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
     .groupBy(customers.id)
     .all()
 
-  const data = rows.map((r) => ({ ...r, balance: Math.round((r.totalBilled - r.totalPaid) * 100) / 100 }))
+  const data = rows.map((r) => ({ ...r, balance: Math.round(((r.openingBalance ?? 0) + r.totalBilled - r.totalPaid) * 100) / 100 }))
 
   return { data, total: data.length }
 })
