@@ -4,6 +4,10 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
 
+  experimental: {
+    viteEnvironmentApi: true,
+  },
+
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', 'nuxt-auth-utils'],
 
   css: ['~/assets/css/main.css'],

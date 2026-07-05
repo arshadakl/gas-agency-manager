@@ -8,3 +8,10 @@ binding = "DB"
 database_name = "gas-supplier-db"
 database_id = "201ce0a7-2129-46e6-ab92-b9cc300cb786"
 migrations_dir = "server/database/migrations"
+
+[env.preview]
+[[env.preview.d1_databases]]
+binding = "DB"
+database_name = "gas-supplier-db-dev"
+database_id = "592b11a9-d4e6-4476-a3e3-06d64679a884"
+migrations_dir = "server/database/migrations"
