@@ -9,6 +9,7 @@ database_name = "gas-supplier-db"
 database_id = "201ce0a7-2129-46e6-ab92-b9cc300cb786"
 migrations_dir = "server/database/migrations"
 
+# Preview deployments (dev branch) use a separate D1 database
 [env.preview]
 [[env.preview.d1_databases]]
 binding = "DB"
