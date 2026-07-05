@@ -1,7 +1,7 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Delivery, DeliveryWithRelations } from '~/types/database'
-import type { DeliveryPaymentStatus, PaymentMode } from '~/types'
+import type { PaymentMode } from '~/types'
 
 interface DeliveryFormItem {
   productId: number
@@ -14,7 +14,7 @@ export interface DeliveryCreatePayload {
   totalAmount: number
   items: DeliveryFormItem[]
   notes?: string
-  paymentStatus?: DeliveryPaymentStatus
+  amountCollected?: number
   paymentMode?: PaymentMode
 }
 
@@ -81,22 +81,22 @@ export function useDeliveries() {
     }
   }
 
-  async function markAsPaid(publicId: string, paymentMode: PaymentMode) {
+  async function collectPayment(publicId: string, amount: number, paymentMode: PaymentMode) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${publicId}/mark-paid`, {
+      const result = await $fetch<ApiResponse<Delivery>>(`/api/deliveries/${publicId}/collect`, {
         method: 'POST',
-        body: { paymentMode },
+        body: { amount, paymentMode },
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to mark delivery as paid')
+      handleError(err, 'Failed to collect payment')
       return null
     } finally {
       loading.value = false
     }
   }
 
-  return { fetchDeliveries, fetchToday, createDelivery, updateDelivery, markAsPaid, loading, error }
+  return { fetchDeliveries, fetchToday, createDelivery, updateDelivery, collectPayment, loading, error }
 }

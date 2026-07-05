@@ -26,7 +26,7 @@ export type PurchasePaymentMode = typeof PURCHASE_PAYMENT_MODES[number]
 export const PURCHASE_PAYMENT_STATUSES = ['paid', 'partial', 'pending'] as const
 export type PurchasePaymentStatus = typeof PURCHASE_PAYMENT_STATUSES[number]
 
-export const DELIVERY_PAYMENT_STATUSES = ['paid', 'pending'] as const
+export const DELIVERY_PAYMENT_STATUSES = ['paid', 'partial', 'pending'] as const
 export type DeliveryPaymentStatus = typeof DELIVERY_PAYMENT_STATUSES[number]
 
 export const ORDER_STATUSES = ['pending', 'delivered', 'cancelled'] as const

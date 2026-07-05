@@ -3,7 +3,7 @@ import { useDB } from '~/server/database'
 import { deliveries, deliveryItems, inventory, products, customers } from '~/server/database/schema'
 import { DeliverySchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
-import { recordDeliveryPayment } from '~/server/utils/payment'
+import { recordCustomerPayment } from '~/server/utils/payment'
 import { generateId } from '~/server/utils/id'
 import type { CylinderSize } from '~/types'
 
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     customerId: body.customerId,
     deliveryDate: body.deliveryDate,
     status: 'delivered',
-    paymentStatus: body.paymentStatus,
+    paymentStatus: 'pending',
     totalAmount: body.totalAmount,
     notes: body.notes,
     createdBy: user.id,
@@ -77,16 +77,21 @@ export default defineEventHandler(async (event) => {
     await commitStockChanges(db, cylinderChanges, 'delivery', delivery.id, 'delivery', user)
   }
 
-  if (body.paymentStatus === 'paid' && body.paymentMode) {
-    await recordDeliveryPayment(db, {
+  let finalDelivery = delivery
+  if (body.amountCollected > 0 && body.paymentMode) {
+    await recordCustomerPayment(db, {
       customerId: body.customerId,
       deliveryId: delivery.id,
-      amount: body.totalAmount,
+      amount: body.amountCollected,
       paymentDate: body.deliveryDate,
       paymentMode: body.paymentMode,
+      notes: 'Collected at delivery',
+      target: { type: 'fifo' },
       user,
     })
+    // FIFO may have updated this delivery (or only older ones) — refetch for accuracy.
+    finalDelivery = await db.select().from(deliveries).where(eq(deliveries.id, delivery.id)).get() ?? delivery
   }
 
-  return { data: { ...delivery, items: body.items } }
+  return { data: { ...finalDelivery, items: body.items } }
 })

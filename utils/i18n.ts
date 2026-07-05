@@ -33,6 +33,10 @@ export const en = {
   current_balance: 'Current Balance',
   balance_clear: 'Clear',
   balance_pending: 'Owing',
+  pending_label: 'Pending',
+  level_warning: 'Warning',
+  level_high: 'High',
+  level_critical: 'Critical',
 
   // Stock
   full: 'Full',
@@ -95,6 +99,10 @@ export const ml: typeof en = {
   current_balance: 'ബാലൻസ്',
   balance_clear: 'ക്ലിയർ',
   balance_pending: 'കുടിശ്ശിക',
+  pending_label: 'ബാക്കി',
+  level_warning: 'മുന്നറിയിപ്പ്',
+  level_high: 'ഉയർന്നത്',
+  level_critical: 'ഗുരുതരം',
 
   // Stock
   full: 'നിറഞ്ഞ',

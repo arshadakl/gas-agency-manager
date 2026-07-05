@@ -2,11 +2,11 @@
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { PAYMENT_MODES } from '~/types'
-import type { Customer, Product } from '~/types/database'
+import type { CustomerWithBalance, Product } from '~/types/database'
 import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
 
 const props = defineProps<{
-  customers: Customer[]
+  customers: CustomerWithBalance[]
   products: Product[]
   cylinderFullStock?: Record<number, number>  // sizeKg → fullCount
   loading?: boolean
@@ -25,7 +25,7 @@ const deliveryDate = ref(toISODate(new Date()))
 const notes = ref('')
 const quantities = reactive<Record<number, number>>({})
 const totalAmount = ref<number | ''>('')
-const paidNow = ref(false)
+const amountCollected = ref<number | ''>('')
 const paymentMode = ref<typeof PAYMENT_MODES[number]>('cash')
 const validationError = ref('')
 
@@ -47,11 +47,12 @@ function isOutOfStock(product: Product): boolean {
   return full !== undefined && full <= 0
 }
 
-async function selectCustomer(customer: Customer) {
+async function selectCustomer(customer: CustomerWithBalance) {
   selectedCustomerId.value = customer.id
   customerSearch.value = customer.name
   // Prefill the customer's most-frequently-ordered item — still removable, more addable.
-  const favoriteProductId = await fetchFavoriteProductId(customer.id)
+  if (!customer.publicId) return
+  const favoriteProductId = await fetchFavoriteProductId(customer.publicId)
   if (favoriteProductId && !quantities[favoriteProductId]) {
     quantities[favoriteProductId] = 1
   }
@@ -87,6 +88,7 @@ const selectedItems = computed(() =>
     .filter((i) => i.quantity > 0),
 )
 const totalUnits = computed(() => selectedItems.value.reduce((sum, i) => sum + i.quantity, 0))
+const goesToOutstanding = computed(() => Math.max(Number(totalAmount.value || 0) - Number(amountCollected.value || 0), 0))
 
 function buildPayload(): DeliveryCreatePayload | null {
   validationError.value = ''
@@ -102,14 +104,22 @@ function buildPayload(): DeliveryCreatePayload | null {
     validationError.value = 'Enter the total amount for this delivery.'
     return null
   }
+  if (amountCollected.value && amountCollected.value < 0) {
+    validationError.value = 'Amount received cannot be negative.'
+    return null
+  }
+  if (amountCollected.value && amountCollected.value > 0 && !paymentMode.value) {
+    validationError.value = 'Select a payment method.'
+    return null
+  }
   return {
     customerId: selectedCustomerId.value,
     deliveryDate: deliveryDate.value,
     totalAmount: totalAmount.value,
     items: selectedItems.value,
     notes: notes.value || undefined,
-    paymentStatus: paidNow.value ? 'paid' : 'pending',
-    paymentMode: paidNow.value ? paymentMode.value : undefined,
+    amountCollected: Number(amountCollected.value || 0),
+    paymentMode: amountCollected.value && amountCollected.value > 0 ? paymentMode.value : undefined,
   }
 }
 
@@ -160,6 +170,9 @@ function handleSubmit() {
           <p v-if="selectedCustomer.contactPerson" class="text-body-base text-on-surface-variant mt-1">{{ selectedCustomer.contactPerson }}</p>
           <p v-if="selectedCustomer.area" class="text-data-secondary text-outline mt-1">
             <Icon name="location_on" class="text-[14px] align-middle mr-1" />{{ selectedCustomer.area }}
+          </p>
+          <p v-if="selectedCustomer.balance > 0" class="text-data-secondary text-error mt-1">
+            Already owes {{ formatCurrency(selectedCustomer.balance) }}
           </p>
         </div>
         <button type="button" class="text-on-surface-variant hover:text-primary" @click="clearCustomer">
@@ -252,26 +265,20 @@ function handleSubmit() {
 
     <!-- 6. Payment -->
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
-      <label class="text-data-secondary text-on-surface-variant block mb-3 uppercase tracking-wider">Payment Status</label>
-      <div class="flex gap-sm">
-        <button
-          type="button"
-          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border-2"
-          :class="!paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface font-bold' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
-          @click="paidNow = false"
-        >
-          Pending — Pay Later
-        </button>
-        <button
-          type="button"
-          class="flex-1 px-4 py-3 rounded-lg font-medium transition-all border-2"
-          :class="paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface font-bold' : 'border-outline-variant text-on-surface-variant bg-surface hover:bg-surface-variant'"
-          @click="paidNow = true"
-        >
-          Paid Now — Collect
-        </button>
-      </div>
-      <div v-if="paidNow" class="pt-3 border-t border-surface-variant">
+      <label class="text-data-secondary text-on-surface-variant block mb-2 uppercase tracking-wider">Amount Received Now (₹)</label>
+      <input
+        v-model.number="amountCollected"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="1"
+        placeholder="0"
+        class="block w-full px-3 py-3 border border-surface-variant rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
+      >
+      <p class="text-data-tertiary text-on-surface-variant">
+        Leave blank if paying later. Can be less or more than this delivery's total — covers old dues first.
+      </p>
+      <div v-if="Number(amountCollected) > 0" class="pt-3 border-t border-surface-variant">
         <p class="text-data-secondary text-on-surface-variant mb-3">Select payment method:</p>
         <div class="flex gap-sm flex-wrap">
           <button
@@ -300,6 +307,14 @@ function handleSubmit() {
         <span class="text-headline-md text-primary-fixed-dim font-bold">
           {{ totalAmount ? formatCurrency(Number(totalAmount)) : '—' }}
         </span>
+      </div>
+      <div v-if="Number(amountCollected) > 0" class="flex justify-between items-center text-body-base text-success">
+        <span>Collecting now</span>
+        <span>{{ formatCurrency(Number(amountCollected)) }}</span>
+      </div>
+      <div v-if="totalAmount" class="flex justify-between items-center text-body-base" :class="goesToOutstanding > 0 ? 'text-error' : 'text-on-surface-variant'">
+        <span>Goes to outstanding</span>
+        <span>{{ formatCurrency(goesToOutstanding) }}</span>
       </div>
     </section>
 

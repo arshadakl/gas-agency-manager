@@ -59,14 +59,16 @@ export const deliveries = sqliteTable('deliveries', {
   deliveryDate: text('delivery_date').notNull(),
   status: text('status', { enum: ['pending', 'delivered', 'cancelled'] })
     .default('pending').notNull(),
-  // Whether the customer paid at the moment of delivery (cash-in-hand) vs.
-  // settling later — distinct from `status` (fulfillment), this is purely
-  // about cash flow. 'paid' auto-creates a matching customer_payments row
-  // (see server/utils/payment.ts) so ledger/outstanding calculations never
-  // need to know about this flag — it's just a UI/workflow trigger.
-  paymentStatus: text('payment_status', { enum: ['paid', 'pending'] })
+  // Derived from amountCollected vs totalAmount, kept in sync on every payment
+  // write (server/utils/payment.ts) — distinct from `status` (fulfillment).
+  // Still just a UI/workflow signal; ledger/outstanding balance math never
+  // reads this, it always sums customer_payments directly (CLAUDE.md §30.2).
+  paymentStatus: text('payment_status', { enum: ['paid', 'partial', 'pending'] })
     .default('pending').notNull(),
   totalAmount: real('total_amount').notNull(),
+  // Cumulative amount actually settled against this specific delivery via FIFO
+  // or targeted collection (server/utils/payment.ts). Drives paymentStatus.
+  amountCollected: real('amount_collected').default(0).notNull(),
   whatsappSent: integer('whatsapp_sent').default(0).notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),

@@ -15,14 +15,15 @@ const emit = defineEmits<{
 }>()
 
 const deliveryDate = ref(toISODate(new Date()))
-const paidNow = ref(false)
+const amountCollected = ref<number | ''>('')
 const paymentMode = ref<typeof PAYMENT_MODES[number]>('cash')
 
 function handleConfirm() {
+  const amount = Number(amountCollected.value || 0)
   emit('confirm', {
     deliveryDate: deliveryDate.value,
-    paymentStatus: paidNow.value ? 'paid' : 'pending',
-    paymentMode: paidNow.value ? paymentMode.value : undefined,
+    amountCollected: amount,
+    paymentMode: amount > 0 ? paymentMode.value : undefined,
   })
 }
 </script>
@@ -42,26 +43,18 @@ function handleConfirm() {
       </div>
 
       <div class="space-y-2">
-        <label class="text-data-secondary text-on-surface-variant block uppercase tracking-wider">Payment</label>
-        <div class="flex gap-sm">
-          <button
-            type="button"
-            class="flex-1 px-3 py-2 rounded-full border-2 transition-all font-medium"
-            :class="!paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface' : 'border-outline-variant text-on-surface-variant bg-surface'"
-            @click="paidNow = false"
-          >
-            Pending
-          </button>
-          <button
-            type="button"
-            class="flex-1 px-3 py-2 rounded-full border-2 transition-all font-medium"
-            :class="paidNow ? 'border-tertiary-container bg-tertiary-container text-on-surface' : 'border-outline-variant text-on-surface-variant bg-surface'"
-            @click="paidNow = true"
-          >
-            Paid now
-          </button>
-        </div>
-        <div v-if="paidNow" class="flex gap-sm overflow-x-auto pt-1">
+        <label class="text-data-secondary text-on-surface-variant block uppercase tracking-wider">Amount Received Now (₹)</label>
+        <input
+          v-model.number="amountCollected"
+          type="number"
+          inputmode="numeric"
+          min="0"
+          step="1"
+          placeholder="0"
+          class="block w-full px-3 py-2.5 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
+        >
+        <p class="text-data-tertiary text-on-surface-variant">Leave blank if paying later.</p>
+        <div v-if="Number(amountCollected) > 0" class="flex gap-sm overflow-x-auto pt-1">
           <button
             v-for="mode in PAYMENT_MODES"
             :key="mode"

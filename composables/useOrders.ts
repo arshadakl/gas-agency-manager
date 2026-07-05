@@ -1,7 +1,7 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { OrderWithRelations, Delivery } from '~/types/database'
-import type { OrderStatus, DeliveryPaymentStatus, PaymentMode } from '~/types'
+import type { OrderStatus, PaymentMode } from '~/types'
 
 export interface OrderCreatePayload {
   customerId: number
@@ -12,7 +12,7 @@ export interface OrderCreatePayload {
 
 export interface OrderDeliverPayload {
   deliveryDate: string
-  paymentStatus: DeliveryPaymentStatus
+  amountCollected: number
   paymentMode?: PaymentMode
 }
 

@@ -17,6 +17,7 @@ export default defineEventHandler(async (event) => {
       ...getTableColumns(customers),
       totalBilled: sql<number>`coalesce(sum(case when ${deliveries.status} = 'delivered' then ${deliveries.totalAmount} else 0 end), 0)`,
       totalPaid: sql<number>`coalesce((select sum(${customerPayments.amount}) from ${customerPayments} where ${customerPayments.customerId} = ${customers.id}), 0)`,
+      pendingDeliveryCount: sql<number>`coalesce(sum(case when ${deliveries.status} = 'delivered' and ${deliveries.paymentStatus} != 'paid' then 1 else 0 end), 0)`,
     })
     .from(customers)
     .leftJoin(deliveries, eq(deliveries.customerId, customers.id))

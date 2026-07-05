@@ -2,7 +2,7 @@
 import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { PAYMENT_MODES } from '~/types'
-import type { Delivery, DeliveryWithRelations } from '~/types/database'
+import type { CustomerWithBalance, DeliveryWithRelations, Product } from '~/types/database'
 import type { PaymentMode } from '~/types'
 
 definePageMeta({
@@ -13,21 +13,21 @@ definePageMeta({
 const route = useRoute()
 const { user } = useUserSession()
 const { t } = useLocale()
-const { fetchDeliveries, updateDelivery, markAsPaid, loading, error } = useDeliveries()
+const { fetchDeliveries, updateDelivery, collectPayment, loading, error } = useDeliveries()
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
 
 const id = route.params.id as string
 const delivery = ref<DeliveryWithRelations | null>(null)
-const customers = ref([])
-const products = ref([])
+const customers = ref<CustomerWithBalance[]>([])
+const products = ref<Product[]>([])
 const isEditing = ref(false)
-const markingDelivered = ref(false)
 const showPaymentPicker = ref(false)
+const collectAmount = ref<number | ''>('')
 const selectedPaymentMode = ref<PaymentMode>('cash')
 
 const canEdit = computed(() => user.value?.role === 'admin' || (user.value?.role === 'delivery' && user.value?.id === delivery.value?.createdBy))
-const canMarkDelivered = computed(() => delivery.value?.status !== 'delivered' && canEdit.value)
+const remainingDue = computed(() => delivery.value ? Math.round((delivery.value.totalAmount - delivery.value.amountCollected) * 100) / 100 : 0)
 
 async function load() {
   const [deliveries, customerList, productList] = await Promise.all([
@@ -44,26 +44,18 @@ async function load() {
   }
 }
 
-async function handleMarkDelivered() {
-  if (!delivery.value) return
-  markingDelivered.value = true
-  try {
-    const updated = await updateDelivery(id, {
-      status: 'delivered',
-    })
-    if (updated) {
-      delivery.value = updated
-      await navigateTo('/deliveries')
-    }
-  } finally {
-    markingDelivered.value = false
-  }
+function openPicker() {
+  collectAmount.value = remainingDue.value
+  selectedPaymentMode.value = 'cash'
+  showPaymentPicker.value = true
 }
 
-async function handleMarkPaid() {
-  const ok = await markAsPaid(id, selectedPaymentMode.value)
-  if (ok) {
-    delivery.value = { ...delivery.value!, paymentStatus: 'paid' }
+async function handleCollect() {
+  const amount = Number(collectAmount.value || 0)
+  if (amount <= 0) return
+  const updated = await collectPayment(id, amount, selectedPaymentMode.value)
+  if (updated) {
+    delivery.value = { ...delivery.value!, paymentStatus: updated.paymentStatus, amountCollected: updated.amountCollected }
     showPaymentPicker.value = false
   }
 }
@@ -71,7 +63,7 @@ async function handleMarkPaid() {
 async function handleEditSubmit(data: any) {
   const updated = await updateDelivery(id, data)
   if (updated) {
-    delivery.value = updated
+    delivery.value = { ...delivery.value!, ...updated }
     isEditing.value = false
   }
 }
@@ -96,16 +88,6 @@ onMounted(load)
             @click="isEditing = true"
           >
             <Icon name="edit" class="text-sm mr-1" /> Edit
-          </Button>
-          <Button
-            v-if="canMarkDelivered && !isEditing"
-            size="sm"
-            :disabled="markingDelivered"
-            @click="handleMarkDelivered"
-          >
-            <LoadingSpinner v-if="markingDelivered" class="h-4 w-4 mr-1" />
-            <Icon v-else name="check_circle" class="text-sm mr-1" />
-            Mark Delivered
           </Button>
         </div>
       </div>
@@ -150,21 +132,40 @@ onMounted(load)
             <div class="flex justify-between items-center">
               <span class="text-data-tertiary text-on-surface-variant">Payment</span>
               <div class="flex items-center gap-2">
-                <Badge :class="delivery.paymentStatus === 'paid' ? 'bg-success/15 text-success border-success/30' : 'bg-error-container/40 text-error border-error/30'">
-                  {{ delivery.paymentStatus === 'paid' ? 'Clear' : 'Pay Later' }}
+                <Badge
+                  :class="{
+                    'bg-success/15 text-success border-success/30': delivery.paymentStatus === 'paid',
+                    'bg-amber-500/15 text-amber-500 border-amber-500/30': delivery.paymentStatus === 'partial',
+                    'bg-error-container/40 text-error border-error/30': delivery.paymentStatus === 'pending',
+                  }"
+                >
+                  {{ delivery.paymentStatus === 'paid' ? 'Clear' : delivery.paymentStatus === 'partial' ? 'Partial' : 'Pay Later' }}
                 </Badge>
                 <button
-                  v-if="canEdit && delivery.paymentStatus === 'pending'"
+                  v-if="canEdit && delivery.paymentStatus !== 'paid'"
                   class="flex items-center gap-1 rounded-full bg-success/15 border border-success/30 text-success px-2 py-0.5 text-data-tertiary hover:bg-success/25 transition-colors"
-                  @click="showPaymentPicker = !showPaymentPicker"
+                  @click="showPaymentPicker ? showPaymentPicker = false : openPicker()"
                 >
                   <Icon name="payments" class="text-sm" />
-                  Mark Paid
+                  Collect Payment
                 </button>
               </div>
             </div>
-            <!-- Inline payment picker on detail page -->
-            <div v-if="showPaymentPicker && delivery.paymentStatus === 'pending'" class="border-t border-outline-variant/20 pt-3 flex flex-col gap-sm">
+            <p v-if="delivery.paymentStatus === 'partial'" class="text-data-tertiary text-amber-500">
+              {{ formatCurrency(delivery.amountCollected) }} collected · {{ formatCurrency(remainingDue) }} due
+            </p>
+            <!-- Inline collect form on detail page -->
+            <div v-if="showPaymentPicker && delivery.paymentStatus !== 'paid'" class="border-t border-outline-variant/20 pt-3 flex flex-col gap-sm">
+              <label class="text-data-tertiary text-on-surface-variant">Amount (₹, max {{ formatCurrency(remainingDue) }})</label>
+              <input
+                v-model.number="collectAmount"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                :max="remainingDue"
+                step="1"
+                class="block w-full px-3 py-2 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
+              >
               <p class="text-data-tertiary text-on-surface-variant">Payment method collected</p>
               <div class="flex gap-1.5 flex-wrap">
                 <button
@@ -182,11 +183,11 @@ onMounted(load)
               <div class="flex gap-2">
                 <button
                   class="flex-1 rounded-xl bg-success/20 border border-success/40 text-success py-2 text-data-secondary font-medium hover:bg-success/30 transition-colors disabled:opacity-50"
-                  :disabled="loading"
-                  @click="handleMarkPaid"
+                  :disabled="loading || !collectAmount || Number(collectAmount) <= 0"
+                  @click="handleCollect"
                 >
                   <LoadingSpinner v-if="loading" class="h-3 w-3 inline mr-1" />
-                  Confirm Paid
+                  Confirm Collect
                 </button>
                 <button
                   class="px-4 rounded-xl border border-outline-variant/30 text-on-surface-variant text-data-secondary"
