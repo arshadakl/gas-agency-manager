@@ -4,8 +4,14 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
 
-  experimental: {
-    viteEnvironmentApi: true,
+  // dev-server-only workaround for a Nuxt+Vite7 SPA dev-server crash (resolveServerEntry
+  // "No entry found in rollupOptions.input"). Scoped to $development so `nuxt build`
+  // (and therefore the Cloudflare Workers bundle) is unaffected — this flag changes the
+  // entire build pipeline (handleEnvironments vs handleSerialBuilds), not just dev.
+  $development: {
+    experimental: {
+      viteEnvironmentApi: true,
+    },
   },
 
   modules: ['@nuxtjs/tailwindcss', '@vite-pwa/nuxt', 'nuxt-auth-utils'],
