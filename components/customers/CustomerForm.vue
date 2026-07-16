@@ -25,6 +25,8 @@ const form = reactive({
   phone: props.customer?.phone ?? '',
   whatsappNumber: props.customer?.whatsappNumber ?? '',
   address: props.customer?.address ?? '',
+  connectionDeposit: props.customer?.connectionDeposit ?? ('' as number | ''),
+  depositNote: props.customer?.depositNote ?? '',
 })
 
 const phoneTouched = ref(false)
@@ -55,6 +57,8 @@ function handleSubmit() {
     phone: form.phone.replace(/\s/g, ''),
     whatsappNumber: form.whatsappNumber ? form.whatsappNumber.replace(/\s/g, '') : undefined,
     address: form.address || undefined,
+    connectionDeposit: form.connectionDeposit === '' ? null : Number(form.connectionDeposit),
+    depositNote: form.depositNote || null,
   })
 }
 </script>
@@ -107,6 +111,15 @@ function handleSubmit() {
     <div class="space-y-1">
       <Label for="address">Address</Label>
       <Textarea id="address" v-model="form.address" rows="3" />
+    </div>
+    <div class="space-y-1">
+      <Label for="deposit">Connection Deposit <span class="text-muted-foreground">(optional, refundable)</span></Label>
+      <Input id="deposit" v-model.number="form.connectionDeposit" type="number" inputmode="numeric" min="0" step="1" placeholder="e.g. 2000" />
+      <p class="text-xs text-muted-foreground">Security deposit held for a new connection — kept separate from outstanding balance.</p>
+    </div>
+    <div v-if="form.connectionDeposit !== '' && form.connectionDeposit > 0" class="space-y-1">
+      <Label for="depositNote">Deposit Note</Label>
+      <Input id="depositNote" v-model="form.depositNote" maxlength="300" placeholder="e.g. 2 × 17kg new connection, June 2026" />
     </div>
     <p v-if="props.error" class="text-sm text-destructive">{{ props.error }}</p>
     <div class="flex gap-3">

@@ -1,6 +1,6 @@
-import { eq, and, asc } from 'drizzle-orm'
+import { eq, and, asc, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { customerPayments, deliveries } from '~/server/database/schema'
+import { customerPayments, customers, deliveries } from '~/server/database/schema'
 import type { PaymentMode, DeliveryPaymentStatus } from '~/types'
 
 export function deriveStatus(amountCollected: number, totalAmount: number): DeliveryPaymentStatus {
@@ -99,5 +99,32 @@ export async function recordCustomerPayment(
     await allocatePaymentFifo(db, params.customerId, params.amount)
   }
 
+  await clearPromiseIfSettled(db, params.customerId)
+
   return payment
+}
+
+// A payment promise ("will pay on Saturday") is fulfilled once the customer's
+// outstanding balance reaches zero — clear it so stale promises don't linger.
+export async function clearPromiseIfSettled(db: ReturnType<typeof useDB>, customerId: number) {
+  const customer = await db.select().from(customers).where(eq(customers.id, customerId)).get()
+  if (!customer?.promisedPayDate) return
+
+  const [billed, paid] = await Promise.all([
+    db.select({ total: sql<number>`coalesce(sum(${deliveries.totalAmount}), 0)` })
+      .from(deliveries)
+      .where(and(eq(deliveries.customerId, customerId), eq(deliveries.status, 'delivered')))
+      .get(),
+    db.select({ total: sql<number>`coalesce(sum(${customerPayments.amount}), 0)` })
+      .from(customerPayments)
+      .where(eq(customerPayments.customerId, customerId))
+      .get(),
+  ])
+
+  const balance = (customer.openingBalance ?? 0) + (billed?.total ?? 0) - (paid?.total ?? 0)
+  if (balance <= 0.01) {
+    await db.update(customers)
+      .set({ promisedPayDate: null, promisedPayNote: null })
+      .where(eq(customers.id, customerId))
+  }
 }

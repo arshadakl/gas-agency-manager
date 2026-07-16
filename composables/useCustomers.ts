@@ -118,5 +118,22 @@ export function useCustomers() {
     }
   }
 
-  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, loading, error }
+  async function setPromise(publicId: string, promisedPayDate: string | null, promisedPayNote?: string | null) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${publicId}/promise`, {
+        method: 'PATCH',
+        body: { promisedPayDate, promisedPayNote },
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to update payment promise')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, setPromise, loading, error }
 }

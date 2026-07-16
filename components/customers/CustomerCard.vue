@@ -40,6 +40,10 @@ const style = computed(() => styles[level.value])
 const badgeLabel = computed(() =>
   level.value === 'clear' ? t('balance_clear') : `${props.customer.pendingDeliveryCount} ${t('pending_label')}`,
 )
+
+const promiseOverdue = computed(() =>
+  !!props.customer.promisedPayDate && props.customer.promisedPayDate < toISODate(new Date()),
+)
 </script>
 
 <template>
@@ -62,6 +66,14 @@ const badgeLabel = computed(() =>
         <div class="w-1.5 h-1.5 rounded-full" :class="style.dot" />
         {{ badgeLabel }}
       </div>
+    </div>
+    <div
+      v-if="customer.promisedPayDate"
+      class="flex items-center gap-xs px-sm py-xs rounded-lg text-data-tertiary border w-fit"
+      :class="promiseOverdue ? 'bg-error-container/20 text-error border-error/30' : 'bg-tertiary-container/10 text-tertiary border-tertiary-container/30'"
+    >
+      <Icon name="event" class="text-[14px]" />
+      {{ promiseOverdue ? 'Promise overdue' : 'Will pay' }} · {{ formatDate(customer.promisedPayDate) }}
     </div>
     <div class="pt-sm border-t border-outline-variant/20 flex justify-between items-end">
       <div>
