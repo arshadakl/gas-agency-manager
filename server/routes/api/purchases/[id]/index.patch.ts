@@ -33,15 +33,18 @@ export default defineEventHandler(async (event) => {
     const next = newBySize.get(sizeKg)
     return {
       sizeKg,
-      fullChange: (next?.receivedQty ?? 0) - (old?.receivedQty ?? 0),
+      fullChange: ((next?.receivedQty ?? 0) + (next?.newConnectionQty ?? 0))
+        - ((old?.receivedQty ?? 0) + (old?.newConnectionQty ?? 0)),
       emptyChange: -((next?.returnedQty ?? 0) - (old?.returnedQty ?? 0)),
     }
   }).filter((c) => c.fullChange !== 0 || c.emptyChange !== 0)
 
   if (netChanges.length > 0) await validateStockChanges(db, netChanges)
 
+  // Payment status is derived against the grand total (gas + connection charge).
+  const grandTotal = body.totalAmount + body.connectionCharge
   const paymentStatus =
-    body.amountPaid >= body.totalAmount ? 'paid' :
+    body.amountPaid >= grandTotal ? 'paid' :
     body.amountPaid > 0 ? 'partial' : 'pending'
 
   await db.update(purchases).set({
@@ -49,6 +52,7 @@ export default defineEventHandler(async (event) => {
     purchaseDate: body.purchaseDate,
     invoiceNo: body.invoiceNo,
     totalAmount: body.totalAmount,
+    connectionCharge: body.connectionCharge,
     amountPaid: body.amountPaid,
     paymentMode: body.paymentMode,
     paymentStatus,

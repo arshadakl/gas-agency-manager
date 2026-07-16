@@ -15,7 +15,7 @@ onMounted(async () => {
 })
 
 const totalTrips = computed(() => purchases.value.length)
-const totalSpent = computed(() => purchases.value.reduce((sum, p) => sum + p.totalAmount, 0))
+const totalSpent = computed(() => purchases.value.reduce((sum, p) => sum + p.totalAmount + (p.connectionCharge ?? 0), 0))
 
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -61,7 +61,7 @@ function initials(name: string) {
             <span class="text-data-secondary text-on-surface-variant mt-xs">{{ formatDate(p.purchaseDate) }}<span v-if="p.invoiceNo"> · {{ p.invoiceNo }}</span></span>
           </div>
           <div class="flex flex-col items-end">
-            <span class="text-data-primary text-on-surface">{{ formatCurrency(p.totalAmount) }}</span>
+            <span class="text-data-primary text-on-surface">{{ formatCurrency(p.totalAmount + (p.connectionCharge ?? 0)) }}</span>
             <div
               class="rounded-full px-2 py-0.5 mt-sm flex items-center gap-xs border"
               :class="p.paymentStatus === 'paid' ? 'bg-tertiary-container/20 border-tertiary-container/30' : 'bg-error-container/20 border-error-container/30'"

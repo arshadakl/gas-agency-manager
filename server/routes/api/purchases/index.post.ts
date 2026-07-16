@@ -10,14 +10,17 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, PurchaseSchema)
   const db = useDB(event)
 
+  // Payment status is derived against the grand total (gas + connection charge).
+  const grandTotal = body.totalAmount + body.connectionCharge
   const paymentStatus =
-    body.amountPaid >= body.totalAmount ? 'paid' :
+    body.amountPaid >= grandTotal ? 'paid' :
     body.amountPaid > 0 ? 'partial' : 'pending'
 
-  // Purchase: full cylinders come in, empty cylinders go out — sequential, see §23.4 D1 note.
+  // Purchase: refill exchange (full in, empty out) + brand-new connection
+  // cylinders (full in, no empty out) — sequential, see §23.4 D1 note.
   const changes = body.items
-    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0)
-    .map((i) => ({ sizeKg: i.sizeKg, fullChange: i.receivedQty, emptyChange: -i.returnedQty }))
+    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0)
+    .map((i) => ({ sizeKg: i.sizeKg, fullChange: i.receivedQty + i.newConnectionQty, emptyChange: -i.returnedQty }))
 
   // Validate before any write — D1 has no rollback, so a failure here must
   // never leave an orphaned purchase record (see CLAUDE.md §23.4 D1 note).
@@ -29,6 +32,7 @@ export default defineEventHandler(async (event) => {
     purchaseDate: body.purchaseDate,
     invoiceNo: body.invoiceNo,
     totalAmount: body.totalAmount,
+    connectionCharge: body.connectionCharge,
     amountPaid: body.amountPaid,
     paymentMode: body.paymentMode,
     paymentStatus,
