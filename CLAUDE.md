@@ -1578,17 +1578,19 @@ outside of these three controlled paths.
 
 ### 23.2 Cylinder sizes
 
-The business uses exactly **3 cylinder sizes**: `12kg · 17kg · 33kg`
+The business uses exactly **4 cylinder sizes**: `12kg · 17kg · 21kg · 33kg`
 
 ```typescript
 // types/index.ts
-export const CYLINDER_SIZES = [12, 17, 33] as const
+export const CYLINDER_SIZES = [12, 17, 21, 33] as const
 export type CylinderSize = typeof CYLINDER_SIZES[number]
 ```
 
-Note: The earlier plan mentioned 12kg, 17kg, 21kg, 33kg (4 sizes).
-**This is now corrected to 3 sizes: 12kg, 17kg, 33kg.**
-Remove 21kg from all schema enums, form options, and UI.
+History: the original plan had 4 sizes, an earlier client correction dropped
+21kg to 3 sizes, and on 2026-07-16 the client re-confirmed **4 sizes including
+21kg** (migration `0009_seed_21kg.sql` adds its `cylinder_stock` row + product).
+Any new size must always ship with a seed migration for its `cylinder_stock`
+row — `validateStockChanges` throws 500 if the row is missing.
 
 ### 23.3 Schema
 
@@ -1632,7 +1634,7 @@ export const stockMovements = sqliteTable('stock_movements', {
 // server/utils/stock.ts
 
 interface StockChange {
-  sizeKg:      12 | 17 | 33
+  sizeKg:      CylinderSize   // 12 | 17 | 21 | 33
   fullChange:  number   // positive = increase, negative = decrease
   emptyChange: number
 }
@@ -1821,22 +1823,31 @@ export const purchaseItems = sqliteTable('purchase_items', {
 // server/routes/api/purchases/index.post.ts
 
 const CreatePurchaseSchema = z.object({
-  supplier:         z.string().min(1).max(100),
+  // Single-supplier agency (Super Gas) — defaulted server-side, no UI field.
+  supplier:         z.string().min(1).max(100).default('Super Gas'),
   purchaseDate:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   invoiceNo:        z.string().max(50).optional(),
-  totalAmount:      z.number().positive(),
+  totalAmount:      z.number().positive(),          // gas amount only
+  connectionCharge: z.number().min(0).default(0),   // extra for new-connection cylinders
   amountPaid:       z.number().min(0),
   paymentMode:      z.enum(['cash', 'upi', 'bank', 'credit']),
   paymentReference: z.string().optional(),
   dueDate:          z.string().optional(),
   notes:            z.string().max(500).optional(),
   items: z.array(z.object({
-    sizeKg:       z.union([z.literal(12), z.literal(17), z.literal(33)]),
-    receivedQty:  z.number().int().min(0),
-    returnedQty:  z.number().int().min(0),
+    sizeKg:           cylinderSizeSchema,           // 12 | 17 | 21 | 33
+    receivedQty:      z.number().int().min(0),      // refill exchange: full in
+    returnedQty:      z.number().int().min(0),      // refill exchange: empty out
+    newConnectionQty: z.number().int().min(0).default(0), // brand-new cylinders: full in, NO empty out
     unitPrice:    z.number().positive().optional(),
   })).min(1),
 })
+
+// paymentStatus is derived against the GRAND total:
+//   grandTotal = totalAmount + connectionCharge
+// Stock math per size:
+//   fullChange  = receivedQty + newConnectionQty
+//   emptyChange = -returnedQty
 
 export default defineEventHandler(async (event) => {
   const user = requireRole(event, ['admin'])          // admin only
@@ -2230,35 +2241,35 @@ Section B — Record Purchase shortcut
 
 ### 27.1 Cylinder size correction
 
-**Correct sizes: 12kg, 17kg, 33kg** (3 sizes)
-**Remove 21kg from all code** — it was in the earlier plan but
-the client confirmed only these 3 sizes are in use.
+**Correct sizes: 12kg, 17kg, 21kg, 33kg** (4 sizes — 21kg re-added 2026-07-16, see §23.2)
 
-Run a search for `21` in schema files and remove it everywhere.
+(An earlier correction removed 21kg; the client reversed that on
+2026-07-16. Any size addition needs a `cylinder_stock` seed migration.)
 
 ### 27.2 Complete schema table list
 
 ```
 users               — staff accounts
 customers           — restaurant/shop customers
-products            — cylinders (12/17/33kg) + accessories
+products            — cylinders (12/17/21/33kg) + accessories
 prices              — default + per-customer prices with effective dates
 deliveries          — delivery header records
 delivery_items      — line items per delivery
 customer_payments   — payments received from customers
 procurements        — purchases from main supplier (alias: purchases table)
 purchase_items      — cylinder quantities per purchase
-cylinder_stock      — current full + empty counts per size (3 rows only)
+cylinder_stock      — current full + empty counts per size (4 rows only)
 stock_movements     — immutable log of every stock change
 ```
 
 ### 27.3 Seed data on first deploy
 
 ```sql
--- Seed cylinder_stock with 3 rows (must exist before any operations)
+-- Seed cylinder_stock with 4 rows (must exist before any operations)
 INSERT INTO cylinder_stock (size_kg, full_count, empty_count) VALUES
   (12, 0, 0),
   (17, 0, 0),
+  (21, 0, 0),
   (33, 0, 0);
 
 -- Seed default products
@@ -2499,5 +2510,57 @@ reporting/activity-trail purposes (§30.6), never as an access boundary.
 
 ---
 
-*Last updated: 2026-06-25 — added cylinder stock, purchase module, reports overhaul, nav restructure (§21-28), Aura Gas Management dark UI redesign (§29), Orders module + delivery payment status (§30)*
+## 31. Payment Promises, Deposits, New-Connection Purchases, Notebook Import
+
+Added 2026-07-16 (all data was wiped beforehand; migrations 0008 + 0009).
+
+### 31.1 Payment promise (customers)
+
+`customers.promisedPayDate` (+ `promisedPayNote`) — "will pay outstanding on
+this date". Set/edit/clear via `PATCH /api/customers/:id/promise`
+(admin + delivery). Editable date, optional note. Shown as a card on customer
+detail and a badge on `CustomerCard` (red when past due). **Auto-cleared** by
+`clearPromiseIfSettled()` in `server/utils/payment.ts` whenever a payment
+brings the customer's balance to ≤ 0. Single current promise only — no history
+table (deliberate; revisit only if the client asks for broken-promise history).
+
+### 31.2 Connection deposit (customers)
+
+`customers.connectionDeposit` (+ `depositNote`) — refundable security deposit
+held for a new gas connection. Optional field on `CustomerForm`, displayed on
+customer detail. **Never enters ledger/outstanding math** — it's a liability
+owed back to the customer, not revenue, and must never be recorded as a
+`customer_payments` row.
+
+### 31.3 Purchases — single supplier + new connections
+
+- Supplier is always **Super Gas**: `supplier` column kept, zod-defaulted, no
+  form field.
+- `purchase_items.newConnectionQty` — brand-new cylinders bought for new
+  connections: `fullChange = receivedQty + newConnectionQty`, empty stock
+  untouched by them.
+- `purchases.connectionCharge` — manually typed extra amount beyond the gas
+  amount. `grandTotal = totalAmount + connectionCharge`; paymentStatus is
+  derived against grandTotal (POST + PATCH), procurement report and list
+  totals also use it.
+- PATCH/DELETE stock reversal must include `newConnectionQty`.
+
+**Open item (client decision pending):** delivering a new-connection cylinder
+to a customer means NO empty comes back, but the delivery flow currently
+always does full −qty / empty +qty. Until a per-item "new connection" flag is
+added to deliveries, staff must correct empty stock via manual adjustment
+after selling a new connection.
+
+### 31.4 Notebook data import
+
+`POST /api/admin/import/customers` (admin only) + `/settings/import` page:
+paste/upload CSV `name, phone, contact person, area, opening balance, deposit`.
+Client-side parse + preview + per-line validation, server dedupes by phone and
+inserts in `db.batch()` chunks of 50. Snapshot-only cutover: opening balances
+and deposits carry over; **no historical deliveries/payments are imported**,
+so reports start empty at the cutover date — this is by design.
+
+---
+
+*Last updated: 2026-07-16 — 21kg re-added (4 sizes), payment promises, connection deposits, new-connection purchases + connection charge, notebook CSV import (§31). Previous: 2026-06-25 — cylinder stock, purchase module, reports overhaul, nav restructure (§21-28), Aura dark UI (§29), Orders + delivery payment status (§30)*
 <br>*Maintained by: project author — update this file whenever architecture decisions change*
