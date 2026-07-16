@@ -3,7 +3,7 @@ import { ROLES, PAYMENT_MODES, PRODUCT_TYPES, PURCHASE_PAYMENT_MODES } from '~/t
 
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit phone number')
 
-export const cylinderSizeSchema = z.union([z.literal(12), z.literal(17), z.literal(33)])
+export const cylinderSizeSchema = z.union([z.literal(12), z.literal(17), z.literal(21), z.literal(33)])
 
 export const CustomerSchema = z.object({
   name: z.string().min(2).max(100),
@@ -13,6 +13,13 @@ export const CustomerSchema = z.object({
   whatsappNumber: phoneSchema.optional(),
   address: z.string().max(300).optional(),
   openingBalance: z.number().min(0).optional(),
+  connectionDeposit: z.number().min(0).nullable().optional(),
+  depositNote: z.string().max(300).nullable().optional(),
+})
+
+export const PaymentPromiseSchema = z.object({
+  promisedPayDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  promisedPayNote: z.string().max(300).nullable().optional(),
 })
 
 export const ProductSchema = z.object({
@@ -64,10 +71,15 @@ export const PasswordChangeSchema = z.object({
 })
 
 export const PurchaseSchema = z.object({
-  supplier: z.string().min(1).max(100),
+  // Single-supplier agency (Super Gas) — field kept for history, defaulted server-side.
+  supplier: z.string().min(1).max(100).default('Super Gas'),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   invoiceNo: z.string().max(50).optional(),
-  totalAmount: z.number().positive(),
+  // Gas amount may be 0 for a new-connection-only trip — but the grand total
+  // (gas + connection charge) must be positive, see .refine below.
+  totalAmount: z.number().min(0),
+  // Extra charge for new-connection cylinders, on top of the gas amount.
+  connectionCharge: z.number().min(0).default(0),
   amountPaid: z.number().min(0),
   paymentMode: z.enum(PURCHASE_PAYMENT_MODES).optional(),
   paymentReference: z.string().max(100).optional(),
@@ -77,8 +89,12 @@ export const PurchaseSchema = z.object({
     sizeKg: cylinderSizeSchema,
     receivedQty: z.number().int().min(0),
     returnedQty: z.number().int().min(0),
+    newConnectionQty: z.number().int().min(0).default(0),
     unitPrice: z.number().positive().optional(),
   })).min(1),
+}).refine((data) => data.totalAmount + data.connectionCharge > 0, {
+  message: 'Enter a gas amount or a connection charge',
+  path: ['totalAmount'],
 })
 
 export const ReportQuerySchema = z.object({
