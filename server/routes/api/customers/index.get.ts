@@ -1,4 +1,4 @@
-import { eq, like, and, sql, getTableColumns } from 'drizzle-orm'
+import { eq, like, or, and, sql, getTableColumns } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { customers, deliveries, customerPayments } from '~/server/database/schema'
 
@@ -8,8 +8,12 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event) as { search?: string }
   const db = useDB(event)
 
+  // Search UI promises "business name or phone" — match both.
   const where = query.search
-    ? and(eq(customers.isActive, 1), like(customers.name, `%${query.search}%`))
+    ? and(
+        eq(customers.isActive, 1),
+        or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`)),
+      )
     : eq(customers.isActive, 1)
 
   const rows = await db
