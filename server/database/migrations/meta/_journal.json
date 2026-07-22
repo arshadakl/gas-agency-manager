@@ -71,6 +71,20 @@
       "when": 1784216396394,
       "tag": "0009_seed_21kg",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784737437464,
+      "tag": "0010_harsh_cardiac",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784738716697,
+      "tag": "0011_damp_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

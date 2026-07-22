@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
 import { UserSchema } from '~/utils/validators'
+import { generateId } from '~/server/utils/id'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin'])
@@ -14,12 +15,14 @@ export default defineEventHandler(async (event) => {
 
   const passwordHash = await hashPassword(body.password)
   const [created] = await db.insert(users).values({
+    publicId: generateId(),
     username: body.username,
     fullName: body.fullName,
     role: body.role,
     passwordHash,
   }).returning({
     id: users.id,
+    publicId: users.publicId,
     username: users.username,
     fullName: users.fullName,
     role: users.role,

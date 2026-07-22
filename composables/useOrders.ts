@@ -38,11 +38,11 @@ export function useOrders() {
     }
   }
 
-  async function fetchOrder(id: number) {
+  async function fetchOrder(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<OrderWithRelations>>(`/api/orders/${id}`)
+      const result = await $fetch<ApiResponse<OrderWithRelations>>(`/api/orders/${publicId}`)
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to load order')
@@ -66,11 +66,11 @@ export function useOrders() {
     }
   }
 
-  async function deliverOrder(id: number, data: OrderDeliverPayload) {
+  async function deliverOrder(publicId: string, data: OrderDeliverPayload) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<{ order: OrderWithRelations; delivery: Delivery }>>(`/api/orders/${id}/deliver`, {
+      const result = await $fetch<ApiResponse<{ order: OrderWithRelations; delivery: Delivery }>>(`/api/orders/${publicId}/deliver`, {
         method: 'POST',
         body: data,
       })
@@ -83,11 +83,11 @@ export function useOrders() {
     }
   }
 
-  async function cancelOrder(id: number) {
+  async function cancelOrder(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/orders/${id}/cancel`, { method: 'POST' })
+      await $fetch(`/api/orders/${publicId}/cancel`, { method: 'POST' })
       return true
     } catch (err: unknown) {
       handleError(err, 'Failed to cancel order')

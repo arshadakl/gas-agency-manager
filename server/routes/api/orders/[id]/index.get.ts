@@ -5,14 +5,10 @@ import { orders, orderItems, customers, products } from '~/server/database/schem
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const rawId = getRouterParam(event, 'id')
-  const id = rawId ? Number(rawId) : NaN
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid order ID' })
-  }
+  const publicId = getRouterParam(event, 'id')!
   const db = useDB(event)
 
-  const order = await db.select().from(orders).where(eq(orders.id, id)).get()
+  const order = await db.select().from(orders).where(eq(orders.publicId, publicId)).get()
   if (!order) throw createError({ statusCode: 404, message: 'Order not found' })
 
   const customer = await db.select().from(customers).where(eq(customers.id, order.customerId)).get()
@@ -21,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const items = await db.select({ item: orderItems, product: products })
     .from(orderItems)
     .innerJoin(products, eq(products.id, orderItems.productId))
-    .where(eq(orderItems.orderId, id))
+    .where(eq(orderItems.orderId, order.id))
     .all()
 
   return {

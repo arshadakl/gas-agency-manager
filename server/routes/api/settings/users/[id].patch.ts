@@ -14,17 +14,13 @@ const AdminUpdateSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const currentUser = await requireUser(event)
-  const rawId = getRouterParam(event, 'id')
-  const id = rawId ? Number(rawId) : NaN
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid user ID' })
-  }
+  const publicId = getRouterParam(event, 'id')!
   const db = useDB(event)
 
-  const target = await db.select().from(users).where(eq(users.id, id)).get()
+  const target = await db.select().from(users).where(eq(users.publicId, publicId)).get()
   if (!target) throw createError({ statusCode: 404, message: 'User not found' })
 
-  const isSelf = currentUser.id === id
+  const isSelf = currentUser.id === target.id
   const isAdmin = currentUser.role === 'admin'
 
   if (!isSelf && !isAdmin) throw createError({ statusCode: 403, message: 'Forbidden' })
@@ -39,15 +35,12 @@ export default defineEventHandler(async (event) => {
   } else {
     const body = await parseBody(event, AdminUpdateSchema)
 
-    // Never let the last active admin demote/deactivate themselves (or be
-    // demoted/deactivated) — there'd be no one left who can promote anyone
-    // back, locking the whole team out of user management.
     const isDemoting = body.role !== undefined && body.role !== 'admin'
     const isDeactivating = body.isActive === false
     if (target.role === 'admin' && target.isActive && (isDemoting || isDeactivating)) {
       const otherActiveAdmins = await db.select({ count: sql<number>`count(*)` })
         .from(users)
-        .where(and(eq(users.role, 'admin'), eq(users.isActive, 1), ne(users.id, id)))
+        .where(and(eq(users.role, 'admin'), eq(users.isActive, 1), ne(users.id, target.id)))
         .get()
       if (!otherActiveAdmins || otherActiveAdmins.count === 0) {
         throw createError({ statusCode: 422, message: 'Cannot remove the last active admin' })
@@ -64,9 +57,10 @@ export default defineEventHandler(async (event) => {
 
   const [updated] = await db.update(users)
     .set(updates)
-    .where(eq(users.id, id))
+    .where(eq(users.id, target.id))
     .returning({
       id: users.id,
+      publicId: users.publicId,
       username: users.username,
       fullName: users.fullName,
       role: users.role,

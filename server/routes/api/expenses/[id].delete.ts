@@ -5,17 +5,13 @@ import { expenses } from '~/server/database/schema'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin'])
 
-  const id = Number(getRouterParam(event, 'id'))
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid expense ID' })
-  }
-
+  const publicId = getRouterParam(event, 'id')!
   const db = useDB(event)
 
-  const existing = await db.select().from(expenses).where(eq(expenses.id, id)).get()
+  const existing = await db.select().from(expenses).where(eq(expenses.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Expense not found' })
 
-  await db.delete(expenses).where(eq(expenses.id, id))
+  await db.delete(expenses).where(eq(expenses.id, existing.id))
 
   return { data: null, message: 'Expense deleted' }
 })

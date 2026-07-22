@@ -14,15 +14,11 @@ const UpdateExpenseSchema = z.object({
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid expense ID' })
-  }
-
+  const publicId = getRouterParam(event, 'id')!
   const body = await parseBody(event, UpdateExpenseSchema)
   const db = useDB(event)
 
-  const existing = await db.select().from(expenses).where(eq(expenses.id, id)).get()
+  const existing = await db.select().from(expenses).where(eq(expenses.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Expense not found' })
 
   const [updated] = await db.update(expenses)
@@ -32,7 +28,7 @@ export default defineEventHandler(async (event) => {
       ...(body.tag !== undefined ? { tag: body.tag } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),
     })
-    .where(eq(expenses.id, id))
+    .where(eq(expenses.id, existing.id))
     .returning()
 
   if (!updated) throw createError({ statusCode: 500, message: 'Failed to update expense' })

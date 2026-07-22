@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { orders, orderItems, customers } from '~/server/database/schema'
+import { generateId } from '~/server/utils/id'
 
 const CreateOrderSchema = z.object({
   customerId: z.number().int().positive(),
@@ -24,6 +25,7 @@ export default defineEventHandler(async (event) => {
   if (customer.isActive === 0) throw createError({ statusCode: 403, message: 'Customer is archived' })
 
   const [order] = await db.insert(orders).values({
+    publicId: generateId(),
     customerId: body.customerId,
     orderDate: body.orderDate,
     notes: body.notes,

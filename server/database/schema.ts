@@ -7,6 +7,7 @@ const timestamps = {
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   fullName: text('full_name').notNull(),
@@ -40,6 +41,7 @@ export const customers = sqliteTable('customers', {
 
 export const products = sqliteTable('products', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   name: text('name').notNull(),
   type: text('type', { enum: ['cylinder', 'accessory'] }).notNull(),
   cylinderSize: integer('cylinder_size'),
@@ -177,6 +179,7 @@ export const purchases = sqliteTable('purchases', {
 // converted to a real delivery via POST /api/orders/:id/deliver (§ "Orders").
 export const orders = sqliteTable('orders', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   customerId: integer('customer_id').references(() => customers.id).notNull(),
   orderDate: text('order_date').notNull(),
   status: text('status', { enum: ['pending', 'delivered', 'cancelled'] })
@@ -218,6 +221,7 @@ export const purchaseItems = sqliteTable('purchase_items', {
 
 export const expenses = sqliteTable('expenses', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  publicId: text('public_id').unique(),
   expenseDate: text('expense_date').notNull(),
   amount: real('amount').notNull(),
   tag: text('tag', { enum: ['fuel', 'maintenance', 'fine', 'other'] }).notNull(),

@@ -19,9 +19,9 @@ const showProductForm = ref(false)
 const stockByProductId = ref<Map<number, number>>(new Map())
 const restockProductId = ref<number | null>(null)
 const restockQty = ref(1)
-const editingProductId = ref<number | null>(null)
+const editingProductPublicId = ref<string | null>(null)
 const editName = ref('')
-const deleteConfirmId = ref<number | null>(null)
+const deleteConfirmPublicId = ref<string | null>(null)
 const actionError = ref<string | null>(null)
 
 async function load() {
@@ -53,32 +53,32 @@ async function handleRestock(productId: number) {
 }
 
 function startEdit(product: Product) {
-  editingProductId.value = product.id
+  editingProductPublicId.value = product.publicId
   editName.value = product.name
   actionError.value = null
 }
 
 async function handleEditSave(product: Product) {
-  if (!editName.value.trim()) return
+  if (!editName.value.trim() || !product.publicId) return
   actionError.value = null
-  const updated = await updateProduct(product.id, { name: editName.value.trim() })
+  const updated = await updateProduct(product.publicId, { name: editName.value.trim() })
   if (updated) {
-    editingProductId.value = null
+    editingProductPublicId.value = null
     await load()
   } else {
     actionError.value = error.value
   }
 }
 
-async function handleDelete(productId: number) {
+async function handleDelete(publicId: string) {
   actionError.value = null
-  const ok = await deleteProduct(productId)
+  const ok = await deleteProduct(publicId)
   if (ok) {
-    deleteConfirmId.value = null
+    deleteConfirmPublicId.value = null
     await load()
   } else {
     actionError.value = error.value
-    deleteConfirmId.value = null
+    deleteConfirmPublicId.value = null
   }
 }
 </script>
@@ -102,15 +102,15 @@ async function handleDelete(productId: number) {
     <div v-else class="flex flex-col gap-sm">
       <div v-for="product in products" :key="product.id" class="rounded-xl border border-outline-variant/30 bg-surface-container p-4">
         <!-- Edit inline name -->
-        <div v-if="editingProductId === product.id" class="flex items-center gap-2 mb-2">
+        <div v-if="editingProductPublicId === product.publicId" class="flex items-center gap-2 mb-2">
           <input
             v-model="editName"
             class="flex-1 px-3 py-2 rounded-lg border border-surface-variant bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
             @keydown.enter="handleEditSave(product)"
-            @keydown.escape="editingProductId = null"
+            @keydown.escape="editingProductPublicId = null"
           >
           <Button size="sm" :disabled="loading" @click="handleEditSave(product)">Save</Button>
-          <Button size="sm" variant="outline" @click="editingProductId = null">Cancel</Button>
+          <Button size="sm" variant="outline" @click="editingProductPublicId = null">Cancel</Button>
         </div>
 
         <!-- Normal view -->
@@ -140,7 +140,7 @@ async function handleDelete(productId: number) {
             <button
               class="w-8 h-8 rounded-full flex items-center justify-center text-error hover:bg-error/10 transition-colors"
               title="Delete product"
-              @click="deleteConfirmId = product.id"
+              @click="deleteConfirmPublicId = product.publicId"
             >
               <Icon name="delete" class="text-sm" />
             </button>
@@ -156,14 +156,14 @@ async function handleDelete(productId: number) {
         <p v-if="restockProductId === product.id && stockError" class="text-data-tertiary text-error mt-1">{{ stockError }}</p>
 
         <!-- Delete confirm -->
-        <div v-if="deleteConfirmId === product.id" class="mt-3 border-t border-error/20 pt-3 flex flex-col gap-2">
+        <div v-if="deleteConfirmPublicId === product.publicId" class="mt-3 border-t border-error/20 pt-3 flex flex-col gap-2">
           <p class="text-data-secondary text-error">Delete "{{ product.name }}"? If it has delivery history, it will be hidden instead of permanently removed.</p>
           <div class="flex gap-2">
-            <Button size="sm" variant="destructive" :disabled="loading" @click="handleDelete(product.id)">
+            <Button size="sm" variant="destructive" :disabled="loading" @click="handleDelete(product.publicId!)">
               <LoadingSpinner v-if="loading" class="h-3 w-3 mr-1" />
               Confirm Delete
             </Button>
-            <Button size="sm" variant="outline" @click="deleteConfirmId = null">Cancel</Button>
+            <Button size="sm" variant="outline" @click="deleteConfirmPublicId = null">Cancel</Button>
           </div>
         </div>
       </div>

@@ -20,28 +20,23 @@ const DeliverOrderSchema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
 
-  const rawId = getRouterParam(event, 'id')
-  const id = rawId ? Number(rawId) : NaN
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid order ID' })
-  }
+  const publicId = getRouterParam(event, 'id')!
   const body = await parseBody(event, DeliverOrderSchema)
   const db = useDB(event)
 
-  const order = await db.select().from(orders).where(eq(orders.id, id)).get()
+  const order = await db.select().from(orders).where(eq(orders.publicId, publicId)).get()
   if (!order) throw createError({ statusCode: 404, message: 'Order not found' })
 
   // Conditional UPDATE = D1-safe optimistic lock (no transactions/row locks).
-  // Only one concurrent request will see 1 row updated; the other bails here.
   const [claimed] = await db.update(orders)
     .set({ status: 'delivered', deliveredAt: new Date().toISOString() })
-    .where(and(eq(orders.id, id), eq(orders.status, 'pending')))
+    .where(and(eq(orders.id, order.id), eq(orders.status, 'pending')))
     .returning()
 
   if (!claimed) throw createError({ statusCode: 409, message: `Order already ${order.status}` })
 
   try {
-    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, id)).all()
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id)).all()
     if (items.length === 0) throw createError({ statusCode: 422, message: 'Order has no items' })
 
     const productRows = await db.select().from(products)
@@ -114,23 +109,20 @@ export default defineEventHandler(async (event) => {
         target: { type: 'fifo' },
         user,
       })
-      // FIFO may have updated this delivery (or only older ones) — refetch for accuracy.
       finalDelivery = await db.select().from(deliveries).where(eq(deliveries.id, delivery.id)).get() ?? delivery
     }
 
     const [updatedOrder] = await db.update(orders)
       .set({ deliveryId: delivery.id })
-      .where(eq(orders.id, id))
+      .where(eq(orders.id, order.id))
       .returning()
     if (!updatedOrder) throw createError({ statusCode: 500, message: 'Failed to link order to delivery' })
 
     return { data: { order: updatedOrder, delivery: finalDelivery } }
   } catch (err) {
-    // Best-effort cleanup — D1 has no rollback (CLAUDE.md §23.4).
-    // Revert the order to pending so it can be re-attempted.
     await db.update(orders)
       .set({ status: 'pending', deliveredAt: null, deliveryId: null })
-      .where(eq(orders.id, id))
+      .where(eq(orders.id, order.id))
     throw err
   }
 })

@@ -49,11 +49,11 @@ export function useExpenses() {
     }
   }
 
-  async function updateExpense(id: number, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; notes: string }>) {
+  async function updateExpense(publicId: string, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; notes: string }>) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Expense>>(`/api/expenses/${id}`, { method: 'PATCH', body: data })
+      const result = await $fetch<ApiResponse<Expense>>(`/api/expenses/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to update expense')
@@ -63,11 +63,11 @@ export function useExpenses() {
     }
   }
 
-  async function deleteExpense(id: number) {
+  async function deleteExpense(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/expenses/${id}`, { method: 'DELETE' })
+      await $fetch(`/api/expenses/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
       handleError(err, 'Failed to delete expense')

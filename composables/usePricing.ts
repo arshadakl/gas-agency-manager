@@ -38,11 +38,11 @@ export function usePricing() {
     }
   }
 
-  async function updateProduct(id: number, data: Partial<NewProduct>) {
+  async function updateProduct(publicId: string, data: Partial<NewProduct>) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<Product>>(`/api/products/${id}`, { method: 'PATCH', body: data })
+      const result = await $fetch<ApiResponse<Product>>(`/api/products/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to update product')
@@ -52,11 +52,11 @@ export function usePricing() {
     }
   }
 
-  async function deleteProduct(productId: number) {
+  async function deleteProduct(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/products/${productId}`, { method: 'DELETE' })
+      await $fetch(`/api/products/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
       handleError(err, 'Failed to delete product')

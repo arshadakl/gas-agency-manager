@@ -74,7 +74,7 @@ function openCreate() {
 }
 
 function openEdit(expense: typeof expenses.value[0]) {
-  editingId.value = expense.id
+  editingId.value = expense.publicId
   form.expenseDate = expense.expenseDate
   form.amount = expense.amount
   form.tag = expense.tag
@@ -115,9 +115,9 @@ async function handleSubmit() {
   }
 }
 
-async function handleDelete(id: number) {
+async function handleDelete(publicId: string) {
   if (!confirm('Delete this expense?')) return
-  const success = await deleteExpense(id)
+  const success = await deleteExpense(publicId)
   if (success) await load()
 }
 
@@ -247,7 +247,7 @@ function formatShortDate(date: string) {
           <button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest" @click="openEdit(expense)">
             <Icon name="edit" class="text-sm" />
           </button>
-          <button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error" @click="handleDelete(expense.id)">
+          <button class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error" @click="handleDelete(expense.publicId!)">
             <Icon name="delete" class="text-sm" />
           </button>
         </div>

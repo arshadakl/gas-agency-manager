@@ -10,7 +10,7 @@ const { t } = useLocale()
 
 <template>
   <NuxtLink
-    :to="`/orders/${order.id}`"
+    :to="`/orders/${order.publicId}`"
     class="bg-surface-container-high rounded-xl p-5 border border-outline-variant/10 flex flex-col gap-sm"
   >
     <div class="flex justify-between items-start mb-xs">

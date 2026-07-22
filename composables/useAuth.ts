@@ -68,11 +68,11 @@ export function useAuth() {
     }
   }
 
-  async function updateUser(id: number, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string }) {
+  async function updateUser(publicId: string, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string }) {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiResponse<AppUser>>(`/api/settings/users/${id}`, { method: 'PATCH', body: data })
+      const result = await $fetch<ApiResponse<AppUser>>(`/api/settings/users/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to update user')
@@ -87,7 +87,7 @@ export function useAuth() {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/settings/users/${user.value.id}`, {
+      await $fetch(`/api/settings/users/${user.value.publicId}`, {
         method: 'PATCH',
         body: { currentPassword, newPassword },
       })
@@ -100,11 +100,11 @@ export function useAuth() {
     }
   }
 
-  async function deleteUser(userId: number) {
+  async function deleteUser(publicId: string) {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/settings/users/${userId}`, { method: 'DELETE' })
+      await $fetch(`/api/settings/users/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
       handleError(err, 'Failed to delete user')
