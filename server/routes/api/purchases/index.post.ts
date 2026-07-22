@@ -46,7 +46,14 @@ export default defineEventHandler(async (event) => {
   if (!purchase) throw createError({ statusCode: 500, message: 'Failed to create purchase' })
 
   await db.insert(purchaseItems).values(
-    body.items.map((i) => ({ ...i, purchaseId: purchase.id })),
+    body.items.map((i) => ({
+      purchaseId: purchase.id,
+      sizeKg: i.sizeKg,
+      receivedQty: i.receivedQty,
+      returnedQty: i.returnedQty,
+      newConnectionQty: i.newConnectionQty,
+      unitPrice: i.unitPrice ?? null,
+    })),
   )
 
   if (changes.length > 0) {

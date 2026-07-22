@@ -62,7 +62,14 @@ export default defineEventHandler(async (event) => {
   }).where(eq(purchases.id, id))
 
   await db.delete(purchaseItems).where(eq(purchaseItems.purchaseId, id))
-  await db.insert(purchaseItems).values(body.items.map((i) => ({ ...i, purchaseId: id })))
+  await db.insert(purchaseItems).values(body.items.map((i) => ({
+    purchaseId: id,
+    sizeKg: i.sizeKg,
+    receivedQty: i.receivedQty,
+    returnedQty: i.returnedQty,
+    newConnectionQty: i.newConnectionQty,
+    unitPrice: i.unitPrice ?? null,
+  })))
 
   if (netChanges.length > 0) {
     await commitStockChanges(db, netChanges, 'adjustment', id, 'purchase', user, 'net stock impact of purchase edit')
