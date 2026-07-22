@@ -14,7 +14,11 @@ const AdminUpdateSchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const currentUser = await requireUser(event)
-  const id = Number(getRouterParam(event, 'id'))
+  const rawId = getRouterParam(event, 'id')
+  const id = rawId ? Number(rawId) : NaN
+  if (!Number.isFinite(id) || id <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid user ID' })
+  }
   const db = useDB(event)
 
   const target = await db.select().from(users).where(eq(users.id, id)).get()
