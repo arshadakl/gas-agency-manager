@@ -11,15 +11,11 @@ const UpdateProductSchema = ProductSchema.partial().extend({
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery'])
 
-  const rawId = getRouterParam(event, 'id')
-  const id = rawId ? Number(rawId) : NaN
-  if (!Number.isFinite(id) || id <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid product ID' })
-  }
+  const publicId = getRouterParam(event, 'id')!
   const body = await parseBody(event, UpdateProductSchema)
   const db = useDB(event)
 
-  const existing = await db.select().from(products).where(eq(products.id, id)).get()
+  const existing = await db.select().from(products).where(eq(products.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Product not found' })
 
   const { isActive, ...rest } = body
@@ -31,7 +27,7 @@ export default defineEventHandler(async (event) => {
       ...(rest.unit !== undefined ? { unit: rest.unit } : {}),
       ...(isActive !== undefined ? { isActive: Number(isActive) } : {}),
     })
-    .where(eq(products.id, id))
+    .where(eq(products.id, existing.id))
     .returning()
 
   if (!updated) throw createError({ statusCode: 500, message: 'Failed to update product' })

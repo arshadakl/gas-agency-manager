@@ -34,13 +34,14 @@ async function handleCreate(data: { username: string; fullName: string; role: st
 }
 
 async function toggleActive(targetUser: User) {
-  await updateUser(targetUser.id, { isActive: !targetUser.isActive })
+  if (!targetUser.publicId) return
+  await updateUser(targetUser.publicId, { isActive: !targetUser.isActive })
   await load()
 }
 
 async function handleDeleteConfirm() {
-  if (!userToDelete.value) return
-  const ok = await deleteUser(userToDelete.value.id)
+  if (!userToDelete.value?.publicId) return
+  const ok = await deleteUser(userToDelete.value.publicId)
   if (ok) {
     showDeleteConfirm.value = false
     userToDelete.value = null
@@ -60,7 +61,8 @@ async function handleResetPassword() {
     pwError.value = 'Password must be at least 8 characters'
     return
   }
-  const updated = await updateUser(userToResetPw.value!.id, { newPassword: newPassword.value })
+  if (!userToResetPw.value?.publicId) return
+  const updated = await updateUser(userToResetPw.value.publicId, { newPassword: newPassword.value })
   if (updated) {
     userToResetPw.value = null
     newPassword.value = ''

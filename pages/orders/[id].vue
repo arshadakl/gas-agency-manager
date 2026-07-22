@@ -10,7 +10,7 @@ definePageMeta({
 })
 
 const route = useRoute()
-const id = Number(route.params.id)
+const id = route.params.id as string
 
 const { fetchOrder, deliverOrder, cancelOrder, loading, error } = useOrders()
 const order = ref<OrderWithRelations | null>(null)
