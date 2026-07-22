@@ -18,6 +18,11 @@ export default defineEventHandler(async (event) => {
   const existing = await db.select().from(customers).where(eq(customers.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Customer not found' })
 
+  // Block edits on archived customers — only the archive/unarchive endpoint should toggle isActive
+  if (existing.isActive === 0 && body.isActive !== true) {
+    throw createError({ statusCode: 403, message: 'Cannot edit an archived customer' })
+  }
+
   const { isActive, ...rest } = body
   const [updated] = await db.update(customers)
     .set({

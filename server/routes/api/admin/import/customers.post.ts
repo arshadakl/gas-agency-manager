@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { customers } from '~/server/database/schema'
 import { phoneSchema } from '~/utils/validators'
@@ -26,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, ImportSchema)
   const db = useDB(event)
 
-  const existing = await db.select({ phone: customers.phone }).from(customers).all()
+  const existing = await db.select({ phone: customers.phone }).from(customers).where(eq(customers.isActive, 1)).all()
   const seenPhones = new Set(existing.map((c) => c.phone))
 
   const toInsert: Array<typeof body.rows[number]> = []

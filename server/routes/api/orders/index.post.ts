@@ -19,8 +19,9 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, CreateOrderSchema)
   const db = useDB(event)
 
-  const customer = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, body.customerId)).get()
+  const customer = await db.select({ id: customers.id, isActive: customers.isActive }).from(customers).where(eq(customers.id, body.customerId)).get()
   if (!customer) throw createError({ statusCode: 404, message: 'Customer not found' })
+  if (customer.isActive === 0) throw createError({ statusCode: 403, message: 'Customer is archived' })
 
   const [order] = await db.insert(orders).values({
     customerId: body.customerId,

@@ -20,13 +20,14 @@ export function useCustomers() {
     error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
   }
 
-  async function fetchCustomers(search?: string) {
+  async function fetchCustomers(search?: string, isActive?: '1' | '0') {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<ApiListResponse<CustomerWithBalance>>('/api/customers', {
-        query: search ? { search } : {},
-      })
+      const params: Record<string, string> = {}
+      if (search) params.search = search
+      if (isActive !== undefined) params.isActive = isActive
+      const result = await $fetch<ApiListResponse<CustomerWithBalance>>('/api/customers', { query: params })
       return result.data
     } catch (err: unknown) {
       handleError(err, 'Failed to load customers')
@@ -135,5 +136,19 @@ export function useCustomers() {
     }
   }
 
-  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, setPromise, loading, error }
+  async function archiveCustomer(publicId: string) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<{ action: 'soft_delete' | 'hard_delete' }>(`/api/customers/${publicId}/archive`, { method: 'PATCH' })
+      return result.action
+    } catch (err: unknown) {
+      handleError(err, 'Failed to archive customer')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, setPromise, archiveCustomer, loading, error }
 }

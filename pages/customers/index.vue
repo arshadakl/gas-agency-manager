@@ -17,6 +17,7 @@ const search = ref('')
 const customers = ref<CustomerWithBalance[]>([])
 const showForm = ref(false)
 const filter = ref<'active' | 'outstanding'>(route.query.filter === 'outstanding' ? 'outstanding' : 'active')
+const statusFilter = ref<'active' | 'archived'>('active')
 const levelFilter = ref<OutstandingLevel | null>(null)
 const severityLevels = OUTSTANDING_LEVELS.filter((l): l is Exclude<OutstandingLevel, 'clear'> => l !== 'clear')
 
@@ -25,10 +26,12 @@ function levelLabel(level: Exclude<OutstandingLevel, 'clear'>) {
 }
 
 async function load() {
-  customers.value = await fetchCustomers(search.value || undefined)
+  const isActive = statusFilter.value === 'archived' ? '0' as const : '1' as const
+  customers.value = await fetchCustomers(search.value || undefined, isActive)
 }
 
 watch(search, () => load())
+watch(statusFilter, () => load())
 onMounted(load)
 
 function selectAll() {
@@ -65,7 +68,7 @@ async function handleCreate(data: NewCustomer) {
         <h1 class="text-headline-md text-on-surface">Customers</h1>
         <p class="text-data-secondary text-on-surface-variant mt-1">See customers and who owes money.</p>
       </div>
-      <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" class="rounded-full shrink-0" @click="showForm = true">
+      <Button v-if="statusFilter === 'active' && (user?.role === 'admin' || user?.role === 'delivery')" size="icon" class="rounded-full shrink-0" @click="showForm = true">
         <Icon name="add" />
       </Button>
     </div>
@@ -84,7 +87,25 @@ async function handleCreate(data: NewCustomer) {
           class="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl pl-12 pr-md py-sm text-on-surface text-body-base focus:border-primary focus:outline-none placeholder:text-on-surface-variant/50"
         >
       </div>
-      <div class="flex bg-surface-container-low rounded-lg p-xs border border-outline-variant/30">
+      <!-- Active / Archived status filter -->
+      <div v-if="user?.role === 'admin'" class="flex bg-surface-container-low rounded-lg p-xs border border-outline-variant/30">
+        <button
+          class="flex-1 px-lg py-xs rounded-md text-data-primary text-sm transition-colors"
+          :class="statusFilter === 'active' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"
+          @click="statusFilter = 'active'"
+        >
+          Active
+        </button>
+        <button
+          class="flex-1 px-lg py-xs rounded-md text-data-primary text-sm transition-colors"
+          :class="statusFilter === 'archived' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"
+          @click="statusFilter = 'archived'"
+        >
+          Archived
+        </button>
+      </div>
+      <!-- All / Outstanding filter (only when viewing active customers) -->
+      <div v-if="statusFilter === 'active'" class="flex bg-surface-container-low rounded-lg p-xs border border-outline-variant/30">
         <button
           class="flex-1 px-lg py-xs rounded-md text-data-primary text-sm transition-colors"
           :class="filter === 'active' ? 'bg-surface-variant text-on-surface shadow-sm' : 'text-on-surface-variant'"

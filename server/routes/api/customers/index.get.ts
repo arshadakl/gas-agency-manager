@@ -5,16 +5,18 @@ import { customers, deliveries, customerPayments } from '~/server/database/schem
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const query = getQuery(event) as { search?: string }
+  const query = getQuery(event) as { search?: string; isActive?: string }
   const db = useDB(event)
 
-  // Search UI promises "business name or phone" — match both.
-  const where = query.search
-    ? and(
-        eq(customers.isActive, 1),
-        or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`)),
-      )
-    : eq(customers.isActive, 1)
+  const isActiveFilter = query.isActive === '0' ? 0 : 1
+
+  const conditions = [eq(customers.isActive, isActiveFilter)]
+
+  if (query.search) {
+    conditions.push(or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`)))
+  }
+
+  const where = conditions.length > 1 ? and(...conditions) : conditions[0]
 
   const rows = await db
     .select({
