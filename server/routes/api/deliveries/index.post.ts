@@ -13,8 +13,9 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, DeliverySchema)
   const db = useDB(event)
 
-  const customer = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, body.customerId)).get()
+  const customer = await db.select({ id: customers.id, isActive: customers.isActive }).from(customers).where(eq(customers.id, body.customerId)).get()
   if (!customer) throw createError({ statusCode: 404, message: 'Customer not found' })
+  if (customer.isActive === 0) throw createError({ statusCode: 403, message: 'Customer is archived' })
 
   const productRows = await db.select().from(products)
     .where(inArray(products.id, body.items.map((i) => i.productId)))

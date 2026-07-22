@@ -15,6 +15,7 @@ export default defineEventHandler(async (event) => {
 
   const existing = await db.select().from(customers).where(eq(customers.publicId, publicId)).get()
   if (!existing) throw createError({ statusCode: 404, message: 'Customer not found' })
+  if (existing.isActive === 0) throw createError({ statusCode: 403, message: 'Customer is archived' })
 
   const [updated] = await db.update(customers)
     .set({

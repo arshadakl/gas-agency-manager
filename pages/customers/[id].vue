@@ -109,8 +109,9 @@ async function handleClearPromise() {
 const showArchiveConfirm = ref(false)
 
 async function handleArchive() {
-  const success = await archiveCustomer(id)
-  if (success) {
+  const action = await archiveCustomer(id)
+  if (action) {
+    showArchiveConfirm.value = false
     await navigateTo('/customers')
   }
 }

@@ -139,11 +139,11 @@ export function useCustomers() {
     error.value = null
     loading.value = true
     try {
-      await $fetch(`/api/customers/${publicId}/archive`, { method: 'PATCH' })
-      return true
+      const result = await $fetch<{ action: 'soft_delete' | 'hard_delete' }>(`/api/customers/${publicId}/archive`, { method: 'PATCH' })
+      return result.action
     } catch (err: unknown) {
       handleError(err, 'Failed to archive customer')
-      return false
+      return null
     } finally {
       loading.value = false
     }
