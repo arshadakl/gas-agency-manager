@@ -13,6 +13,7 @@ import type {
   purchaseItems,
   orders,
   orderItems,
+  expenses,
 } from '~/server/database/schema'
 
 export type User = Omit<InferSelectModel<typeof users>, 'passwordHash'>
@@ -71,3 +72,6 @@ export type OrderWithRelations = Order & {
   customer: Pick<Customer, 'id' | 'name' | 'contactPerson' | 'area'>
   items: Array<OrderItem & { product: Product }>
 }
+
+export type Expense = InferSelectModel<typeof expenses>
+export type NewExpense = InferInsertModel<typeof expenses>

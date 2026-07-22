@@ -74,6 +74,17 @@ function initials(name: string) {
         <Icon name="chevron_right" class="text-on-surface-variant" />
       </NuxtLink>
 
+      <NuxtLink
+        to="/expenses"
+        class="flex items-center justify-between rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"
+      >
+        <div class="flex items-center gap-3">
+          <Icon name="account_balance_wallet" class="text-primary-fixed-dim" />
+          <span class="text-data-secondary text-on-surface">Expenses</span>
+        </div>
+        <Icon name="chevron_right" class="text-on-surface-variant" />
+      </NuxtLink>
+
       <section aria-labelledby="stock-heading">
         <div class="flex items-center justify-between mb-sm">
           <h2 id="stock-heading" class="text-data-primary text-on-surface">{{ t('cylinder_stock') }}</h2>

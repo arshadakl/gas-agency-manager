@@ -1,7 +1,7 @@
 import { useDB } from '~/server/database'
 import {
   customers, products, inventory, deliveries, deliveryItems, customerPayments, users,
-  purchases, purchaseItems, cylinderStock, stockMovements, orders, orderItems,
+  purchases, purchaseItems, cylinderStock, stockMovements, orders, orderItems, expenses,
 } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
@@ -18,7 +18,7 @@ export default defineEventHandler(async (event) => {
     customerRows, productRows, inventoryRows,
     deliveryRows, deliveryItemRows, paymentRows, userRows,
     purchaseRows, purchaseItemRows, cylinderStockRows, stockMovementRows,
-    orderRows, orderItemRows,
+    orderRows, orderItemRows, expenseRows,
   ] = await Promise.all([
     db.select().from(customers).all(),
     db.select().from(products).all(),
@@ -40,6 +40,7 @@ export default defineEventHandler(async (event) => {
     db.select().from(stockMovements).all(),
     db.select().from(orders).all(),
     db.select().from(orderItems).all(),
+    db.select().from(expenses).all(),
   ])
 
   return {
@@ -57,6 +58,7 @@ export default defineEventHandler(async (event) => {
       stockMovements: stockMovementRows,
       orders: orderRows,
       orderItems: orderItemRows,
+      expenses: expenseRows,
       exportedAt: new Date().toISOString(),
     },
   }

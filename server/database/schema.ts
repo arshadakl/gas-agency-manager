@@ -215,3 +215,17 @@ export const purchaseItems = sqliteTable('purchase_items', {
 }, (table) => ({
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),
 }))
+
+export const expenses = sqliteTable('expenses', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  expenseDate: text('expense_date').notNull(),
+  amount: real('amount').notNull(),
+  tag: text('tag', { enum: ['fuel', 'maintenance', 'fine', 'other'] }).notNull(),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdByName: text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  dateIdx: index('expenses_date_idx').on(table.expenseDate),
+  tagIdx: index('expenses_tag_idx').on(table.tag),
+}))
