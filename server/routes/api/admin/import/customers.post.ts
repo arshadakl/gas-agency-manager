@@ -51,8 +51,8 @@ export default defineEventHandler(async (event) => {
       publicId: generateId(),
       name: row.name,
       phone: row.phone,
-      contactPerson: row.contactPerson,
-      area: row.area,
+      contactPerson: row.contactPerson ?? null,
+      area: row.area ?? null,
       openingBalance: row.openingBalance,
       connectionDeposit: row.connectionDeposit ?? null,
     }))
