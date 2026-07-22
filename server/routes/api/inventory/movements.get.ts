@@ -6,7 +6,8 @@ export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
   const query = getQuery(event) as { limit?: string }
-  const limit = query.limit ? Math.min(Number(query.limit), 200) : 50
+  const parsedLimit = query.limit ? Number(query.limit) : 50
+  const limit = Number.isFinite(parsedLimit) ? Math.min(parsedLimit, 200) : 50
   const db = useDB(event)
 
   const rows = await db.select().from(stockMovements)
