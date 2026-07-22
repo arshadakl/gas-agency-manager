@@ -135,5 +135,19 @@ export function useCustomers() {
     }
   }
 
-  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, setPromise, loading, error }
+  async function archiveCustomer(publicId: string) {
+    error.value = null
+    loading.value = true
+    try {
+      await $fetch(`/api/customers/${publicId}/archive`, { method: 'PATCH' })
+      return true
+    } catch (err: unknown) {
+      handleError(err, 'Failed to archive customer')
+      return false
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchCustomers, fetchCustomer, fetchLedger, createCustomer, updateCustomer, fetchFavoriteProductId, setOpeningBalance, setPromise, archiveCustomer, loading, error }
 }

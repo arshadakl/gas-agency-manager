@@ -10,7 +10,7 @@ definePageMeta({
 const route = useRoute()
 const id = route.params.id as string
 
-const { fetchLedger, updateCustomer, setOpeningBalance, setPromise, loading, error } = useCustomers()
+const { fetchLedger, updateCustomer, setOpeningBalance, setPromise, archiveCustomer, loading, error } = useCustomers()
 const { user } = useUserSession()
 
 const customer = ref<Customer | null>(null)
@@ -105,6 +105,15 @@ async function handleClearPromise() {
     await load()
   }
 }
+
+const showArchiveConfirm = ref(false)
+
+async function handleArchive() {
+  const success = await archiveCustomer(id)
+  if (success) {
+    await navigateTo('/customers')
+  }
+}
 </script>
 
 <template>
@@ -130,6 +139,9 @@ async function handleClearPromise() {
           </Button>
           <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" variant="outline" class="rounded-full" @click="editing = !editing">
             <Icon name="edit" class="text-lg" />
+          </Button>
+          <Button v-if="user?.role === 'admin'" size="icon" variant="outline" class="rounded-full border-error/40 text-error hover:bg-error-container/20" @click="showArchiveConfirm = true">
+            <Icon name="delete" class="text-lg" />
           </Button>
         </div>
       </div>
@@ -243,6 +255,19 @@ async function handleClearPromise() {
         :deliveries="deliveries"
         :payments="payments"
         @paid="load()"
+      />
+
+      <!-- Archive Confirmation Dialog -->
+      <ConfirmDialog
+        :open="showArchiveConfirm"
+        title="Remove Customer?"
+        :message="`This will hide ${customer.name} from the customer list. Their delivery history, payments, and balance records will NOT be deleted — they are preserved for your financial records.`"
+        confirm-text="Remove"
+        cancel-text="Cancel"
+        :destructive="true"
+        :loading="loading"
+        @confirm="handleArchive"
+        @cancel="showArchiveConfirm = false"
       />
     </template>
   </div>
