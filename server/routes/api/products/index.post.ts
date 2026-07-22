@@ -8,7 +8,12 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, ProductSchema)
   const db = useDB(event)
 
-  const [created] = await db.insert(products).values(body).returning()
+  const [created] = await db.insert(products).values({
+    name: body.name,
+    type: body.type,
+    cylinderSize: body.cylinderSize ?? null,
+    unit: body.unit,
+  }).returning()
   if (!created) throw createError({ statusCode: 500, message: 'Failed to create product' })
 
   return { data: created }

@@ -11,7 +11,11 @@ const UpdateProductSchema = ProductSchema.partial().extend({
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const rawId = getRouterParam(event, 'id')
+  const id = rawId ? Number(rawId) : NaN
+  if (!Number.isFinite(id) || id <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid product ID' })
+  }
   const body = await parseBody(event, UpdateProductSchema)
   const db = useDB(event)
 

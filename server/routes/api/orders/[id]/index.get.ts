@@ -5,7 +5,11 @@ import { orders, orderItems, customers, products } from '~/server/database/schem
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const rawId = getRouterParam(event, 'id')
+  const id = rawId ? Number(rawId) : NaN
+  if (!Number.isFinite(id) || id <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid order ID' })
+  }
   const db = useDB(event)
 
   const order = await db.select().from(orders).where(eq(orders.id, id)).get()

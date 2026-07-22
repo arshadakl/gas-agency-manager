@@ -5,6 +5,7 @@ interface PurchaseFormItem {
   sizeKg: CylinderSize
   receivedQty: number
   returnedQty: number
+  newConnectionQty?: number
   unitPrice?: number
 }
 
@@ -26,14 +27,17 @@ export function usePurchaseForm() {
 
       const receivedQty = item?.receivedQty ?? 0
       const returnedQty = item?.returnedQty ?? 0
+      const newConnectionQty = item?.newConnectionQty ?? 0
 
-      const newFull = current.fullCount + receivedQty
+      // Refill exchange adds full + removes empty; new-connection cylinders add
+      // full with no empty going out.
+      const newFull = current.fullCount + receivedQty + newConnectionQty
       const newEmpty = current.emptyCount - returnedQty
 
       return {
         size,
         before: { fullCount: current.fullCount, emptyCount: current.emptyCount },
-        fullChange: receivedQty,
+        fullChange: receivedQty + newConnectionQty,
         emptyChange: -returnedQty,
         after: { fullCount: newFull, emptyCount: newEmpty },
         fullValid: newFull >= 0,

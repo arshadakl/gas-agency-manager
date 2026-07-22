@@ -7,6 +7,7 @@ export interface PurchaseLineItem {
   sizeKg: CylinderSize
   receivedQty: number
   returnedQty: number
+  newConnectionQty: number
   unitPrice?: number
 }
 
@@ -15,9 +16,10 @@ export interface PurchaseWithItems extends Purchase {
 }
 
 export interface PurchaseFormData {
-  supplier: string
+  supplier?: string
   purchaseDate: string
   totalAmount: number
+  connectionCharge: number
   amountPaid: number
   paymentMode?: 'cash' | 'upi' | 'bank' | 'credit'
   dueDate?: string

@@ -26,6 +26,14 @@ export const customers = sqliteTable('customers', {
   address: text('address'),
   // Pre-existing balance owed before the app was started — added to ledger total.
   openingBalance: real('opening_balance').default(0).notNull(),
+  // "Will pay outstanding on this date" — a promise the customer made, editable,
+  // auto-cleared when their balance reaches zero (server/utils/payment.ts).
+  promisedPayDate: text('promised_pay_date'),
+  promisedPayNote: text('promised_pay_note'),
+  // Refundable security deposit held for a new gas connection. Liability owed
+  // back to the customer — NEVER part of the outstanding-balance ledger math.
+  connectionDeposit: real('connection_deposit'),
+  depositNote: text('deposit_note'),
   isActive: integer('is_active').default(1).notNull(),
   ...timestamps,
 })
@@ -146,6 +154,10 @@ export const purchases = sqliteTable('purchases', {
   purchaseDate: text('purchase_date').notNull(),
   invoiceNo: text('invoice_no'),
   totalAmount: real('total_amount').notNull(),
+  // Extra charge for new-connection cylinders bought in this purchase, on top of
+  // the gas amount. Grand total = totalAmount + connectionCharge — payment
+  // status is derived against the grand total.
+  connectionCharge: real('connection_charge').default(0).notNull(),
   amountPaid: real('amount_paid').default(0).notNull(),
   paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'credit'] }),
   paymentStatus: text('payment_status', { enum: ['paid', 'partial', 'pending'] })
@@ -196,6 +208,9 @@ export const purchaseItems = sqliteTable('purchase_items', {
   sizeKg: integer('size_kg').notNull(),
   receivedQty: integer('received_qty').default(0).notNull(),
   returnedQty: integer('returned_qty').default(0).notNull(),
+  // Brand-new cylinders bought for new connections — increases full stock with
+  // NO matching empty returned (unlike a refill exchange).
+  newConnectionQty: integer('new_connection_qty').default(0).notNull(),
   unitPrice: real('unit_price'),
 }, (table) => ({
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),

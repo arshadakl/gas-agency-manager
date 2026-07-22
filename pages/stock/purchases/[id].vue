@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { PurchaseWithItems, PurchaseFormData } from '~/composables/usePurchases'
+import type { CylinderSize } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -27,15 +28,17 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
     purchaseDate: p.purchaseDate,
     invoiceNo: p.invoiceNo ?? undefined,
     totalAmount: p.totalAmount,
+    connectionCharge: p.connectionCharge ?? 0,
     amountPaid: p.amountPaid,
     paymentMode: p.paymentMode ?? undefined,
     paymentReference: p.paymentReference ?? undefined,
     dueDate: p.dueDate ?? undefined,
     notes: p.notes ?? undefined,
     items: p.items.map((i) => ({
-      sizeKg: i.sizeKg as 12 | 17 | 33,
+      sizeKg: i.sizeKg as CylinderSize,
       receivedQty: i.receivedQty,
       returnedQty: i.returnedQty,
+      newConnectionQty: ('newConnectionQty' in i ? i.newConnectionQty : 0) ?? 0,
       unitPrice: i.unitPrice ?? undefined,
     })),
   }
@@ -44,6 +47,8 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
 const paymentIcons: Record<string, string> = { cash: 'account_balance_wallet', upi: 'qr_code_scanner', bank: 'account_balance', credit: 'credit_card' }
 const totalReceived = computed(() => purchase.value?.items.reduce((sum, i) => sum + i.receivedQty, 0) ?? 0)
 const totalReturned = computed(() => purchase.value?.items.reduce((sum, i) => sum + i.returnedQty, 0) ?? 0)
+const totalNewConnections = computed(() => purchase.value?.items.reduce((sum, i) => sum + (('newConnectionQty' in i ? i.newConnectionQty : 0) ?? 0), 0) ?? 0)
+const grandTotal = computed(() => (purchase.value?.totalAmount ?? 0) + (purchase.value?.connectionCharge ?? 0))
 
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -84,7 +89,10 @@ async function handleDelete() {
         <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest grid grid-cols-1 sm:grid-cols-3 gap-md">
           <div class="flex flex-col gap-xs">
             <span class="text-label-caps text-on-surface-variant uppercase">Total Amount</span>
-            <span class="text-headline-md text-primary-fixed-dim">{{ formatCurrency(purchase.totalAmount) }}</span>
+            <span class="text-headline-md text-primary-fixed-dim">{{ formatCurrency(grandTotal) }}</span>
+            <span v-if="purchase.connectionCharge" class="text-data-tertiary text-on-surface-variant">
+              Gas {{ formatCurrency(purchase.totalAmount) }} + connection {{ formatCurrency(purchase.connectionCharge) }}
+            </span>
           </div>
           <div class="flex flex-col gap-xs">
             <span class="text-label-caps text-on-surface-variant uppercase">Payment Type</span>
@@ -141,6 +149,22 @@ async function handleDelete() {
               </ul>
             </div>
           </div>
+        </section>
+
+        <!-- New Connection Cylinders -->
+        <section v-if="totalNewConnections > 0" class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
+          <div class="flex items-center justify-between mb-sm pb-sm border-b border-surface-variant">
+            <h2 class="text-data-primary text-on-surface flex items-center gap-sm">
+              <Icon name="new_releases" class="text-tertiary" /> New Connection Cylinders
+            </h2>
+            <span class="text-data-primary text-tertiary">{{ totalNewConnections }}</span>
+          </div>
+          <ul class="flex flex-col gap-xs">
+            <li v-for="item in purchase.items.filter((i) => (('newConnectionQty' in i ? i.newConnectionQty : 0) ?? 0) > 0)" :key="`n-${item.sizeKg}`" class="flex justify-between items-center py-1">
+              <span class="text-data-secondary text-on-surface-variant">{{ item.sizeKg }}kg</span>
+              <span class="text-data-secondary text-on-surface">{{ 'newConnectionQty' in item ? item.newConnectionQty : 0 }}</span>
+            </li>
+          </ul>
         </section>
 
         <p v-if="purchase.notes" class="text-data-secondary text-on-surface-variant">{{ purchase.notes }}</p>

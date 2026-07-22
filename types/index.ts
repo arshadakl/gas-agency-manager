@@ -5,7 +5,7 @@ export const ROLES = {
 } as const
 export type Role = typeof ROLES[keyof typeof ROLES]
 
-export const CYLINDER_SIZES = [12, 17, 33] as const
+export const CYLINDER_SIZES = [12, 17, 21, 33] as const
 export type CylinderSize = typeof CYLINDER_SIZES[number]
 
 export const PAYMENT_MODES = ['cash', 'upi', 'bank', 'cheque'] as const

@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { purchases, purchaseItems } from '~/server/database/schema'
 import { applyStockChanges } from '~/server/utils/stock'
+import type { CylinderSize } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -16,10 +17,10 @@ export default defineEventHandler(async (event) => {
   const items = await db.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, id)).all()
 
   const reversal = items
-    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0)
+    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0)
     .map((i) => ({
-      sizeKg: i.sizeKg as 12 | 17 | 33,
-      fullChange: -i.receivedQty,
+      sizeKg: i.sizeKg as CylinderSize,
+      fullChange: -(i.receivedQty + i.newConnectionQty),
       emptyChange: i.returnedQty,
     }))
   if (reversal.length > 0) {

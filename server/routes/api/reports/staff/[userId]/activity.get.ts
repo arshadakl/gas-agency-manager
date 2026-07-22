@@ -6,7 +6,11 @@ import { ReportQuerySchema } from '~/utils/validators'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const userId = Number(getRouterParam(event, 'userId'))
+  const rawUserId = getRouterParam(event, 'userId')
+  const userId = rawUserId ? Number(rawUserId) : NaN
+  if (!Number.isFinite(userId) || userId <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid user ID' })
+  }
   const { from, to } = parseQuery(event, ReportQuerySchema)
   const db = useDB(event)
 

@@ -8,11 +8,19 @@ export default defineEventHandler(async (event) => {
   const query = getQuery(event) as { customerId?: string; from?: string; to?: string; paymentMode?: string }
   const db = useDB(event)
 
+  const customerId = query.customerId ? Number(query.customerId) : undefined
+  const isValidCustomer = customerId !== undefined && Number.isFinite(customerId) && customerId > 0
+
+  const validPaymentModes = ['cash', 'upi', 'bank', 'cheque'] as const
+  const paymentMode = query.paymentMode && validPaymentModes.includes(query.paymentMode as typeof validPaymentModes[number])
+    ? query.paymentMode as typeof validPaymentModes[number]
+    : undefined
+
   const conditions = [
-    query.customerId ? eq(customerPayments.customerId, Number(query.customerId)) : undefined,
+    isValidCustomer ? eq(customerPayments.customerId, customerId) : undefined,
     query.from ? gte(customerPayments.paymentDate, query.from) : undefined,
     query.to ? lte(customerPayments.paymentDate, query.to) : undefined,
-    query.paymentMode ? eq(customerPayments.paymentMode, query.paymentMode as 'cash' | 'upi' | 'bank' | 'cheque') : undefined,
+    paymentMode ? eq(customerPayments.paymentMode, paymentMode) : undefined,
   ].filter((c) => c !== undefined)
 
   const rows = await db.select({

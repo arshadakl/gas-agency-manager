@@ -10,7 +10,7 @@ definePageMeta({
 const route = useRoute()
 const id = route.params.id as string
 
-const { fetchLedger, updateCustomer, setOpeningBalance, loading, error } = useCustomers()
+const { fetchLedger, updateCustomer, setOpeningBalance, setPromise, loading, error } = useCustomers()
 const { user } = useUserSession()
 
 const customer = ref<Customer | null>(null)
@@ -26,6 +26,16 @@ const editing = ref(false)
 const editingBalance = ref(false)
 const balanceInput = ref(0)
 const balanceError = ref<string | null>(null)
+
+// Payment promise edit state
+const editingPromise = ref(false)
+const promiseDateInput = ref('')
+const promiseNoteInput = ref('')
+const promiseError = ref<string | null>(null)
+
+const promiseOverdue = computed(() =>
+  !!customer.value?.promisedPayDate && customer.value.promisedPayDate < toISODate(new Date()),
+)
 
 async function load() {
   const ledger = await fetchLedger(id)
@@ -63,6 +73,36 @@ async function handleSaveBalance() {
     await load()
   } else {
     balanceError.value = error.value
+  }
+}
+
+function startPromiseEdit() {
+  promiseDateInput.value = customer.value?.promisedPayDate ?? ''
+  promiseNoteInput.value = customer.value?.promisedPayNote ?? ''
+  promiseError.value = null
+  editingPromise.value = true
+}
+
+async function handleSavePromise() {
+  promiseError.value = null
+  if (!promiseDateInput.value) {
+    promiseError.value = 'Pick a date'
+    return
+  }
+  const updated = await setPromise(id, promiseDateInput.value, promiseNoteInput.value || null)
+  if (updated) {
+    editingPromise.value = false
+    await load()
+  } else {
+    promiseError.value = error.value
+  }
+}
+
+async function handleClearPromise() {
+  const updated = await setPromise(id, null)
+  if (updated) {
+    editingPromise.value = false
+    await load()
   }
 }
 </script>
@@ -133,6 +173,67 @@ async function handleSaveBalance() {
             <Button size="sm" variant="outline" @click="editingBalance = false">Cancel</Button>
           </div>
         </div>
+      </div>
+
+      <!-- Payment Promise -->
+      <!-- Viewer sees an existing promise read-only; admin/delivery also see the card when there's a balance to chase. -->
+      <div
+        v-if="customer.promisedPayDate || ((user?.role === 'admin' || user?.role === 'delivery') && balance > 0)"
+        class="mb-lg rounded-xl border p-4"
+        :class="promiseOverdue ? 'border-error/40 bg-error-container/10' : 'border-outline-variant/30 bg-surface-container'"
+      >
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-data-secondary text-on-surface-variant uppercase tracking-wider">Payment Promise</p>
+            <template v-if="customer.promisedPayDate">
+              <p class="text-data-primary mt-0.5" :class="promiseOverdue ? 'text-error' : 'text-on-surface'">
+                {{ promiseOverdue ? 'Overdue — promised' : 'Will pay by' }} {{ formatDate(customer.promisedPayDate) }}
+              </p>
+              <p v-if="customer.promisedPayNote" class="text-data-tertiary text-on-surface-variant mt-0.5">{{ customer.promisedPayNote }}</p>
+            </template>
+            <p v-else class="text-data-tertiary text-on-surface-variant mt-0.5">No promise set — tap edit to note when they'll pay</p>
+          </div>
+          <button
+            v-if="user?.role === 'admin' || user?.role === 'delivery'"
+            class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
+            @click="startPromiseEdit"
+          >
+            <Icon name="edit" class="text-sm" />
+          </button>
+        </div>
+
+        <div v-if="editingPromise" class="mt-3 border-t border-outline-variant/20 pt-3 flex flex-col gap-2">
+          <label class="text-data-secondary text-on-surface-variant">Promised Date</label>
+          <input
+            v-model="promiseDateInput"
+            type="date"
+            class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+          >
+          <label class="text-data-secondary text-on-surface-variant">Note (optional)</label>
+          <input
+            v-model="promiseNoteInput"
+            type="text"
+            maxlength="300"
+            placeholder="e.g. Will settle after weekend sales"
+            class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+          >
+          <p v-if="promiseError" class="text-data-tertiary text-error">{{ promiseError }}</p>
+          <div class="flex gap-2">
+            <Button size="sm" :disabled="loading" @click="handleSavePromise">
+              <LoadingSpinner v-if="loading" class="h-3 w-3 mr-1" />
+              Save
+            </Button>
+            <Button v-if="customer.promisedPayDate" size="sm" variant="outline" class="border-error text-error" :disabled="loading" @click="handleClearPromise">Clear</Button>
+            <Button size="sm" variant="outline" @click="editingPromise = false">Cancel</Button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Connection Deposit -->
+      <div v-if="customer.connectionDeposit" class="mb-lg rounded-xl border border-outline-variant/30 bg-surface-container p-4">
+        <p class="text-data-secondary text-on-surface-variant uppercase tracking-wider">Connection Deposit Held</p>
+        <p class="text-data-primary text-on-surface mt-0.5">{{ formatCurrency(customer.connectionDeposit) }}</p>
+        <p class="text-data-tertiary text-on-surface-variant mt-0.5">{{ customer.depositNote || 'Refundable — not part of outstanding balance' }}</p>
       </div>
 
       <CustomerLedger

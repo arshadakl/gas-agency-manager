@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   const [purchaseTotals, deliveryTotals, cylindersIn, cylindersOut] = await Promise.all([
-    db.select({ totalAmount: sql<number>`coalesce(sum(${purchases.totalAmount}), 0)` })
+    db.select({ totalAmount: sql<number>`coalesce(sum(${purchases.totalAmount} + ${purchases.connectionCharge}), 0)` })
       .from(purchases)
       .where(and(gte(purchases.purchaseDate, from), lte(purchases.purchaseDate, to)))
       .get(),

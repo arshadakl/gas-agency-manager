@@ -27,6 +27,8 @@ export default defineEventHandler(async (event) => {
       ...(rest.phone !== undefined ? { phone: rest.phone } : {}),
       ...(rest.whatsappNumber !== undefined ? { whatsappNumber: rest.whatsappNumber } : {}),
       ...(rest.address !== undefined ? { address: rest.address } : {}),
+      ...(rest.connectionDeposit !== undefined ? { connectionDeposit: rest.connectionDeposit } : {}),
+      ...(rest.depositNote !== undefined ? { depositNote: rest.depositNote } : {}),
       ...(isActive !== undefined ? { isActive: Number(isActive) } : {}),
     })
     .where(eq(customers.id, existing.id))

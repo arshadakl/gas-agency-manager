@@ -20,7 +20,11 @@ const DeliverOrderSchema = z.object({
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
 
-  const id = Number(getRouterParam(event, 'id'))
+  const rawId = getRouterParam(event, 'id')
+  const id = rawId ? Number(rawId) : NaN
+  if (!Number.isFinite(id) || id <= 0) {
+    throw createError({ statusCode: 400, message: 'Invalid order ID' })
+  }
   const body = await parseBody(event, DeliverOrderSchema)
   const db = useDB(event)
 
@@ -122,9 +126,10 @@ export default defineEventHandler(async (event) => {
 
     return { data: { order: updatedOrder, delivery: finalDelivery } }
   } catch (err) {
-    // Best-effort claim release — D1 has no rollback (CLAUDE.md §23.4).
+    // Best-effort cleanup — D1 has no rollback (CLAUDE.md §23.4).
+    // Revert the order to pending so it can be re-attempted.
     await db.update(orders)
-      .set({ status: 'pending', deliveredAt: null })
+      .set({ status: 'pending', deliveredAt: null, deliveryId: null })
       .where(eq(orders.id, id))
     throw err
   }
