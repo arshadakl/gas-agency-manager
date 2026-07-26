@@ -98,6 +98,19 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
         <Icon name="arrow_forward" class="text-primary-fixed-dim text-lg" />
       </NuxtLink>
 
+      <NuxtLink
+        to="/stock/purchases/accessories"
+        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-surface-container p-4 rounded-xl"
+      >
+        <div class="flex items-center gap-2 text-on-surface-variant text-data-secondary">
+          <Icon name="inventory_2" class="text-base" />
+          Accessories purchase
+        </div>
+        <Icon name="arrow_forward" class="text-primary-fixed-dim text-lg" />
+      </NuxtLink>
+
+
+
       <section class="space-y-md">
         <div class="flex items-center justify-between border-b border-surface-container-highest pb-2">
           <h3 class="text-label-caps text-on-surface-variant tracking-widest uppercase">Stock History</h3>

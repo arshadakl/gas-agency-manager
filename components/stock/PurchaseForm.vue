@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Input } from '~/components/ui/input'
-import { CYLINDER_SIZES, PURCHASE_PAYMENT_MODES } from '~/types'
+import { CYLINDER_SIZES } from '~/types'
 import type { PurchaseFormData } from '~/composables/usePurchases'
 
 const props = defineProps<{
@@ -16,9 +16,6 @@ const emit = defineEmits<{
 
 const { loadCurrentStock, buildPreview } = usePurchaseForm()
 
-// Always seed every cylinder size regardless of what the original purchase
-// had — editing a purchase that only ever touched, say, 17kg must not crash
-// when the template iterates CYLINDER_SIZES and expects every size present.
 const initialItemBySize = new Map((props.initial?.items ?? []).map((i) => [i.sizeKg, i]))
 const seededItems = CYLINDER_SIZES.map((sizeKg) => {
   const existing = initialItemBySize.get(sizeKg)
@@ -37,37 +34,43 @@ const form = reactive<PurchaseFormData>({
   items: seededItems,
 })
 
+const payNow = ref((props.initial?.amountPaid ?? 0) > 0)
+
 const preview = computed(() => buildPreview(form.items))
 const stockIsValid = computed(() => preview.value.every((p) => p.isValid))
 const grandTotal = computed(() => (Number(form.totalAmount) || 0) + (Number(form.connectionCharge) || 0))
-const formIsValid = computed(() => stockIsValid.value && grandTotal.value > 0)
+const formIsValid = computed(() => {
+  if (!stockIsValid.value || grandTotal.value <= 0) return false
+  if (payNow.value && (!form.paymentMode || Number(form.amountPaid) <= 0)) return false
+  return true
+})
 const totalIn = computed(() => form.items.reduce((sum, i) => sum + i.receivedQty + i.newConnectionQty, 0))
 const totalOut = computed(() => form.items.reduce((sum, i) => sum + i.returnedQty, 0))
 
 onMounted(loadCurrentStock)
 
-function itemFor(sizeKg: number) {
-  return form.items.find((i) => i.sizeKg === sizeKg)!
-}
+watch(payNow, (v) => {
+  if (!v) {
+    form.amountPaid = 0
+  } else {
+    form.amountPaid = grandTotal.value
+  }
+})
 
-function incReceived(sizeKg: number) { itemFor(sizeKg).receivedQty++ }
-function decReceived(sizeKg: number) { itemFor(sizeKg).receivedQty = Math.max(0, itemFor(sizeKg).receivedQty - 1) }
-function incReturned(sizeKg: number) { itemFor(sizeKg).returnedQty++ }
-function decReturned(sizeKg: number) { itemFor(sizeKg).returnedQty = Math.max(0, itemFor(sizeKg).returnedQty - 1) }
-function incNewConnection(sizeKg: number) { itemFor(sizeKg).newConnectionQty++ }
-function decNewConnection(sizeKg: number) { itemFor(sizeKg).newConnectionQty = Math.max(0, itemFor(sizeKg).newConnectionQty - 1) }
-
-const paymentIcons: Record<string, string> = { cash: 'account_balance_wallet', upi: 'qr_code_scanner', bank: 'account_balance', credit: 'credit_card' }
+watch(grandTotal, (v) => {
+  if (payNow.value) {
+    form.amountPaid = v
+  }
+})
 
 function handleSubmit() {
   if (!formIsValid.value) return
-  // Cleared number inputs become '' with v-model.number — coerce to 0 so the
-  // server's zod schema never sees a string.
   emit('submit', {
     ...form,
     totalAmount: Number(form.totalAmount) || 0,
     connectionCharge: Number(form.connectionCharge) || 0,
-    amountPaid: Number(form.amountPaid) || 0,
+    amountPaid: payNow.value ? (Number(form.amountPaid) || 0) : 0,
+    paymentMode: payNow.value ? form.paymentMode : undefined,
   })
 }
 </script>
@@ -80,15 +83,13 @@ function handleSubmit() {
         <Icon name="storefront" :filled="true" class="text-primary" />
         <h2 class="text-data-primary text-on-surface">Purchase Details</h2>
       </div>
-      <div class="space-y-md">
-        <div>
-          <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
-          <Input v-model="form.purchaseDate" type="date" required />
-        </div>
+      <div>
+        <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
+        <Input v-model="form.purchaseDate" type="date" required />
       </div>
     </section>
 
-    <!-- Part 2 & 3 -->
+    <!-- Part 2 & 3: Cylinder quantities -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
       <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
         <div class="flex items-center justify-between mb-md">
@@ -101,15 +102,14 @@ function handleSubmit() {
         <div class="space-y-xs">
           <div v-for="size in CYLINDER_SIZES" :key="size" class="flex items-center justify-between py-3 border-b border-surface-container-highest last:border-0">
             <p class="text-body-base text-on-surface">{{ size }}kg</p>
-            <div class="flex items-center gap-4 bg-surface-container-highest rounded-lg p-1 border border-outline-variant">
-              <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="decReceived(size)">
-                <Icon name="remove" />
-              </button>
-              <span class="text-data-primary text-on-surface w-6 text-center">{{ itemFor(size).receivedQty }}</span>
-              <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="incReceived(size)">
-                <Icon name="add" />
-              </button>
-            </div>
+            <input
+              v-model.number="form.items.find(i => i.sizeKg === size)!.receivedQty"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              class="w-20 text-center px-2 py-1.5 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+            >
           </div>
         </div>
       </section>
@@ -125,15 +125,14 @@ function handleSubmit() {
         <div class="space-y-xs">
           <div v-for="size in CYLINDER_SIZES" :key="size" class="flex items-center justify-between py-3 border-b border-surface-container-highest last:border-0">
             <p class="text-body-base text-on-surface">{{ size }}kg</p>
-            <div class="flex items-center gap-4 bg-surface-container-highest rounded-lg p-1 border border-outline-variant">
-              <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="decReturned(size)">
-                <Icon name="remove" />
-              </button>
-              <span class="text-data-primary text-on-surface w-6 text-center">{{ itemFor(size).returnedQty }}</span>
-              <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="incReturned(size)">
-                <Icon name="add" />
-              </button>
-            </div>
+            <input
+              v-model.number="form.items.find(i => i.sizeKg === size)!.returnedQty"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              class="w-20 text-center px-2 py-1.5 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+            >
           </div>
         </div>
       </section>
@@ -151,15 +150,14 @@ function handleSubmit() {
       <div class="space-y-xs">
         <div v-for="size in CYLINDER_SIZES" :key="size" class="flex items-center justify-between py-3 border-b border-surface-container-highest last:border-0">
           <p class="text-body-base text-on-surface">{{ size }}kg</p>
-          <div class="flex items-center gap-4 bg-surface-container-highest rounded-lg p-1 border border-outline-variant">
-            <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="decNewConnection(size)">
-              <Icon name="remove" />
-            </button>
-            <span class="text-data-primary text-on-surface w-6 text-center">{{ itemFor(size).newConnectionQty }}</span>
-            <button type="button" class="w-8 h-8 flex items-center justify-center rounded text-on-surface hover:bg-surface-variant transition-colors" @click="incNewConnection(size)">
-              <Icon name="add" />
-            </button>
-          </div>
+          <input
+            v-model.number="form.items.find(i => i.sizeKg === size)!.newConnectionQty"
+            type="number"
+            inputmode="numeric"
+            min="0"
+            step="1"
+            class="w-20 text-center px-2 py-1.5 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+          >
         </div>
       </div>
     </section>
@@ -178,8 +176,9 @@ function handleSubmit() {
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <div class="flex items-center gap-sm mb-lg">
         <Icon name="payments" :filled="true" class="text-primary" />
-        <h2 class="text-data-primary text-on-surface">Payment Details</h2>
+        <h2 class="text-data-primary text-on-surface">Payment</h2>
       </div>
+
       <div class="grid grid-cols-2 gap-md mb-md">
         <div>
           <label class="block text-data-secondary text-on-surface-variant mb-sm">Gas Amount</label>
@@ -190,35 +189,66 @@ function handleSubmit() {
           <Input v-model.number="form.connectionCharge" type="number" min="0" step="0.01" placeholder="0" />
         </div>
       </div>
-      <div class="grid grid-cols-2 gap-md mb-lg items-end">
+
+      <div class="pb-3 mb-lg border-b border-outline-variant/30">
+        <p class="text-data-secondary text-on-surface-variant">Grand Total</p>
+        <p class="text-headline-md text-primary-fixed-dim">{{ formatCurrency(grandTotal) }}</p>
+      </div>
+
+      <!-- Pay Now / Pay Later toggle -->
+      <div class="bg-surface-container rounded-xl p-1 border border-outline-variant/30 flex mb-lg">
+        <button
+          type="button"
+          class="flex-1 py-3 rounded-lg text-data-secondary transition-colors flex items-center justify-center gap-2"
+          :class="!payNow ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+          @click="payNow = false"
+        >
+          <Icon name="schedule" class="text-sm" /> Pay Later
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-3 rounded-lg text-data-secondary transition-colors flex items-center justify-center gap-2"
+          :class="payNow ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+          @click="payNow = true"
+        >
+          <Icon name="check_circle" class="text-sm" /> Pay Now
+        </button>
+      </div>
+
+      <!-- Pay Now details -->
+      <div v-if="payNow" class="space-y-md">
         <div>
           <label class="block text-data-secondary text-on-surface-variant mb-sm">Amount Paid</label>
-          <Input v-model.number="form.amountPaid" type="number" min="0" step="0.01" required />
+          <Input v-model.number="form.amountPaid" type="number" min="0" step="0.01" :max="grandTotal" required />
         </div>
-        <div class="pb-1">
-          <p class="text-data-secondary text-on-surface-variant">Grand Total</p>
-          <p class="text-data-primary text-primary-fixed-dim">{{ formatCurrency(grandTotal) }}</p>
+        <div>
+          <label class="block text-data-secondary text-on-surface-variant mb-3">Payment Method</label>
+          <div class="flex gap-sm">
+            <button
+              type="button"
+              class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border"
+              :class="form.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+              @click="form.paymentMode = 'cash'"
+            >
+              <Icon name="payments" class="text-[18px]" /> Cash
+            </button>
+            <button
+              type="button"
+              class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border"
+              :class="form.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+              @click="form.paymentMode = 'bank'"
+            >
+              <Icon name="account_balance" class="text-[18px]" /> Bank
+            </button>
+          </div>
         </div>
       </div>
-      <p v-if="grandTotal <= 0" class="text-data-secondary text-error -mt-2 mb-md">Enter a gas amount or a connection charge to continue.</p>
-      <div>
-        <label class="block text-data-secondary text-on-surface-variant mb-3">Payment Method</label>
-        <div class="flex overflow-x-auto gap-sm pb-2">
-          <button
-            v-for="mode in PURCHASE_PAYMENT_MODES"
-            :key="mode"
-            type="button"
-            class="shrink-0 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center gap-2"
-            :class="form.paymentMode === mode ? 'border border-primary text-primary bg-primary/10' : 'border border-outline-variant text-on-surface-variant hover:bg-surface-variant'"
-            @click="form.paymentMode = mode"
-          >
-            <Icon :name="paymentIcons[mode] ?? 'payments'" class="text-[18px]" /> {{ mode }}
-          </button>
-        </div>
-      </div>
-      <div v-if="form.paymentMode === 'credit'" class="mt-md">
-        <label class="block text-data-secondary text-on-surface-variant mb-sm">Due Date</label>
-        <Input v-model="form.dueDate" type="date" />
+
+      <div v-else class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20">
+        <p class="text-data-secondary text-on-surface-variant flex items-center gap-2">
+          <Icon name="info" class="text-sm" />
+          Amount will be paid later. You can clear this purchase when payment is made.
+        </p>
       </div>
     </section>
 

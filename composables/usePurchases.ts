@@ -21,7 +21,7 @@ export interface PurchaseFormData {
   totalAmount: number
   connectionCharge: number
   amountPaid: number
-  paymentMode?: 'cash' | 'upi' | 'bank' | 'credit'
+  paymentMode?: 'cash' | 'bank'
   dueDate?: string
   items: PurchaseLineItem[]
 }
@@ -104,5 +104,22 @@ export function usePurchases() {
     }
   }
 
-  return { fetchPurchases, fetchPurchase, createPurchase, updatePurchase, deletePurchase, loading, error }
+  async function clearPurchase(publicId: string, data: { amount: number; paymentMode: 'cash' | 'bank'; notes?: string }) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<{ id: number; amountPaid: number; paymentStatus: string }>>(`/api/purchases/${publicId}/clear`, {
+        method: 'POST',
+        body: data,
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to clear purchase payment')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchPurchases, fetchPurchase, createPurchase, updatePurchase, deletePurchase, clearPurchase, loading, error }
 }

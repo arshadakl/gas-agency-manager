@@ -225,6 +225,7 @@ export const expenses = sqliteTable('expenses', {
   expenseDate: text('expense_date').notNull(),
   amount: real('amount').notNull(),
   tag: text('tag', { enum: ['fuel', 'maintenance', 'fine', 'other'] }).notNull(),
+  paymentSource: text('payment_source', { enum: ['cash', 'bank'] }).default('cash').notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
@@ -232,4 +233,31 @@ export const expenses = sqliteTable('expenses', {
 }, (table) => ({
   dateIdx: index('expenses_date_idx').on(table.expenseDate),
   tagIdx: index('expenses_tag_idx').on(table.tag),
+  sourceIdx: index('expenses_source_idx').on(table.paymentSource),
+}))
+
+export const accounts = sqliteTable('accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type', { enum: ['cash', 'bank'] }).notNull().unique(),
+  balance: real('balance').default(0).notNull(),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+})
+
+export const accountTransactions = sqliteTable('account_transactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  accountType: text('account_type', { enum: ['cash', 'bank'] }).notNull(),
+  amount: real('amount').notNull(),
+  transactionType: text('transaction_type', {
+    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment']
+  }).notNull(),
+  referenceId: integer('reference_id'),
+  referenceType: text('reference_type'),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdByName: text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  accountIdx: index('account_transactions_account_idx').on(table.accountType),
+  typeIdx: index('account_transactions_type_idx').on(table.transactionType),
+  dateIdx: index('account_transactions_date_idx').on(table.createdAt),
 }))

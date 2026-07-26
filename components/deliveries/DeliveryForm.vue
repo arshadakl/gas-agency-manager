@@ -2,8 +2,17 @@
 import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { PAYMENT_MODES } from '~/types'
-import type { CustomerWithBalance, Product } from '~/types/database'
+import type { CustomerWithBalance, Product, DeliveryWithRelations } from '~/types/database'
 import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
+
+interface DeliveryInitial {
+  customerId: number
+  deliveryDate: string
+  totalAmount: number
+  notes?: string | null
+  items: Array<{ productId: number; quantity: number }>
+  amountCollected?: number
+}
 
 const props = defineProps<{
   customers: CustomerWithBalance[]
@@ -11,10 +20,12 @@ const props = defineProps<{
   cylinderFullStock?: Record<number, number>  // sizeKg → fullCount
   loading?: boolean
   error?: string | null
+  initial?: DeliveryInitial
 }>()
 
 const emit = defineEmits<{
   submit: [data: DeliveryCreatePayload & { whatsapp?: boolean }]
+  cancel: []
 }>()
 
 const { fetchFavoriteProductId } = useCustomers()
@@ -28,6 +39,32 @@ const totalAmount = ref<number | ''>('')
 const amountCollected = ref<number | ''>('')
 const paymentMode = ref<typeof PAYMENT_MODES[number]>('cash')
 const validationError = ref('')
+const itemTab = ref<'cylinders' | 'accessories'>('cylinders')
+
+// Prefill form when editing an existing delivery
+if (props.initial) {
+  selectedCustomerId.value = props.initial.customerId
+  deliveryDate.value = props.initial.deliveryDate
+  totalAmount.value = props.initial.totalAmount
+  notes.value = props.initial.notes ?? ''
+  for (const item of props.initial.items) {
+    quantities[item.productId] = item.quantity
+  }
+  if (props.initial.amountCollected && props.initial.amountCollected > 0) {
+    amountCollected.value = props.initial.amountCollected
+  }
+}
+
+const cylinderProducts = computed(() => props.products.filter((p) => p.type === 'cylinder'))
+const accessoryProducts = computed(() => props.products.filter((p) => p.type === 'accessory'))
+const activeProducts = computed(() => itemTab.value === 'cylinders' ? cylinderProducts.value : accessoryProducts.value)
+
+const selectedCylinderCount = computed(() =>
+  cylinderProducts.value.reduce((sum, p) => sum + (quantities[p.id] ?? 0), 0),
+)
+const selectedAccessoryCount = computed(() =>
+  accessoryProducts.value.reduce((sum, p) => sum + (quantities[p.id] ?? 0), 0),
+)
 
 const selectedCustomer = computed(() => props.customers.find((c) => c.id === selectedCustomerId.value))
 
@@ -194,9 +231,36 @@ function handleSubmit() {
 
     <!-- 3. Itemized Delivery -->
     <section class="bg-surface-container-low p-5 rounded-xl space-y-sm">
-      <label class="text-data-secondary text-on-surface-variant block mb-4 uppercase tracking-wider">Items</label>
+      <label class="text-data-secondary text-on-surface-variant block mb-3 uppercase tracking-wider">Items</label>
+
+      <!-- Tabs: Cylinders / Accessories -->
+      <div class="flex bg-surface-container rounded-full p-1 border border-outline-variant/20 mb-4">
+        <button
+          type="button"
+          class="flex-1 py-2 rounded-full text-data-secondary font-medium transition-all"
+          :class="itemTab === 'cylinders'
+            ? 'bg-primary-container text-on-primary-container'
+            : 'text-on-surface-variant hover:text-on-surface'"
+          @click="itemTab = 'cylinders'"
+        >
+          Cylinders
+          <span v-if="selectedCylinderCount > 0" class="ml-1 text-data-tertiary">({{ selectedCylinderCount }})</span>
+        </button>
+        <button
+          type="button"
+          class="flex-1 py-2 rounded-full text-data-secondary font-medium transition-all"
+          :class="itemTab === 'accessories'
+            ? 'bg-primary-container text-on-primary-container'
+            : 'text-on-surface-variant hover:text-on-surface'"
+          @click="itemTab = 'accessories'"
+        >
+          Accessories
+          <span v-if="selectedAccessoryCount > 0" class="ml-1 text-data-tertiary">({{ selectedAccessoryCount }})</span>
+        </button>
+      </div>
+
       <div
-        v-for="product in products"
+        v-for="product in activeProducts"
         :key="product.id"
         class="flex items-center justify-between p-4 bg-surface rounded-lg border mb-3 last:mb-0 transition-colors"
         :class="[
@@ -324,12 +388,12 @@ function handleSubmit() {
     <!-- Sticky Bottom Actions -->
     <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-surface-variant p-4 flex gap-4 z-30">
       <button
-        type="submit"
+        type="button"
         class="flex-1 rounded-lg bg-surface-container-highest text-on-surface border border-outline-variant/40 py-2 px-4 font-medium hover:bg-surface-variant transition-colors disabled:opacity-50"
         :disabled="props.loading"
-        @click="submitMode = 'save-only'"
+        @click="emit('cancel')"
       >
-        Save Only
+        Cancel
       </button>
       <Button type="submit" class="flex-[2] rounded-lg" :disabled="props.loading" @click="submitMode = 'save-whatsapp'">
         <LoadingSpinner v-if="props.loading" class="h-4 w-4 mr-2" />

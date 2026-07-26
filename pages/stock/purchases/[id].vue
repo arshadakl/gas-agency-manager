@@ -30,7 +30,7 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
     totalAmount: p.totalAmount,
     connectionCharge: p.connectionCharge ?? 0,
     amountPaid: p.amountPaid,
-    paymentMode: p.paymentMode ?? undefined,
+    paymentMode: (p.paymentMode === 'cash' || p.paymentMode === 'bank' ? p.paymentMode : undefined) as 'cash' | 'bank' | undefined,
     paymentReference: p.paymentReference ?? undefined,
     dueDate: p.dueDate ?? undefined,
     notes: p.notes ?? undefined,

@@ -1,7 +1,8 @@
 import { eq, and, asc, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { customerPayments, customers, deliveries } from '~/server/database/schema'
-import type { PaymentMode, DeliveryPaymentStatus } from '~/types'
+import type { PaymentMode, DeliveryPaymentStatus, AccountType } from '~/types'
+import { recordAccountTransaction } from '~/server/utils/account'
 
 export function deriveStatus(amountCollected: number, totalAmount: number): DeliveryPaymentStatus {
   if (amountCollected <= 0) return 'pending'
@@ -97,6 +98,21 @@ export async function recordCustomerPayment(
 
   if (params.target.type === 'fifo') {
     await allocatePaymentFifo(db, params.customerId, params.amount)
+  }
+
+  // Track in accounts if payment mode is cash or bank
+  if (params.paymentMode === 'cash' || params.paymentMode === 'bank') {
+    const accountType = params.paymentMode as AccountType
+    const txType = params.deliveryId ? 'delivery_collection' : 'payment_received'
+    await recordAccountTransaction(db, {
+      accountType,
+      amount: params.amount,
+      transactionType: txType,
+      referenceId: params.deliveryId,
+      referenceType: params.deliveryId ? 'delivery' : 'payment',
+      notes: params.notes,
+      user: params.user,
+    })
   }
 
   await clearPromiseIfSettled(db, params.customerId)

@@ -85,6 +85,20 @@
       "when": 1784738716697,
       "tag": "0011_damp_baron_strucker",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1785047956742,
+      "tag": "0012_groovy_gunslinger",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1785053892999,
+      "tag": "0013_ancient_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }

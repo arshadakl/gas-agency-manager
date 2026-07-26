@@ -2,11 +2,15 @@ import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { ExpenseTag } from '~/types'
 
+export type PaymentSource = 'cash' | 'bank'
+
 export interface Expense {
   id: number
+  publicId: string | null
   expenseDate: string
   amount: number
   tag: ExpenseTag
+  paymentSource: PaymentSource
   notes: string | null
   createdBy: number
   createdByName: string
@@ -25,17 +29,28 @@ export function useExpenses() {
     error.value = null
     loading.value = true
     try {
-      const result = await $fetch<{ data: Expense[]; total: number; byTag: Record<string, number> }>('/api/expenses', { query: params ?? {} })
+      const result = await $fetch<{ data: Expense[]; total: number; byTag: Record<string, number>; bySource: Record<string, number> }>('/api/expenses', { query: params ?? {} })
       return result
     } catch (err: unknown) {
       handleError(err, 'Failed to load expenses')
-      return { data: [], total: 0, byTag: {} }
+      return { data: [], total: 0, byTag: {}, bySource: {} }
     } finally {
       loading.value = false
     }
   }
 
-  async function createExpense(data: { expenseDate: string; amount: number; tag: ExpenseTag; notes?: string }) {
+  async function getExpense(publicId: string) {
+    error.value = null
+    try {
+      const result = await $fetch<ApiResponse<Expense>>(`/api/expenses/${publicId}`)
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to load expense')
+      return null
+    }
+  }
+
+  async function createExpense(data: { expenseDate: string; amount: number; tag: ExpenseTag; paymentSource?: PaymentSource; notes?: string }) {
     error.value = null
     loading.value = true
     try {
@@ -49,7 +64,7 @@ export function useExpenses() {
     }
   }
 
-  async function updateExpense(publicId: string, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; notes: string }>) {
+  async function updateExpense(publicId: string, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; paymentSource: PaymentSource; notes: string }>) {
     error.value = null
     loading.value = true
     try {
@@ -77,5 +92,5 @@ export function useExpenses() {
     }
   }
 
-  return { fetchExpenses, createExpense, updateExpense, deleteExpense, loading, error }
+  return { fetchExpenses, getExpense, createExpense, updateExpense, deleteExpense, loading, error }
 }

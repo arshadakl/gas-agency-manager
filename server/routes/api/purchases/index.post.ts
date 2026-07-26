@@ -2,7 +2,9 @@ import { useDB } from '~/server/database'
 import { purchases, purchaseItems } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
+import { recordAccountTransaction } from '~/server/utils/account'
 import { generateId } from '~/server/utils/id'
+import type { AccountType } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -58,6 +60,19 @@ export default defineEventHandler(async (event) => {
 
   if (changes.length > 0) {
     await commitStockChanges(db, changes, 'purchase', purchase.id, 'purchase', user)
+  }
+
+  // Track payment in accounts if cash or bank
+  if (body.amountPaid > 0 && body.paymentMode && (body.paymentMode === 'cash' || body.paymentMode === 'bank')) {
+    await recordAccountTransaction(db, {
+      accountType: body.paymentMode as AccountType,
+      amount: -body.amountPaid,
+      transactionType: 'purchase_paid',
+      referenceId: purchase.id,
+      referenceType: 'purchase',
+      notes: `Purchase from ${body.supplier}`,
+      user,
+    })
   }
 
   return { data: { ...purchase, items: body.items } }

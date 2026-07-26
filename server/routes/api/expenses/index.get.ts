@@ -35,5 +35,10 @@ export default defineEventHandler(async (event) => {
     return acc
   }, {} as Record<string, number>)
 
-  return { data: rows, total, byTag }
+  const bySource = rows.reduce((acc, r) => {
+    acc[r.paymentSource] = (acc[r.paymentSource] ?? 0) + r.amount
+    return acc
+  }, {} as Record<string, number>)
+
+  return { data: rows, total, byTag, bySource }
 })

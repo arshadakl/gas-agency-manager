@@ -8,6 +8,7 @@ const UpdateExpenseSchema = z.object({
   expenseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   amount: z.number().positive().optional(),
   tag: z.enum(EXPENSE_TAGS).optional(),
+  paymentSource: z.enum(['cash', 'bank']).optional(),
   notes: z.string().max(500).optional(),
 })
 
@@ -26,6 +27,7 @@ export default defineEventHandler(async (event) => {
       ...(body.expenseDate !== undefined ? { expenseDate: body.expenseDate } : {}),
       ...(body.amount !== undefined ? { amount: body.amount } : {}),
       ...(body.tag !== undefined ? { tag: body.tag } : {}),
+      ...(body.paymentSource !== undefined ? { paymentSource: body.paymentSource } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),
     })
     .where(eq(expenses.id, existing.id))
