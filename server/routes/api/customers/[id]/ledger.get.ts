@@ -1,6 +1,6 @@
-import { eq, and, desc, sql } from 'drizzle-orm'
+import { eq, and, desc, sql, inArray } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { customers, deliveries, customerPayments } from '~/server/database/schema'
+import { customers, deliveries, deliveryItems, customerPayments, products } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
@@ -30,9 +30,29 @@ export default defineEventHandler(async (event) => {
       .all(),
   ])
 
+  const deliveryIds = customerDeliveries.map((d) => d.id)
+  const items = deliveryIds.length > 0
+    ? await db.select({ item: deliveryItems, product: products })
+      .from(deliveryItems)
+      .innerJoin(products, eq(products.id, deliveryItems.productId))
+      .where(inArray(deliveryItems.deliveryId, deliveryIds))
+      .all()
+    : []
+
+  const itemsByDeliveryId = new Map<number, typeof items>()
+  for (const row of items) {
+    const list = itemsByDeliveryId.get(row.item.deliveryId) ?? []
+    list.push(row)
+    itemsByDeliveryId.set(row.item.deliveryId, list)
+  }
+
+  const deliveriesWithItems = customerDeliveries.map((d) => ({
+    ...d,
+    items: (itemsByDeliveryId.get(d.id) ?? []).map((i) => ({ ...i.item, product: i.product })),
+  }))
+
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0)
   const totalBilled = totals?.totalBilled ?? 0
-  // openingBalance = pre-app debt; positive = customer owes this amount.
   const openingBalance = customer.openingBalance ?? 0
   const balance = Math.round((openingBalance + totalBilled - totalPaid) * 100) / 100
 
@@ -43,7 +63,7 @@ export default defineEventHandler(async (event) => {
       totalBilled,
       totalPaid,
       balance,
-      deliveries: customerDeliveries,
+      deliveries: deliveriesWithItems,
       payments,
     },
   }
