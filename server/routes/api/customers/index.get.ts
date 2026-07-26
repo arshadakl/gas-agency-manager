@@ -13,10 +13,11 @@ export default defineEventHandler(async (event) => {
   const conditions = [eq(customers.isActive, isActiveFilter)]
 
   if (query.search) {
-    conditions.push(or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`)))
+    const searchCondition = or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`))
+    if (searchCondition) conditions.push(searchCondition)
   }
 
-  const where = conditions.length > 1 ? and(...conditions) : conditions[0]
+  const where = conditions.length > 1 ? and(...conditions) : conditions[0]!
 
   const rows = await db
     .select({

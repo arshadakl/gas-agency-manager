@@ -9,7 +9,7 @@ function handleCustomChange() {
 </script>
 
 <template>
-  <div class="sticky top-16 z-20 bg-background/90 backdrop-blur-md py-sm space-y-2 -mx-margin-mobile px-margin-mobile">
+  <div class="py-sm space-y-2">
     <div class="flex gap-sm overflow-x-auto pb-1">
       <button
         v-for="p in DATE_PRESETS"

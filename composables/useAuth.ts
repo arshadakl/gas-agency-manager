@@ -83,7 +83,7 @@ export function useAuth() {
   }
 
   async function changePassword(currentPassword: string, newPassword: string) {
-    if (!user.value) return false
+    if (!user.value?.publicId) return false
     error.value = null
     loading.value = true
     try {

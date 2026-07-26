@@ -1,0 +1,1 @@
+ALTER TABLE `purchases` ADD `purchase_type` text DEFAULT 'gas' NOT NULL;

@@ -3,6 +3,7 @@ import { Button } from '~/components/ui/button'
 import { Badge } from '~/components/ui/badge'
 import { PAYMENT_MODES } from '~/types'
 import type { CustomerWithBalance, DeliveryWithRelations, Product } from '~/types/database'
+import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
 import type { PaymentMode } from '~/types'
 
 definePageMeta({
@@ -60,7 +61,19 @@ async function handleCollect() {
   }
 }
 
-async function handleEditSubmit(data: any) {
+const initialFormData = computed(() => {
+  if (!delivery.value) return undefined
+  return {
+    customerId: delivery.value.customerId,
+    deliveryDate: delivery.value.deliveryDate,
+    totalAmount: delivery.value.totalAmount,
+    notes: delivery.value.notes,
+    items: delivery.value.items.map(i => ({ productId: i.productId, quantity: i.quantity })),
+    amountCollected: delivery.value.amountCollected,
+  }
+})
+
+async function handleEditSubmit(data: DeliveryCreatePayload) {
   const updated = await updateDelivery(id, data)
   if (updated) {
     delivery.value = { ...delivery.value!, ...updated }
@@ -99,6 +112,7 @@ onMounted(load)
           :products="products"
           :loading="loading"
           :error="error"
+          :initial="initialFormData"
           @submit="handleEditSubmit"
           @cancel="isEditing = false"
         />

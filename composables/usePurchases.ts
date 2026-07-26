@@ -1,13 +1,15 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Purchase, PurchaseItem } from '~/types/database'
-import type { CylinderSize } from '~/types'
+import type { CylinderSize, PurchaseType } from '~/types'
 
 export interface PurchaseLineItem {
   sizeKg: CylinderSize
   receivedQty: number
   returnedQty: number
   newConnectionQty: number
+  emptyNewQty: number
+  cylinderCost: number
   unitPrice?: number
 }
 
@@ -21,8 +23,10 @@ export interface PurchaseFormData {
   totalAmount: number
   connectionCharge: number
   amountPaid: number
-  paymentMode?: 'cash' | 'upi' | 'bank' | 'credit'
+  paymentMode?: 'cash' | 'bank'
   dueDate?: string
+  notes?: string
+  purchaseType?: PurchaseType
   items: PurchaseLineItem[]
 }
 
@@ -34,7 +38,7 @@ export function usePurchases() {
     error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
   }
 
-  async function fetchPurchases(range?: { from?: string; to?: string }) {
+  async function fetchPurchases(range?: { from?: string; to?: string; type?: string }) {
     error.value = null
     loading.value = true
     try {
@@ -104,5 +108,22 @@ export function usePurchases() {
     }
   }
 
-  return { fetchPurchases, fetchPurchase, createPurchase, updatePurchase, deletePurchase, loading, error }
+  async function clearPurchase(publicId: string, data: { amount: number; paymentMode: 'cash' | 'bank'; notes?: string }) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<{ id: number; amountPaid: number; paymentStatus: string }>>(`/api/purchases/${publicId}/clear`, {
+        method: 'POST',
+        body: data,
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to clear purchase payment')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { fetchPurchases, fetchPurchase, createPurchase, updatePurchase, deletePurchase, clearPurchase, loading, error }
 }

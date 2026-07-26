@@ -127,6 +127,7 @@ export const cylinderStock = sqliteTable('cylinder_stock', {
   sizeKg: integer('size_kg').notNull().unique(),
   fullCount: integer('full_count').default(0).notNull(),
   emptyCount: integer('empty_count').default(0).notNull(),
+  ownCount: integer('own_count').default(0).notNull(),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 })
 
@@ -156,9 +157,6 @@ export const purchases = sqliteTable('purchases', {
   purchaseDate: text('purchase_date').notNull(),
   invoiceNo: text('invoice_no'),
   totalAmount: real('total_amount').notNull(),
-  // Extra charge for new-connection cylinders bought in this purchase, on top of
-  // the gas amount. Grand total = totalAmount + connectionCharge — payment
-  // status is derived against the grand total.
   connectionCharge: real('connection_charge').default(0).notNull(),
   amountPaid: real('amount_paid').default(0).notNull(),
   paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'credit'] }),
@@ -167,6 +165,8 @@ export const purchases = sqliteTable('purchases', {
   paymentReference: text('payment_reference'),
   dueDate: text('due_date'),
   notes: text('notes'),
+  // 'gas' = cylinder exchange from supplier, 'accessories' = regulator/adapter/cooktop etc.
+  purchaseType: text('purchase_type', { enum: ['gas', 'accessories'] }).default('gas').notNull(),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
   ...timestamps,
@@ -214,6 +214,10 @@ export const purchaseItems = sqliteTable('purchase_items', {
   // Brand-new cylinders bought for new connections — increases full stock with
   // NO matching empty returned (unlike a refill exchange).
   newConnectionQty: integer('new_connection_qty').default(0).notNull(),
+  // Brand-new empty cylinders (no gas) — increases empty stock, rare case.
+  emptyNewQty: integer('empty_new_qty').default(0).notNull(),
+  // Cost of own cylinders for this line item (only non-zero when newConnectionQty > 0 or emptyNewQty > 0).
+  cylinderCost: real('cylinder_cost').default(0).notNull(),
   unitPrice: real('unit_price'),
 }, (table) => ({
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),
@@ -225,6 +229,7 @@ export const expenses = sqliteTable('expenses', {
   expenseDate: text('expense_date').notNull(),
   amount: real('amount').notNull(),
   tag: text('tag', { enum: ['fuel', 'maintenance', 'fine', 'other'] }).notNull(),
+  paymentSource: text('payment_source', { enum: ['cash', 'bank'] }).default('cash').notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
@@ -232,4 +237,31 @@ export const expenses = sqliteTable('expenses', {
 }, (table) => ({
   dateIdx: index('expenses_date_idx').on(table.expenseDate),
   tagIdx: index('expenses_tag_idx').on(table.tag),
+  sourceIdx: index('expenses_source_idx').on(table.paymentSource),
+}))
+
+export const accounts = sqliteTable('accounts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type', { enum: ['cash', 'bank'] }).notNull().unique(),
+  balance: real('balance').default(0).notNull(),
+  updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
+})
+
+export const accountTransactions = sqliteTable('account_transactions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  accountType: text('account_type', { enum: ['cash', 'bank'] }).notNull(),
+  amount: real('amount').notNull(),
+  transactionType: text('transaction_type', {
+    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment']
+  }).notNull(),
+  referenceId: integer('reference_id'),
+  referenceType: text('reference_type'),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdByName: text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  accountIdx: index('account_transactions_account_idx').on(table.accountType),
+  typeIdx: index('account_transactions_type_idx').on(table.transactionType),
+  dateIdx: index('account_transactions_date_idx').on(table.createdAt),
 }))

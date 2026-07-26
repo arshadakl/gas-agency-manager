@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Button } from '~/components/ui/button'
 import type { CylinderStock, StockMovement } from '~/types/database'
 import type { StockAdjustmentInput } from '~/composables/useInventory'
 
@@ -9,19 +8,26 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
-const { fetchCylinderStock, fetchMovements, adjustStock, loading, error } = useInventory()
+const { fetchCylinderStock, fetchMovements, adjustStock, loading } = useInventory()
+const { showToast } = useToast()
 
 const stock = ref<CylinderStock[]>([])
 const movements = ref<StockMovement[]>([])
 const editMode = ref(false)
 const debounceTimers = ref<Record<number, NodeJS.Timeout>>({})
 const pendingSizes = ref<number[]>([])
-const { showToast } = useToast()
+
+// Own cylinders data
+const ownData = ref<{ bySize: Array<{ sizeKg: number; ownCount: number }>; totalOwnCount: number; totalOwnCost: number } | null>(null)
 
 async function load() {
   const [stockRows, movementRows] = await Promise.all([fetchCylinderStock(), fetchMovements(20)])
   stock.value = stockRows
   movements.value = movementRows
+
+  try {
+    ownData.value = await $fetch<{ bySize: Array<{ sizeKg: number; ownCount: number }>; totalOwnCount: number; totalOwnCost: number }>('/api/inventory/own-cylinders')
+  } catch { /* ignore */ }
 }
 onMounted(load)
 
@@ -87,15 +93,38 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
         />
       </section>
 
+      <!-- Own Cylinders Summary -->
       <NuxtLink
-        to="/stock/purchases/new"
-        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-surface-container p-4 rounded-xl"
+        v-if="ownData && ownData.totalOwnCount > 0"
+        to="/reports/own-cylinders"
+        class="bg-surface-container rounded-xl p-4 border border-outline-variant/20"
       >
-        <div class="flex items-center gap-2 text-on-surface-variant text-data-secondary">
-          <Icon name="local_shipping" class="text-base" />
-          Record new purchase from supplier
+        <div class="flex items-center justify-between mb-sm">
+          <div class="flex items-center gap-sm">
+            <Icon name="new_releases" :filled="true" class="text-tertiary" />
+            <h3 class="text-data-primary text-on-surface">Own Cylinders</h3>
+          </div>
+          <Icon name="chevron_right" class="text-on-surface-variant text-base" />
         </div>
-        <Icon name="arrow_forward" class="text-primary-fixed-dim text-lg" />
+        <div class="flex items-center gap-lg">
+          <div class="flex flex-col">
+            <span class="text-label-caps text-on-surface-variant">TOTAL</span>
+            <span class="text-headline-md text-on-surface">{{ ownData.totalOwnCount }} <span class="text-data-secondary text-on-surface-variant text-sm">pcs</span></span>
+          </div>
+          <div class="flex flex-col">
+            <span class="text-label-caps text-on-surface-variant">INVESTED</span>
+            <span class="text-headline-md text-primary-fixed-dim">{{ formatCurrency(ownData.totalOwnCost) }}</span>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-sm mt-3">
+          <span
+            v-for="row in ownData.bySize.filter(r => r.ownCount > 0)"
+            :key="row.sizeKg"
+            class="px-2 py-0.5 rounded-full bg-surface-container-highest text-data-tertiary text-on-surface-variant border border-outline-variant/20"
+          >
+            {{ row.sizeKg }}kg: {{ row.ownCount }}
+          </span>
+        </div>
       </NuxtLink>
 
       <section class="space-y-md">
