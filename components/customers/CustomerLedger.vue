@@ -114,7 +114,7 @@ async function handleCollect(delivery: DeliveryWithRelations) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-lg pb-24">
+  <div class="flex flex-col gap-lg">
     <!-- Balance summary -->
     <div class="bg-surface-container-high rounded-xl border border-outline-variant/30 grid grid-cols-3 gap-2 p-4 text-center">
       <div>
