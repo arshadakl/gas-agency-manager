@@ -71,6 +71,8 @@ async function handleSubmit() {
       receivedQty: 0,
       returnedQty: 0,
       newConnectionQty: 0,
+      emptyNewQty: 0,
+      cylinderCost: 0,
     })),
   }
 

@@ -127,6 +127,7 @@ export const cylinderStock = sqliteTable('cylinder_stock', {
   sizeKg: integer('size_kg').notNull().unique(),
   fullCount: integer('full_count').default(0).notNull(),
   emptyCount: integer('empty_count').default(0).notNull(),
+  ownCount: integer('own_count').default(0).notNull(),
   updatedAt: text('updated_at').default(sql`(datetime('now'))`).notNull(),
 })
 
@@ -213,6 +214,10 @@ export const purchaseItems = sqliteTable('purchase_items', {
   // Brand-new cylinders bought for new connections — increases full stock with
   // NO matching empty returned (unlike a refill exchange).
   newConnectionQty: integer('new_connection_qty').default(0).notNull(),
+  // Brand-new empty cylinders (no gas) — increases empty stock, rare case.
+  emptyNewQty: integer('empty_new_qty').default(0).notNull(),
+  // Cost of own cylinders for this line item (only non-zero when newConnectionQty > 0 or emptyNewQty > 0).
+  cylinderCost: real('cylinder_cost').default(0).notNull(),
   unitPrice: real('unit_price'),
 }, (table) => ({
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),

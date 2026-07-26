@@ -14,6 +14,7 @@ watch(dateRange, load, { immediate: true })
 
 const links = [
   { to: '/accounts', label: 'SuperGas Accounts', icon: 'account_balance' },
+  { to: '/reports/own-cylinders', label: 'Own Cylinders', icon: 'new_releases' },
   { to: '/reports/cylinders', label: 'Cylinders Delivered', icon: 'local_shipping' },
   { to: '/reports/payments', label: 'Payment Types', icon: 'account_balance_wallet' },
   { to: '/reports/customers', label: 'Top Customers', icon: 'groups' },

@@ -43,6 +43,8 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
       receivedQty: i.receivedQty,
       returnedQty: i.returnedQty,
       newConnectionQty: ('newConnectionQty' in i ? i.newConnectionQty : 0) ?? 0,
+      emptyNewQty: ('emptyNewQty' in i ? i.emptyNewQty : 0) ?? 0,
+      cylinderCost: ('cylinderCost' in i ? i.cylinderCost : 0) ?? 0,
       unitPrice: i.unitPrice ?? undefined,
     })),
   }

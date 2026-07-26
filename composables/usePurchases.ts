@@ -8,6 +8,8 @@ export interface PurchaseLineItem {
   receivedQty: number
   returnedQty: number
   newConnectionQty: number
+  emptyNewQty: number
+  cylinderCost: number
   unitPrice?: number
 }
 

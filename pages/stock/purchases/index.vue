@@ -201,7 +201,7 @@ async function handleClear() {
         @click="loadMore"
       >
         <Icon name="expand_more" class="text-base" />
-        Load more ({{ filteredPurchases.length - visibleCount.value }} remaining)
+        Load more ({{ filteredPurchases.length - visibleCount }} remaining)
       </button>
     </template>
   </div>

@@ -87,6 +87,8 @@ export const PurchaseSchema = z.object({
     receivedQty: z.number().int().min(0),
     returnedQty: z.number().int().min(0),
     newConnectionQty: z.number().int().min(0).default(0),
+    emptyNewQty: z.number().int().min(0).default(0),
+    cylinderCost: z.number().min(0).default(0),
     unitPrice: z.number().positive().optional(),
   })).min(1),
 }).refine((data) => data.totalAmount + data.connectionCharge > 0, {

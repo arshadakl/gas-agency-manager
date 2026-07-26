@@ -1,10 +1,11 @@
+import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { purchases, purchaseItems } from '~/server/database/schema'
+import { purchases, purchaseItems, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 import { recordAccountTransaction } from '~/server/utils/account'
 import { generateId } from '~/server/utils/id'
-import type { AccountType } from '~/types'
+import type { AccountType, CylinderSize } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -12,17 +13,25 @@ export default defineEventHandler(async (event) => {
   const body = await parseBody(event, PurchaseSchema)
   const db = useDB(event)
 
+  // Auto-calculate connectionCharge from per-item cylinderCost.
+  const totalCylinderCost = body.items.reduce((sum, i) => sum + (i.cylinderCost ?? 0), 0)
+  body.connectionCharge = totalCylinderCost
+
   // Payment status is derived against the grand total (gas + connection charge).
   const grandTotal = body.totalAmount + body.connectionCharge
   const paymentStatus =
     body.amountPaid >= grandTotal ? 'paid' :
     body.amountPaid > 0 ? 'partial' : 'pending'
 
-  // Purchase: refill exchange (full in, empty out) + brand-new connection
-  // cylinders (full in, no empty out) — sequential, see §23.4 D1 note.
+  // Stock: refill exchange (full in, empty out) + new connection (full in, no empty out)
+  // + empty new cylinders (empty in, no full). Sequential — see §23.4 D1 note.
   const changes = body.items
-    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0)
-    .map((i) => ({ sizeKg: i.sizeKg, fullChange: i.receivedQty + i.newConnectionQty, emptyChange: -i.returnedQty }))
+    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0 || i.emptyNewQty > 0)
+    .map((i) => ({
+      sizeKg: i.sizeKg,
+      fullChange: i.receivedQty + i.newConnectionQty,
+      emptyChange: -i.returnedQty + i.emptyNewQty,
+    }))
 
   // Validate before any write — D1 has no rollback, so a failure here must
   // never leave an orphaned purchase record (see CLAUDE.md §23.4 D1 note).
@@ -55,12 +64,26 @@ export default defineEventHandler(async (event) => {
       receivedQty: i.receivedQty,
       returnedQty: i.returnedQty,
       newConnectionQty: i.newConnectionQty,
+      emptyNewQty: i.emptyNewQty ?? 0,
+      cylinderCost: i.cylinderCost ?? 0,
       unitPrice: i.unitPrice ?? null,
     })),
   )
 
   if (changes.length > 0) {
     await commitStockChanges(db, changes, 'purchase', purchase.id, 'purchase', user)
+  }
+
+  // Update ownCount on cylinder_stock for each size with own cylinders.
+  const ownUpdates = body.items.filter((i) => (i.newConnectionQty ?? 0) > 0 || (i.emptyNewQty ?? 0) > 0)
+  for (const item of ownUpdates) {
+    const ownQty = (item.newConnectionQty ?? 0) + (item.emptyNewQty ?? 0)
+    const current = await db.select().from(cylinderStock).where(eq(cylinderStock.sizeKg, item.sizeKg)).get()
+    if (current) {
+      await db.update(cylinderStock)
+        .set({ ownCount: current.ownCount + ownQty, updatedAt: new Date().toISOString() })
+        .where(eq(cylinderStock.sizeKg, item.sizeKg))
+    }
   }
 
   // Track payment in accounts if cash or bank
