@@ -86,18 +86,6 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
         />
       </section>
 
-      <NuxtLink
-        v-if="user?.role === 'admin' || user?.role === 'delivery'"
-        to="/stock/purchases"
-        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-primary-container text-on-primary-container p-4 rounded-xl"
-      >
-        <div class="flex items-center gap-2 text-data-secondary">
-          <Icon name="add_shopping_cart" class="text-base" />
-          New Purchase
-        </div>
-        <Icon name="arrow_forward" class="text-lg" />
-      </NuxtLink>
-
       <section class="space-y-md">
         <div class="flex items-center justify-between border-b border-surface-container-highest pb-2">
           <h3 class="text-label-caps text-on-surface-variant tracking-widest uppercase">Stock History</h3>
