@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import type { Customer, Delivery, CustomerPayment, NewCustomer } from '~/types/database'
+import type { Customer, DeliveryWithRelations, CustomerPayment, NewCustomer } from '~/types/database'
 
 definePageMeta({
   layout: 'default',
@@ -18,7 +18,7 @@ const openingBalance = ref(0)
 const totalBilled = ref(0)
 const totalPaid = ref(0)
 const balance = ref(0)
-const deliveries = ref<Delivery[]>([])
+const deliveries = ref<DeliveryWithRelations[]>([])
 const payments = ref<CustomerPayment[]>([])
 const editing = ref(false)
 

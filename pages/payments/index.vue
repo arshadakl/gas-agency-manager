@@ -18,6 +18,10 @@ const customers = ref<Customer[]>([])
 const preselectedCustomerId = route.query.customerId ? Number(route.query.customerId) : undefined
 const showForm = ref(Boolean(preselectedCustomerId))
 
+const backCustomer = computed(() =>
+  preselectedCustomerId ? customers.value.find((c) => c.id === preselectedCustomerId) : null
+)
+
 const filterFrom = ref('')
 const filterTo = ref('')
 const filterMode = ref<typeof PAYMENT_MODES[number] | ''>('')
@@ -49,6 +53,15 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
 
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
+    <NuxtLink
+      v-if="backCustomer"
+      :to="`/customers/${backCustomer.publicId}`"
+      class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors -mb-2"
+    >
+      <Icon name="chevron_left" class="text-lg" />
+      <span class="text-data-secondary">Back to {{ backCustomer.name }}</span>
+    </NuxtLink>
+
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">All Payments</h1>
       <Button v-if="user?.role === 'admin' || user?.role === 'delivery'" size="icon" class="rounded-full" @click="showForm = true">
