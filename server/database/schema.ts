@@ -156,9 +156,6 @@ export const purchases = sqliteTable('purchases', {
   purchaseDate: text('purchase_date').notNull(),
   invoiceNo: text('invoice_no'),
   totalAmount: real('total_amount').notNull(),
-  // Extra charge for new-connection cylinders bought in this purchase, on top of
-  // the gas amount. Grand total = totalAmount + connectionCharge — payment
-  // status is derived against the grand total.
   connectionCharge: real('connection_charge').default(0).notNull(),
   amountPaid: real('amount_paid').default(0).notNull(),
   paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'credit'] }),
@@ -167,6 +164,8 @@ export const purchases = sqliteTable('purchases', {
   paymentReference: text('payment_reference'),
   dueDate: text('due_date'),
   notes: text('notes'),
+  // 'gas' = cylinder exchange from supplier, 'accessories' = regulator/adapter/cooktop etc.
+  purchaseType: text('purchase_type', { enum: ['gas', 'accessories'] }).default('gas').notNull(),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
   ...timestamps,

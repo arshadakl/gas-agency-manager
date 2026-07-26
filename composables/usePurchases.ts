@@ -1,7 +1,7 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Purchase, PurchaseItem } from '~/types/database'
-import type { CylinderSize } from '~/types'
+import type { CylinderSize, PurchaseType } from '~/types'
 
 export interface PurchaseLineItem {
   sizeKg: CylinderSize
@@ -23,6 +23,8 @@ export interface PurchaseFormData {
   amountPaid: number
   paymentMode?: 'cash' | 'bank'
   dueDate?: string
+  notes?: string
+  purchaseType?: PurchaseType
   items: PurchaseLineItem[]
 }
 
@@ -34,7 +36,7 @@ export function usePurchases() {
     error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
   }
 
-  async function fetchPurchases(range?: { from?: string; to?: string }) {
+  async function fetchPurchases(range?: { from?: string; to?: string; type?: string }) {
     error.value = null
     loading.value = true
     try {

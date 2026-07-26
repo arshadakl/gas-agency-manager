@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Button } from '~/components/ui/button'
 import type { CylinderStock, StockMovement } from '~/types/database'
 import type { StockAdjustmentInput } from '~/composables/useInventory'
 
@@ -9,7 +8,7 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
-const { fetchCylinderStock, fetchMovements, adjustStock, loading, error } = useInventory()
+const { fetchCylinderStock, fetchMovements, adjustStock, loading } = useInventory()
 
 const stock = ref<CylinderStock[]>([])
 const movements = ref<StockMovement[]>([])
@@ -88,28 +87,16 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
       </section>
 
       <NuxtLink
-        to="/stock/purchases/new"
-        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-surface-container p-4 rounded-xl"
+        v-if="user?.role === 'admin' || user?.role === 'delivery'"
+        to="/stock/purchases"
+        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-primary-container text-on-primary-container p-4 rounded-xl"
       >
-        <div class="flex items-center gap-2 text-on-surface-variant text-data-secondary">
-          <Icon name="local_shipping" class="text-base" />
-          Record new purchase from supplier
+        <div class="flex items-center gap-2 text-data-secondary">
+          <Icon name="add_shopping_cart" class="text-base" />
+          New Purchase
         </div>
-        <Icon name="arrow_forward" class="text-primary-fixed-dim text-lg" />
+        <Icon name="arrow_forward" class="text-lg" />
       </NuxtLink>
-
-      <NuxtLink
-        to="/stock/purchases/accessories"
-        class="flex flex-col md:flex-row justify-between items-start md:items-center gap-sm bg-surface-container p-4 rounded-xl"
-      >
-        <div class="flex items-center gap-2 text-on-surface-variant text-data-secondary">
-          <Icon name="inventory_2" class="text-base" />
-          Accessories purchase
-        </div>
-        <Icon name="arrow_forward" class="text-primary-fixed-dim text-lg" />
-      </NuxtLink>
-
-
 
       <section class="space-y-md">
         <div class="flex items-center justify-between border-b border-surface-container-highest pb-2">

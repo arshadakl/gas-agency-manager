@@ -71,20 +71,17 @@ export const PasswordChangeSchema = z.object({
 })
 
 export const PurchaseSchema = z.object({
-  // Single-supplier agency (Super Gas) — field kept for history, defaulted server-side.
   supplier: z.string().min(1).max(100).default('Super Gas'),
   purchaseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   invoiceNo: z.string().max(50).optional(),
-  // Gas amount may be 0 for a new-connection-only trip — but the grand total
-  // (gas + connection charge) must be positive, see .refine below.
   totalAmount: z.number().min(0),
-  // Extra charge for new-connection cylinders, on top of the gas amount.
   connectionCharge: z.number().min(0).default(0),
   amountPaid: z.number().min(0),
   paymentMode: z.enum(PURCHASE_PAYMENT_MODES).optional(),
   paymentReference: z.string().max(100).optional(),
   dueDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   notes: z.string().max(500).optional(),
+  purchaseType: z.enum(['gas', 'accessories']).default('gas'),
   items: z.array(z.object({
     sizeKg: cylinderSizeSchema,
     receivedQty: z.number().int().min(0),

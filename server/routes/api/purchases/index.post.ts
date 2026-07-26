@@ -41,6 +41,7 @@ export default defineEventHandler(async (event) => {
     paymentReference: body.paymentReference,
     dueDate: body.dueDate,
     notes: body.notes,
+    purchaseType: body.purchaseType,
     createdBy: user.id,
     createdByName: user.fullName,
   }).returning()

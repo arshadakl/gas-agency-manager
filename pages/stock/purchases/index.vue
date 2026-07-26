@@ -12,6 +12,7 @@ const { fetchPurchases, clearPurchase, loading } = usePurchases()
 const { showToast } = useToast()
 
 const purchases = ref<Purchase[]>([])
+const tab = ref<'gas' | 'accessories'>('gas')
 const clearingId = ref<string | null>(null)
 const clearAmount = ref<number>(0)
 const clearMode = ref<'cash' | 'bank'>('cash')
@@ -20,8 +21,12 @@ onMounted(async () => {
   purchases.value = await fetchPurchases()
 })
 
-const totalTrips = computed(() => purchases.value.length)
-const totalSpent = computed(() => purchases.value.reduce((sum, p) => sum + p.totalAmount + (p.connectionCharge ?? 0), 0))
+const filteredPurchases = computed(() =>
+  purchases.value.filter(p => (p.purchaseType ?? 'gas') === tab.value)
+)
+
+const totalTrips = computed(() => filteredPurchases.value.length)
+const totalSpent = computed(() => filteredPurchases.value.reduce((sum, p) => sum + p.totalAmount + (p.connectionCharge ?? 0), 0))
 
 function initials(name: string) {
   return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
@@ -48,19 +53,45 @@ async function handleClear() {
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-lg">
     <div class="flex items-center justify-between">
-      <h1 class="text-headline-md text-on-surface">Purchases</h1>
+      <div>
+        <NuxtLink to="/stock" class="text-data-secondary text-on-surface-variant hover:text-on-surface inline-flex items-center gap-1 mb-1">
+          <Icon name="arrow_back" class="text-sm" />
+          Stock
+        </NuxtLink>
+        <h1 class="text-headline-md text-on-surface">Purchases</h1>
+      </div>
       <div v-if="user?.role === 'admin' || user?.role === 'delivery'" class="flex gap-2">
         <NuxtLink to="/stock/purchases/accessories" class="px-3 py-1.5 rounded-full bg-surface-container-high text-on-surface text-data-secondary border border-outline-variant/30 flex items-center gap-1">
           <Icon name="inventory_2" class="text-sm" /> Accessories
         </NuxtLink>
         <NuxtLink to="/stock/purchases/new" class="px-3 py-1.5 rounded-full bg-primary-container text-on-primary-container text-data-secondary flex items-center gap-1">
-          <Icon name="add" class="text-sm" /> New
+          <Icon name="add" class="text-sm" /> Gas
         </NuxtLink>
       </div>
     </div>
 
+    <!-- Tabs -->
+    <div class="flex bg-surface-container rounded-full p-1 border border-outline-variant/20">
+      <button
+        class="flex-1 py-2.5 rounded-full text-data-secondary font-medium transition-all"
+        :class="tab === 'gas' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+        @click="tab = 'gas'"
+      >
+        <Icon name="local_shipping" class="text-sm mr-1" />
+        Gas Purchases
+      </button>
+      <button
+        class="flex-1 py-2.5 rounded-full text-data-secondary font-medium transition-all"
+        :class="tab === 'accessories' ? 'bg-primary-container text-on-primary-container' : 'text-on-surface-variant'"
+        @click="tab = 'accessories'"
+      >
+        <Icon name="inventory_2" class="text-sm mr-1" />
+        Accessories
+      </button>
+    </div>
+
     <!-- Summary -->
-    <section v-if="purchases.length > 0" class="grid grid-cols-2 gap-sm">
+    <section v-if="filteredPurchases.length > 0" class="grid grid-cols-2 gap-sm">
       <div class="bg-surface-container rounded-xl p-md flex flex-col justify-center">
         <span class="text-label-caps text-on-surface-variant mb-xs">PURCHASES</span>
         <span class="text-headline-md text-on-surface">{{ totalTrips }} <span class="text-data-secondary text-on-surface-variant ml-xs">trips</span></span>
@@ -106,17 +137,19 @@ async function handleClear() {
     <div v-if="loading && purchases.length === 0" class="flex justify-center py-12">
       <LoadingSpinner />
     </div>
-    <EmptyState v-else-if="purchases.length === 0" title="No purchases yet" description="Record a purchase from your supplier to get started." />
+    <EmptyState v-else-if="filteredPurchases.length === 0" :title="tab === 'gas' ? 'No gas purchases yet' : 'No accessories purchases yet'" description="Record a purchase to get started." />
     <div v-else class="flex flex-col gap-md">
-      <div
-        v-for="p in purchases"
+      <NuxtLink
+        v-for="p in filteredPurchases"
         :key="p.id"
+        :to="`/stock/purchases/${p.publicId}`"
         class="bg-surface-container rounded-xl p-md flex flex-col gap-md border border-outline-variant/20"
       >
         <div class="flex justify-between items-start">
           <div class="flex flex-col">
             <span class="text-data-primary text-on-surface flex items-center gap-sm">
-              <Icon name="local_shipping" class="text-[18px] text-on-surface-variant" /> {{ p.supplier }}
+              <Icon :name="p.purchaseType === 'accessories' ? 'inventory_2' : 'local_shipping'" class="text-[18px] text-on-surface-variant" />
+              {{ p.supplier }}
             </span>
             <span class="text-data-secondary text-on-surface-variant mt-xs">{{ formatDate(p.purchaseDate) }}<span v-if="p.invoiceNo"> · {{ p.invoiceNo }}</span></span>
           </div>
@@ -141,12 +174,12 @@ async function handleClear() {
           <button
             v-if="p.paymentStatus !== 'paid' && (user?.role === 'admin' || user?.role === 'delivery')"
             class="px-3 py-1.5 rounded-full bg-primary-container text-on-primary-container text-data-secondary flex items-center gap-1"
-            @click="startClear(p)"
+            @click.prevent="startClear(p)"
           >
             <Icon name="check" class="text-xs" /> Clear
           </button>
         </div>
-      </div>
+      </NuxtLink>
     </div>
   </div>
 </template>

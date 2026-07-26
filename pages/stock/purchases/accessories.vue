@@ -65,6 +65,7 @@ async function handleSubmit() {
     amountPaid: payNow.value ? form.amountPaid : 0,
     paymentMode: payNow.value ? form.paymentMode : undefined,
     notes: form.notes || undefined,
+    purchaseType: 'accessories' as const,
     items: selectedItems.value.map(i => ({
       sizeKg: 17 as const,
       receivedQty: 0,
