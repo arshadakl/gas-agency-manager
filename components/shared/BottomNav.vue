@@ -22,7 +22,7 @@ function isActive(to: string) {
 </script>
 
 <template>
-  <nav class="fixed bottom-0 inset-x-0 mx-auto max-w-[480px] z-40 flex justify-around items-center rounded-t-xl bg-surface-container-high py-2 px-2 shadow-[0_-2px_16px_rgba(0,0,0,0.15)] border-t border-outline-variant/30">
+  <nav class="shrink-0 flex justify-around items-center rounded-t-xl bg-surface-container-high py-2 px-2 shadow-[0_-2px_16px_rgba(0,0,0,0.15)] border-t border-outline-variant/30">
     <NuxtLink
       v-for="item in visibleDefs"
       :key="item.to"
