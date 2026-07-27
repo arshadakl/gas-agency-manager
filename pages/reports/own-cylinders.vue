@@ -22,7 +22,8 @@ async function load() {
   if (!dateRange.value.from || !dateRange.value.to) return
   fetching.value = true
   try {
-    report.value = await $fetch<OwnCylindersReport>('/api/reports/own-cylinders', { query: dateRange.value })
+    const res = await $fetch<{ data: OwnCylindersReport }>('/api/reports/own-cylinders', { query: dateRange.value })
+    report.value = res.data
   } catch {
     report.value = null
   } finally {
