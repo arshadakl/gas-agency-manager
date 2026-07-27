@@ -8,7 +8,7 @@ export type Role = typeof ROLES[keyof typeof ROLES]
 export const CYLINDER_SIZES = [12, 17, 21, 33] as const
 export type CylinderSize = typeof CYLINDER_SIZES[number]
 
-export const PAYMENT_MODES = ['cash', 'upi', 'bank', 'cheque'] as const
+export const PAYMENT_MODES = ['cash', 'bank'] as const
 export type PaymentMode = typeof PAYMENT_MODES[number]
 
 export const PRODUCT_TYPES = ['cylinder', 'accessory'] as const

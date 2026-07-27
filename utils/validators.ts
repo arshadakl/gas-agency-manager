@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ROLES, PAYMENT_MODES, PRODUCT_TYPES, PURCHASE_PAYMENT_MODES } from '~/types'
+import { ROLES, PAYMENT_MODES, PRODUCT_TYPES } from '~/types'
 
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit phone number')
 

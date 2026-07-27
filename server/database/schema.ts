@@ -109,7 +109,7 @@ export const customerPayments = sqliteTable('customer_payments', {
   // those rows. Manual settle-up payments via /payments leave this null.
   deliveryId: integer('delivery_id').references(() => deliveries.id),
   amount: real('amount').notNull(),
-  paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'cheque'] }).notNull(),
+  paymentMode: text('payment_mode', { enum: ['cash', 'bank'] }).notNull(),
   paymentDate: text('payment_date').notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
