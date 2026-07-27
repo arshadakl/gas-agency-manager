@@ -140,20 +140,6 @@ const sourceColors: Record<PaymentSource, string> = {
         <p class="text-data-secondary text-on-surface-variant uppercase tracking-wider">Total Expenses</p>
         <p class="text-display-lg text-on-surface mt-1">{{ formatCurrency(totalExpenses) }}</p>
       </div>
-      <div class="bg-surface-container rounded-xl p-3 border border-outline-variant/30">
-        <div class="flex items-center gap-2 mb-1">
-          <Icon name="payments" class="text-sm text-emerald-500" />
-          <span class="text-data-tertiary text-on-surface-variant">Cash</span>
-        </div>
-        <p class="text-data-primary text-on-surface">{{ formatCurrency(bySource.cash ?? 0) }}</p>
-      </div>
-      <div class="bg-surface-container rounded-xl p-3 border border-outline-variant/30">
-        <div class="flex items-center gap-2 mb-1">
-          <Icon name="account_balance" class="text-sm text-blue-500" />
-          <span class="text-data-tertiary text-on-surface-variant">Bank</span>
-        </div>
-        <p class="text-data-primary text-on-surface">{{ formatCurrency(bySource.bank ?? 0) }}</p>
-      </div>
       <div
         v-for="tag in EXPENSE_TAGS"
         :key="tag"
