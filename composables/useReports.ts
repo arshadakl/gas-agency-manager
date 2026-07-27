@@ -17,7 +17,7 @@ interface CylinderReportRow { sizeKg: number | null; totalDelivered: number; tot
 interface EmptiesReportRow { sizeKg: number; totalCollected: number }
 interface PaymentsReportRow { paymentMode: string; totalAmount: number; count: number }
 interface CustomerReportRow { customerId: number; customerPublicId: string | null; name: string; totalBilled: number; deliveryCount: number }
-interface StaffReportRow { createdBy: number; createdByName: string; deliveryCount: number; totalValue: number }
+interface StaffReportRow { createdBy: number; createdByName: string; deliveryCount: number; totalValue: number; cashCollected: number; bankCollected: number; totalCollected: number; paymentCount: number }
 interface ProcurementReport {
   totalPurchased: number
   totalDelivered: number
