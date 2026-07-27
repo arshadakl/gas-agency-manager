@@ -56,25 +56,27 @@ export async function reverseAccountTransaction(
   referenceId: number,
   user: { id: number; fullName: string },
 ) {
-  // Find the original transaction
+  // Find ALL original transactions for this reference (split payments may have multiple).
   const existing = await db.select()
     .from(accountTransactions)
     .where(
       eq(accountTransactions.referenceType, referenceType) &&
       eq(accountTransactions.referenceId, referenceId),
     )
-    .get()
+    .all()
 
-  if (!existing) return
+  if (existing.length === 0) return
 
-  // Reverse: flip the sign
-  await recordAccountTransaction(db, {
-    accountType: existing.accountType as AccountType,
-    amount: -existing.amount,
-    transactionType: 'adjustment',
-    referenceId: existing.id,
-    referenceType: 'reversal',
-    notes: `Reversed: ${existing.transactionType}`,
-    user,
-  })
+  // Reverse each one: flip the sign to restore the account balance.
+  for (const tx of existing) {
+    await recordAccountTransaction(db, {
+      accountType: tx.accountType as AccountType,
+      amount: -tx.amount,
+      transactionType: 'adjustment',
+      referenceId: tx.id,
+      referenceType: 'reversal',
+      notes: `Reversed: ${tx.transactionType}`,
+      user,
+    })
+  }
 }

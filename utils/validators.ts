@@ -76,8 +76,10 @@ export const PurchaseSchema = z.object({
   invoiceNo: z.string().max(50).optional(),
   totalAmount: z.number().min(0),
   connectionCharge: z.number().min(0).default(0),
-  amountPaid: z.number().min(0),
-  paymentMode: z.enum(PURCHASE_PAYMENT_MODES).optional(),
+  payments: z.array(z.object({
+    amount: z.number().positive(),
+    paymentMode: z.enum(['cash', 'bank']),
+  })).default([]),
   paymentReference: z.string().max(100).optional(),
   dueDate: z.preprocess((v) => (v === '' ? undefined : v), z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional()),
   notes: z.string().max(500).optional(),

@@ -159,7 +159,6 @@ export const purchases = sqliteTable('purchases', {
   totalAmount: real('total_amount').notNull(),
   connectionCharge: real('connection_charge').default(0).notNull(),
   amountPaid: real('amount_paid').default(0).notNull(),
-  paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'credit'] }),
   paymentStatus: text('payment_status', { enum: ['paid', 'partial', 'pending'] })
     .default('pending').notNull(),
   paymentReference: text('payment_reference'),
@@ -221,6 +220,20 @@ export const purchaseItems = sqliteTable('purchase_items', {
   unitPrice: real('unit_price'),
 }, (table) => ({
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),
+}))
+
+// Individual payments against a purchase (supports split: cash + bank in one clearing).
+export const purchasePayments = sqliteTable('purchase_payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  purchaseId: integer('purchase_id').references(() => purchases.id).notNull(),
+  amount: real('amount').notNull(),
+  paymentMode: text('payment_mode', { enum: ['cash', 'bank'] }).notNull(),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdByName: text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  purchaseIdx: index('purchase_payments_purchase_idx').on(table.purchaseId),
 }))
 
 export const expenses = sqliteTable('expenses', {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Input } from '~/components/ui/input'
 import { CYLINDER_SIZES, type CylinderSize } from '~/types'
-import type { PurchaseFormData } from '~/composables/usePurchases'
+import type { PurchaseFormData, PurchasePaymentEntry } from '~/composables/usePurchases'
 
 const props = defineProps<{
   initial?: Partial<PurchaseFormData>
@@ -16,7 +16,6 @@ const emit = defineEmits<{
 
 const { loadCurrentStock, buildPreview } = usePurchaseForm()
 
-// Form-level state for the "total received" view (user sees total, DB stores receivedQty + newConnectionQty separately).
 const includeOwnCylinders = ref(false)
 const includeEmptyNew = ref(false)
 
@@ -25,20 +24,18 @@ const seededItems = CYLINDER_SIZES.map((sizeKg) => {
   const existing = initialItemBySize.get(sizeKg)
   const receivedQty = existing?.receivedQty ?? 0
   const newConnectionQty = existing?.newConnectionQty ?? 0
-  // When editing, the stored receivedQty is the REFILL portion. The total the user saw was receivedQty + newConnectionQty.
   const totalReceived = receivedQty + newConnectionQty
   return {
     sizeKg,
-    totalReceived,       // what the user sees in "Full Received"
-    ownQty: newConnectionQty,  // how many are own cylinders
+    totalReceived,
+    ownQty: newConnectionQty,
     returnedQty: existing?.returnedQty ?? 0,
     emptyNewQty: existing?.emptyNewQty ?? 0,
     cylinderCost: existing?.cylinderCost ?? 0,
-    emptyNewCost: 0,     // separate cost for empty new (tracked at size level)
+    emptyNewCost: 0,
   }
 })
 
-// Detect if editing an existing purchase that had own cylinders.
 if (seededItems.some((i) => i.ownQty > 0)) includeOwnCylinders.value = true
 if (seededItems.some((i) => i.emptyNewQty > 0)) includeEmptyNew.value = true
 
@@ -57,14 +54,45 @@ const items = reactive<FormItem[]>(seededItems)
 const form = reactive({
   purchaseDate: props.initial?.purchaseDate ?? toISODate(new Date()),
   totalAmount: props.initial?.totalAmount ?? 0,
-  amountPaid: props.initial?.amountPaid ?? 0,
-  paymentMode: props.initial?.paymentMode ?? 'cash',
   dueDate: props.initial?.dueDate ?? '',
+  notes: props.initial?.notes ?? '',
 })
 
-const payNow = ref((props.initial?.amountPaid ?? 0) > 0)
+// Payment rows — dynamic split payments
+interface PaymentRow {
+  id: number
+  amount: number
+  paymentMode: 'cash' | 'bank'
+}
 
-// Build items in the format the API expects (receivedQty = refill only).
+let nextRowId = 1
+function makeRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): PaymentRow {
+  return { id: nextRowId++, amount, paymentMode: mode }
+}
+
+// Seed payment rows from initial data (editing existing purchase).
+const existingPayments = props.initial?.payments ?? []
+const paymentRows = ref<PaymentRow[]>(
+  existingPayments.length > 0
+    ? existingPayments.map((p) => makeRow(p.amount, p.paymentMode))
+    : [],
+)
+const payNow = ref(existingPayments.length > 0)
+
+// If editing a pay-later purchase, start with no rows.
+if (!payNow.value && paymentRows.value.length === 0) {
+  paymentRows.value = [makeRow(0)]
+}
+
+function addPaymentRow() {
+  paymentRows.value.push(makeRow(0))
+}
+
+function removePaymentRow(rowId: number) {
+  if (paymentRows.value.length <= 1) return
+  paymentRows.value = paymentRows.value.filter((r) => r.id !== rowId)
+}
+
 function buildApiItems() {
   return items.map((i) => ({
     sizeKg: i.sizeKg,
@@ -76,11 +104,9 @@ function buildApiItems() {
   }))
 }
 
-// Preview uses the API-format items.
 const preview = computed(() => buildPreview(buildApiItems()))
 const stockIsValid = computed(() => preview.value.every((p) => p.isValid))
 
-// Per-size validation: ownQty ≤ totalReceived.
 const ownQtyErrors = computed(() => {
   if (!includeOwnCylinders.value) return {} as Record<number, string>
   const errors: Record<number, string> = {}
@@ -93,7 +119,6 @@ const ownQtyErrors = computed(() => {
 })
 const hasOwnQtyErrors = computed(() => Object.keys(ownQtyErrors.value).length > 0)
 
-// Auto-calculate connectionCharge from cylinderCosts.
 const connectionCharge = computed(() => {
   let total = 0
   for (const item of items) {
@@ -105,31 +130,49 @@ const connectionCharge = computed(() => {
 
 const grandTotal = computed(() => (Number(form.totalAmount) || 0) + connectionCharge.value)
 
+// Derived payment totals
+const totalPaid = computed(() => paymentRows.value.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
+const pendingAmount = computed(() => Math.max(0, grandTotal.value - totalPaid.value))
+
 const formIsValid = computed(() => {
   if (!stockIsValid.value || grandTotal.value <= 0) return false
   if (hasOwnQtyErrors.value) return false
-  if (payNow.value && (!form.paymentMode || Number(form.amountPaid) <= 0)) return false
+  if (payNow.value && totalPaid.value <= 0) return false
+  // Payment rows must not exceed grand total
+  if (totalPaid.value > grandTotal.value + 0.01) return false
+  // Each row must have amount > 0
+  if (payNow.value && paymentRows.value.some((r) => (Number(r.amount) || 0) <= 0)) return false
   return true
 })
 
 const totalIn = computed(() => items.reduce((sum, i) => sum + i.totalReceived + (includeEmptyNew.value ? i.emptyNewQty : 0), 0))
 const totalOut = computed(() => items.reduce((sum, i) => sum + i.returnedQty, 0))
 
-// Show own cylinder inputs only for sizes with received > 0.
 const visibleOwnSizes = computed(() => items.filter((i) => i.totalReceived > 0))
 
 onMounted(loadCurrentStock)
 
+// When toggling pay later, clear all rows
 watch(payNow, (v) => {
-  if (!v) form.amountPaid = 0
-  else form.amountPaid = grandTotal.value
+  if (!v) {
+    paymentRows.value = []
+  } else {
+    if (paymentRows.value.length === 0) {
+      paymentRows.value = [makeRow(grandTotal.value)]
+    }
+  }
 })
 
+// Auto-fill first row amount when grand total changes (only if single row and it was auto-filled)
 watch(grandTotal, (v) => {
-  if (payNow.value) form.amountPaid = v
+  if (payNow.value && paymentRows.value.length === 1) {
+    const row = paymentRows.value[0]
+    if (row && (row.amount === 0 || row.amount >= grandTotal.value)) {
+      row.amount = v
+    }
+  }
 })
 
-// Reset ownQty when unchecking the own cylinders checkbox.
 watch(includeOwnCylinders, (v) => {
   if (!v) {
     for (const item of items) {
@@ -139,7 +182,6 @@ watch(includeOwnCylinders, (v) => {
   }
 })
 
-// Reset emptyNewQty when unchecking the empty new checkbox.
 watch(includeEmptyNew, (v) => {
   if (!v) {
     for (const item of items) {
@@ -152,12 +194,20 @@ watch(includeEmptyNew, (v) => {
 function handleSubmit() {
   if (!formIsValid.value) return
   const apiItems = buildApiItems()
+  const payments: PurchasePaymentEntry[] = payNow.value
+    ? paymentRows.value
+        .filter((r) => (Number(r.amount) || 0) > 0)
+        .map((r) => ({ amount: Number(r.amount), paymentMode: r.paymentMode }))
+    : []
   emit('submit', {
-    ...form,
+    supplier: props.initial?.supplier,
+    purchaseDate: form.purchaseDate,
     totalAmount: Number(form.totalAmount) || 0,
     connectionCharge: connectionCharge.value,
-    amountPaid: payNow.value ? (Number(form.amountPaid) || 0) : 0,
-    paymentMode: payNow.value ? form.paymentMode : undefined,
+    payments,
+    dueDate: form.dueDate || undefined,
+    notes: form.notes || undefined,
+    purchaseType: props.initial?.purchaseType,
     items: apiItems as any,
   })
 }
@@ -177,7 +227,7 @@ function handleSubmit() {
       </div>
     </section>
 
-    <!-- Part 2 & 3: Cylinder quantities (Full Received + Empties Returned) -->
+    <!-- Part 2 & 3: Cylinder quantities -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-lg">
       <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
         <div class="flex items-center justify-between mb-md">
@@ -226,7 +276,7 @@ function handleSubmit() {
       </section>
     </div>
 
-    <!-- Part 4a: Own Cylinders (new connection) -->
+    <!-- Part 4a: Own Cylinders -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <label class="flex items-center gap-3 cursor-pointer mb-0" :class="includeOwnCylinders && 'mb-md'">
         <input v-model="includeOwnCylinders" type="checkbox" class="w-5 h-5 rounded border-outline-variant text-primary-container focus:ring-primary accent-primary-container">
@@ -276,7 +326,7 @@ function handleSubmit() {
       </div>
     </section>
 
-    <!-- Part 4b: Empty new cylinders (brand new, no gas) -->
+    <!-- Part 4b: Empty new cylinders -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <label class="flex items-center gap-3 cursor-pointer mb-0" :class="includeEmptyNew && 'mb-md'">
         <input v-model="includeEmptyNew" type="checkbox" class="w-5 h-5 rounded border-outline-variant text-primary-container focus:ring-primary accent-primary-container">
@@ -369,33 +419,75 @@ function handleSubmit() {
         </button>
       </div>
 
-      <!-- Pay Now details -->
+      <!-- Pay Now — dynamic payment rows -->
       <div v-if="payNow" class="space-y-md">
-        <div>
-          <label class="block text-data-secondary text-on-surface-variant mb-sm">Amount Paid</label>
-          <Input v-model.number="form.amountPaid" type="number" min="0" step="0.01" :max="grandTotal" required />
-        </div>
-        <div>
-          <label class="block text-data-secondary text-on-surface-variant mb-3">Payment Method</label>
-          <div class="flex gap-sm">
+        <div v-for="(row, idx) in paymentRows" :key="row.id" class="bg-surface-container-high rounded-xl p-4 border border-outline-variant/20 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Payment {{ idx + 1 }}</span>
             <button
+              v-if="paymentRows.length > 1"
               type="button"
-              class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border"
-              :class="form.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
-              @click="form.paymentMode = 'cash'"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error"
+              @click="removePaymentRow(row.id)"
             >
-              <Icon name="payments" class="text-[18px]" /> Cash
-            </button>
-            <button
-              type="button"
-              class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border"
-              :class="form.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
-              @click="form.paymentMode = 'bank'"
-            >
-              <Icon name="account_balance" class="text-[18px]" /> Bank
+              <Icon name="close" class="text-sm" />
             </button>
           </div>
+          <div>
+            <label class="text-data-tertiary text-on-surface-variant mb-1 block">Amount</label>
+            <input
+              v-model.number="row.amount"
+              type="number"
+              inputmode="numeric"
+              min="0.01"
+              step="0.01"
+              :max="grandTotal"
+              class="w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+            >
+          </div>
+          <div>
+            <label class="text-data-tertiary text-on-surface-variant mb-2 block">From</label>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                :class="row.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                @click="row.paymentMode = 'cash'"
+              >
+                <Icon name="payments" class="text-sm mr-1" /> Cash
+              </button>
+              <button
+                type="button"
+                class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                :class="row.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                @click="row.paymentMode = 'bank'"
+              >
+                <Icon name="account_balance" class="text-sm mr-1" /> Bank
+              </button>
+            </div>
+          </div>
         </div>
+
+        <button
+          type="button"
+          class="w-full py-2.5 rounded-xl border border-dashed border-outline-variant/50 text-data-secondary text-on-surface-variant flex items-center justify-center gap-1.5 hover:border-primary hover:text-primary transition-colors"
+          @click="addPaymentRow"
+        >
+          <Icon name="add" class="text-sm" /> Add Payment
+        </button>
+
+        <!-- Totals -->
+        <div class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Total Paid</span>
+            <span class="text-data-primary text-on-surface">{{ formatCurrency(totalPaid) }}</span>
+          </div>
+          <div v-if="pendingAmount > 0" class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Remaining (pay later)</span>
+            <span class="text-data-primary text-error">{{ formatCurrency(pendingAmount) }}</span>
+          </div>
+        </div>
+        <p v-if="totalPaid > grandTotal + 0.01" class="text-data-secondary text-error">Total payments exceed grand total</p>
       </div>
 
       <div v-else class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20">

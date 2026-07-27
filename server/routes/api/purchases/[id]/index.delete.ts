@@ -1,7 +1,8 @@
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { purchases, purchaseItems, cylinderStock } from '~/server/database/schema'
+import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { applyStockChanges } from '~/server/utils/stock'
+import { reverseAccountTransaction } from '~/server/utils/account'
 import type { CylinderSize } from '~/types'
 
 export default defineEventHandler(async (event) => {
@@ -39,6 +40,11 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Reverse all account transactions for this purchase.
+  await reverseAccountTransaction(db, 'purchase', id, user)
+
+  // Delete purchase_payments, purchase_items, then purchase.
+  await db.delete(purchasePayments).where(eq(purchasePayments.purchaseId, id))
   await db.delete(purchaseItems).where(eq(purchaseItems.purchaseId, id))
   await db.delete(purchases).where(eq(purchases.id, id))
 

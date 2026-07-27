@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import type { PurchaseWithItems, PurchaseFormData } from '~/composables/usePurchases'
+import type { PurchaseWithItems, PurchaseFormData, PurchasePaymentEntry } from '~/composables/usePurchases'
 import type { CylinderSize } from '~/types'
 
 definePageMeta({
@@ -17,8 +17,18 @@ const { fetchPurchase, updatePurchase, deletePurchase, clearPurchase, loading, e
 const purchase = ref<PurchaseWithItems | null>(null)
 const editing = ref(false)
 const clearing = ref(false)
-const clearAmount = ref(0)
-const clearMode = ref<'cash' | 'bank'>('cash')
+
+// Split clear state
+interface ClearPaymentRow {
+  id: number
+  amount: number
+  paymentMode: 'cash' | 'bank'
+}
+let nextClearRowId = 1
+function makeClearRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): ClearPaymentRow {
+  return { id: nextClearRowId++, amount, paymentMode: mode }
+}
+const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
 
 onMounted(async () => {
   purchase.value = await fetchPurchase(id)
@@ -33,8 +43,7 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
     invoiceNo: p.invoiceNo ?? undefined,
     totalAmount: p.totalAmount,
     connectionCharge: p.connectionCharge ?? 0,
-    amountPaid: p.amountPaid,
-    paymentMode: (p.paymentMode === 'cash' || p.paymentMode === 'bank' ? p.paymentMode : undefined) as 'cash' | 'bank' | undefined,
+    payments: (p.payments ?? []).map((pp) => ({ amount: pp.amount, paymentMode: pp.paymentMode as 'cash' | 'bank' })),
     paymentReference: p.paymentReference ?? undefined,
     dueDate: p.dueDate ?? undefined,
     notes: p.notes ?? undefined,
@@ -50,14 +59,46 @@ const initialFormData = computed<Partial<PurchaseFormData> | undefined>(() => {
   }
 })
 
-const paymentIcons: Record<string, string> = { cash: 'account_balance_wallet', upi: 'qr_code_scanner', bank: 'account_balance', credit: 'credit_card' }
 const totalReceived = computed(() => purchase.value?.items.reduce((sum, i) => sum + i.receivedQty, 0) ?? 0)
 const totalReturned = computed(() => purchase.value?.items.reduce((sum, i) => sum + i.returnedQty, 0) ?? 0)
 const totalNewConnections = computed(() => purchase.value?.items.reduce((sum, i) => sum + (('newConnectionQty' in i ? i.newConnectionQty : 0) ?? 0), 0) ?? 0)
 const grandTotal = computed(() => (purchase.value?.totalAmount ?? 0) + (purchase.value?.connectionCharge ?? 0))
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+const isAccessories = computed(() => (purchase.value?.purchaseType ?? 'gas') === 'accessories')
+const pendingAmount = computed(() => {
+  if (!purchase.value) return 0
+  const grand = purchase.value.totalAmount + (purchase.value.connectionCharge ?? 0)
+  return Math.round((grand - purchase.value.amountPaid) * 100) / 100
+})
+
+const clearTotalPaid = computed(() => clearRows.value.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
+const clearIsValid = computed(() => clearTotalPaid.value > 0 && clearTotalPaid.value <= pendingAmount.value + 0.01)
+
+function startClear() {
+  clearRows.value = [makeClearRow(pendingAmount.value)]
+  clearing.value = true
+}
+
+function addClearRow() {
+  clearRows.value.push(makeClearRow())
+}
+
+function removeClearRow(rowId: number) {
+  if (clearRows.value.length <= 1) return
+  clearRows.value = clearRows.value.filter((r) => r.id !== rowId)
+}
+
+async function handleClear() {
+  if (!clearing.value || !clearIsValid.value) return
+  const payments: PurchasePaymentEntry[] = clearRows.value
+    .filter((r) => (Number(r.amount) || 0) > 0)
+    .map((r) => ({ amount: Number(r.amount), paymentMode: r.paymentMode }))
+  const result = await clearPurchase(id, { payments })
+  if (result) {
+    showToast(`${formatCurrency(clearTotalPaid.value)} payment recorded`)
+    clearing.value = false
+    purchase.value = await fetchPurchase(id)
+  }
 }
 
 async function handleSubmit(data: PurchaseFormData) {
@@ -71,29 +112,6 @@ async function handleSubmit(data: PurchaseFormData) {
 async function handleDelete() {
   const ok = await deletePurchase(id)
   if (ok) await navigateTo('/stock/purchases')
-}
-
-const isAccessories = computed(() => (purchase.value?.purchaseType ?? 'gas') === 'accessories')
-const pendingAmount = computed(() => {
-  if (!purchase.value) return 0
-  const grand = purchase.value.totalAmount + (purchase.value.connectionCharge ?? 0)
-  return Math.round((grand - purchase.value.amountPaid) * 100) / 100
-})
-
-function startClear() {
-  clearAmount.value = pendingAmount.value
-  clearMode.value = 'cash'
-  clearing.value = true
-}
-
-async function handleClear() {
-  if (!clearing || clearAmount.value <= 0) return
-  const result = await clearPurchase(id, { amount: clearAmount.value, paymentMode: clearMode.value })
-  if (result) {
-    showToast(`₹${clearAmount.value.toLocaleString()} payment recorded`)
-    clearing.value = false
-    purchase.value = await fetchPurchase(id)
-  }
 }
 </script>
 
@@ -120,30 +138,27 @@ async function handleClear() {
         </div>
 
         <!-- Overview Card -->
-        <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest grid grid-cols-1 sm:grid-cols-3 gap-md">
+        <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest grid grid-cols-1 sm:grid-cols-2 gap-md">
           <div class="flex flex-col gap-xs">
-            <span class="text-label-caps text-on-surface-variant uppercase">Total Amount</span>
+            <span class="text-label-caps text-on-surface-variant uppercase">Grand Total</span>
             <span class="text-headline-md text-primary-fixed-dim">{{ formatCurrency(grandTotal) }}</span>
             <span v-if="purchase.connectionCharge" class="text-data-tertiary text-on-surface-variant">
               Gas {{ formatCurrency(purchase.totalAmount) }} + connection {{ formatCurrency(purchase.connectionCharge) }}
             </span>
           </div>
           <div class="flex flex-col gap-xs">
-            <span class="text-label-caps text-on-surface-variant uppercase">Payment Type</span>
+            <span class="text-label-caps text-on-surface-variant uppercase">Payment Status</span>
             <div class="flex items-center gap-sm">
-              <span class="w-8 h-8 rounded bg-surface-container-high flex items-center justify-center text-on-surface">
-                <Icon :name="(purchase.paymentMode && paymentIcons[purchase.paymentMode]) || 'help'" class="text-[18px]" />
+              <span
+                class="rounded-full px-2 py-0.5 border text-label-caps flex items-center gap-1"
+                :class="purchase.paymentStatus === 'paid' ? 'bg-tertiary-container/20 border-tertiary-container/30 text-tertiary' : 'bg-error-container/20 border-error-container/30 text-error'"
+              >
+                <span class="w-1.5 h-1.5 rounded-full" :class="purchase.paymentStatus === 'paid' ? 'bg-tertiary' : 'bg-error'" />
+                {{ purchase.paymentStatus.toUpperCase() }}
               </span>
-              <span class="text-data-primary text-on-surface capitalize">{{ purchase.paymentMode ?? '—' }}</span>
-            </div>
-          </div>
-          <div class="flex flex-col gap-xs">
-            <span class="text-label-caps text-on-surface-variant uppercase">Added By</span>
-            <div class="flex items-center gap-sm">
-              <span class="flex h-8 w-8 items-center justify-center rounded-full bg-surface-variant border border-outline-variant text-[10px] font-bold text-on-surface-variant">
-                {{ initials(purchase.createdByName) }}
+              <span v-if="pendingAmount > 0" class="text-data-secondary text-on-surface-variant">
+                {{ formatCurrency(purchase.amountPaid) }} / {{ formatCurrency(grandTotal) }}
               </span>
-              <span class="text-data-primary text-on-surface">{{ purchase.createdByName }}</span>
             </div>
           </div>
         </section>
@@ -203,7 +218,32 @@ async function handleClear() {
 
         <p v-if="purchase.notes" class="text-data-secondary text-on-surface-variant">{{ purchase.notes }}</p>
 
-        <!-- Pending payment — clear option -->
+        <!-- Payment History -->
+        <section v-if="purchase.payments && purchase.payments.length > 0" class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
+          <h2 class="text-data-primary text-on-surface mb-md flex items-center gap-sm">
+            <Icon name="receipt_long" :filled="true" class="text-primary" /> Payment History
+          </h2>
+          <div class="space-y-sm">
+            <div v-for="pp in purchase.payments" :key="pp.id" class="flex items-center justify-between py-2 border-b border-surface-container-highest last:border-0">
+              <div class="flex items-center gap-sm">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center" :class="pp.paymentMode === 'cash' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-blue-500/10 text-blue-500'">
+                  <Icon :name="pp.paymentMode === 'cash' ? 'payments' : 'account_balance'" class="text-sm" />
+                </span>
+                <div>
+                  <span class="text-data-primary text-on-surface">{{ formatCurrency(pp.amount) }}</span>
+                  <span class="text-data-tertiary text-on-surface-variant ml-1.5 capitalize">{{ pp.paymentMode }}</span>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="text-data-tertiary text-on-surface-variant">{{ pp.createdByName }}</span>
+                <br>
+                <span class="text-data-tertiary text-on-surface-variant text-[10px]">{{ formatDate(pp.createdAt) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Pending payment — split clear option -->
         <div v-if="pendingAmount > 0" class="bg-surface-container rounded-xl p-5 border border-outline-variant/20">
           <div class="flex items-center justify-between mb-sm">
             <span class="text-label-caps text-error uppercase flex items-center gap-xs">
@@ -219,24 +259,72 @@ async function handleClear() {
             <Icon name="check" class="text-sm" /> Record Payment
           </button>
           <div v-if="clearing" class="space-y-md mt-sm">
-            <div>
-              <label class="text-data-secondary text-on-surface-variant">Amount</label>
-              <input v-model.number="clearAmount" type="number" inputmode="numeric" min="0.01" step="0.01" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary mt-1">
+            <p class="text-data-secondary text-on-surface-variant">Split between Cash and Bank if needed.</p>
+            <div v-for="(row, idx) in clearRows" :key="row.id" class="bg-surface-container-high rounded-xl p-4 border border-outline-variant/20 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-data-secondary text-on-surface-variant">Payment {{ idx + 1 }}</span>
+                <button
+                  v-if="clearRows.length > 1"
+                  type="button"
+                  class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error"
+                  @click="removeClearRow(row.id)"
+                >
+                  <Icon name="close" class="text-sm" />
+                </button>
+              </div>
+              <div>
+                <label class="text-data-tertiary text-on-surface-variant mb-1 block">Amount</label>
+                <input
+                  v-model.number="row.amount"
+                  type="number"
+                  inputmode="numeric"
+                  min="0.01"
+                  step="0.01"
+                  class="w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+                >
+              </div>
+              <div>
+                <label class="text-data-tertiary text-on-surface-variant mb-2 block">From</label>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                    :class="row.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                    @click="row.paymentMode = 'cash'"
+                  >
+                    <Icon name="payments" class="text-sm mr-1" /> Cash
+                  </button>
+                  <button
+                    type="button"
+                    class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                    :class="row.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                    @click="row.paymentMode = 'bank'"
+                  >
+                    <Icon name="account_balance" class="text-sm mr-1" /> Bank
+                  </button>
+                </div>
+              </div>
             </div>
-            <div>
-              <label class="text-data-secondary text-on-surface-variant mb-2 block">Payment Method</label>
-              <div class="flex gap-2">
-                <button type="button" class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors" :class="clearMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="clearMode = 'cash'">
-                  <Icon name="payments" class="text-sm mr-1" /> Cash
-                </button>
-                <button type="button" class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors" :class="clearMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="clearMode = 'bank'">
-                  <Icon name="account_balance" class="text-sm mr-1" /> Bank
-                </button>
+            <button
+              type="button"
+              class="w-full py-2 rounded-xl border border-dashed border-outline-variant/50 text-data-secondary text-on-surface-variant flex items-center justify-center gap-1.5"
+              @click="addClearRow"
+            >
+              <Icon name="add" class="text-sm" /> Add Payment
+            </button>
+            <div class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="text-data-secondary text-on-surface-variant">Paying now</span>
+                <span class="text-data-primary text-on-surface">{{ formatCurrency(clearTotalPaid) }}</span>
+              </div>
+              <div v-if="pendingAmount - clearTotalPaid > 0" class="flex items-center justify-between">
+                <span class="text-data-secondary text-on-surface-variant">Still pending</span>
+                <span class="text-data-primary text-error">{{ formatCurrency(pendingAmount - clearTotalPaid) }}</span>
               </div>
             </div>
             <div class="flex gap-3">
               <button type="button" class="flex-1 py-2.5 rounded-xl border border-outline-variant text-on-surface-variant text-data-secondary" @click="clearing = false">Cancel</button>
-              <button type="button" class="flex-1 py-2.5 rounded-xl bg-primary-container text-on-primary-container text-data-secondary flex items-center justify-center gap-sm" :disabled="loading || clearAmount <= 0" @click="handleClear">
+              <button type="button" class="flex-1 py-2.5 rounded-xl bg-primary-container text-on-primary-container text-data-secondary flex items-center justify-center gap-sm" :disabled="loading || !clearIsValid" @click="handleClear">
                 <LoadingSpinner v-if="loading" class="h-4 w-4" />
                 Confirm
               </button>
