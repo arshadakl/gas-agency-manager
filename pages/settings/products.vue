@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import { Input } from '~/components/ui/input'
-import type { Product, NewProduct } from '~/types/database'
+import type { Product } from '~/types/database'
 
 definePageMeta({
   layout: 'default',
@@ -12,42 +11,27 @@ const { user } = useUserSession()
 if (user.value?.role !== 'admin' && user.value?.role !== 'delivery') await navigateTo('/')
 
 const { fetchProducts, createProduct, updateProduct, deleteProduct, loading, error } = usePricing()
-const { fetchInventory, stockIn, error: stockError } = useInventory()
 
 const products = ref<Product[]>([])
 const showProductForm = ref(false)
-const stockByProductId = ref<Map<number, number>>(new Map())
-const restockProductId = ref<number | null>(null)
-const restockQty = ref(1)
 const editingProductPublicId = ref<string | null>(null)
 const editName = ref('')
-const deleteConfirmPublicId = ref<string | null>(null)
 const actionError = ref<string | null>(null)
 
+// Manage modal state
+const manageProduct = ref<Product | null>(null)
+const productHistoryCount = ref(0)
+const manageLoading = ref(false)
+
 async function load() {
-  const [productRows, inventoryRows] = await Promise.all([
-    fetchProducts(),
-    fetchInventory(),
-  ])
-  products.value = productRows
-  stockByProductId.value = new Map(inventoryRows.map((r) => [r.productId, r.quantity]))
+  products.value = await fetchProducts()
 }
 onMounted(load)
 
-async function handleCreateProduct(data: NewProduct) {
+async function handleCreateProduct(data: Parameters<typeof createProduct>[0]) {
   const created = await createProduct(data)
   if (created) {
     showProductForm.value = false
-    await load()
-  }
-}
-
-async function handleRestock(productId: number) {
-  if (restockQty.value <= 0) return
-  const ok = await stockIn(productId, restockQty.value)
-  if (ok) {
-    restockProductId.value = null
-    restockQty.value = 1
     await load()
   }
 }
@@ -70,16 +54,44 @@ async function handleEditSave(product: Product) {
   }
 }
 
-async function handleDelete(publicId: string) {
+async function openManage(product: Product) {
+  manageProduct.value = product
   actionError.value = null
-  const ok = await deleteProduct(publicId)
-  if (ok) {
-    deleteConfirmPublicId.value = null
+  // Check delivery history count
+  try {
+    const res = await $fetch<{ data: { count: number } }>(`/api/products/${product.publicId}/delivery-count`)
+    productHistoryCount.value = res.data.count
+  } catch {
+    productHistoryCount.value = 0
+  }
+}
+
+async function handleHide() {
+  if (!manageProduct.value?.publicId) return
+  manageLoading.value = true
+  actionError.value = null
+  const updated = await updateProduct(manageProduct.value.publicId, { isActive: false } as any)
+  if (updated) {
+    manageProduct.value = null
     await load()
   } else {
     actionError.value = error.value
-    deleteConfirmPublicId.value = null
   }
+  manageLoading.value = false
+}
+
+async function handleDelete() {
+  if (!manageProduct.value?.publicId) return
+  manageLoading.value = true
+  actionError.value = null
+  const ok = await deleteProduct(manageProduct.value.publicId)
+  if (ok) {
+    manageProduct.value = null
+    await load()
+  } else {
+    actionError.value = error.value
+  }
+  manageLoading.value = false
 }
 </script>
 
@@ -102,7 +114,7 @@ async function handleDelete(publicId: string) {
     <div v-else class="flex flex-col gap-sm">
       <div v-for="product in products" :key="product.id" class="rounded-xl border border-outline-variant/30 bg-surface-container p-4">
         <!-- Edit inline name -->
-        <div v-if="editingProductPublicId === product.publicId" class="flex items-center gap-2 mb-2">
+        <div v-if="editingProductPublicId === product.publicId" class="flex items-center gap-2">
           <input
             v-model="editName"
             class="flex-1 px-3 py-2 rounded-lg border border-surface-variant bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
@@ -119,17 +131,9 @@ async function handleDelete(publicId: string) {
             <p class="text-data-primary text-on-surface">{{ product.name }}</p>
             <p class="text-data-tertiary text-on-surface-variant mt-0.5">
               {{ product.type }}<span v-if="product.cylinderSize"> · {{ product.cylinderSize }}kg</span>
-              <span v-if="product.type === 'accessory'"> · {{ stockByProductId.get(product.id) ?? 0 }} in stock</span>
             </p>
           </div>
           <div class="flex gap-1.5 items-center">
-            <button
-              v-if="product.type === 'accessory'"
-              class="flex items-center gap-1 rounded-lg border border-outline-variant/40 bg-surface-container-highest px-3 py-1.5 text-data-tertiary text-on-surface-variant hover:bg-surface-variant transition-colors"
-              @click="restockProductId = product.id"
-            >
-              <Icon name="add_box" class="text-sm" /> Stock In
-            </button>
             <button
               class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
               title="Edit name"
@@ -139,32 +143,69 @@ async function handleDelete(publicId: string) {
             </button>
             <button
               class="w-8 h-8 rounded-full flex items-center justify-center text-error hover:bg-error/10 transition-colors"
-              title="Delete product"
-              @click="deleteConfirmPublicId = product.publicId"
+              title="Manage product"
+              @click="openManage(product)"
             >
               <Icon name="delete" class="text-sm" />
             </button>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- Stock In section -->
-        <div v-if="restockProductId === product.id" class="mt-3 border-t border-outline-variant/20 pt-3 flex items-center gap-2">
-          <Input v-model.number="restockQty" type="number" min="1" class="w-24" />
-          <Button size="sm" @click="handleRestock(product.id)">Add</Button>
-          <Button size="sm" variant="outline" @click="restockProductId = null">Cancel</Button>
+    <!-- Manage product modal -->
+    <div
+      v-if="manageProduct"
+      class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4 pb-8 sm:pb-0"
+      @click.self="manageProduct = null"
+    >
+      <div class="w-full max-w-sm bg-surface-container-high rounded-2xl p-6 space-y-4">
+        <div>
+          <p class="text-data-primary text-on-surface font-semibold">{{ manageProduct.name }}</p>
+          <p class="text-data-tertiary text-on-surface-variant mt-0.5">
+            {{ manageProduct.type }}<span v-if="manageProduct.cylinderSize"> · {{ manageProduct.cylinderSize }}kg</span>
+          </p>
         </div>
-        <p v-if="restockProductId === product.id && stockError" class="text-data-tertiary text-error mt-1">{{ stockError }}</p>
 
-        <!-- Delete confirm -->
-        <div v-if="deleteConfirmPublicId === product.publicId" class="mt-3 border-t border-error/20 pt-3 flex flex-col gap-2">
-          <p class="text-data-secondary text-error">Delete "{{ product.name }}"? If it has delivery history, it will be hidden instead of permanently removed.</p>
-          <div class="flex gap-2">
-            <Button size="sm" variant="destructive" :disabled="loading" @click="handleDelete(product.publicId!)">
-              <LoadingSpinner v-if="loading" class="h-3 w-3 mr-1" />
-              Confirm Delete
-            </Button>
-            <Button size="sm" variant="outline" @click="deleteConfirmPublicId = null">Cancel</Button>
-          </div>
+        <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
+
+        <!-- Has delivery history — can only hide -->
+        <div v-if="productHistoryCount > 0" class="rounded-lg bg-surface-container-highest px-3 py-2">
+          <p class="text-data-secondary text-on-surface-variant">
+            Used in <span class="font-semibold text-on-surface">{{ productHistoryCount }}</span> deliveries. Cannot delete — will be hidden from the delivery list instead.
+          </p>
+        </div>
+
+        <!-- No delivery history — can delete -->
+        <div v-else class="rounded-lg bg-surface-container-highest px-3 py-2">
+          <p class="text-data-secondary text-on-surface-variant">
+            No delivery history. This product can be permanently deleted.
+          </p>
+        </div>
+
+        <div class="flex gap-2 pt-1">
+          <button
+            class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+            @click="manageProduct = null"
+          >Cancel</button>
+          <button
+            v-if="productHistoryCount > 0"
+            class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            :disabled="manageLoading"
+            @click="handleHide"
+          >
+            <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
+            <span v-else>Hide</span>
+          </button>
+          <button
+            v-else
+            class="flex-1 rounded-xl bg-error text-on-error py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+            :disabled="manageLoading"
+            @click="handleDelete"
+          >
+            <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
+            <span v-else>Delete</span>
+          </button>
         </div>
       </div>
     </div>
