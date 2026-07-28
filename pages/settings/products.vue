@@ -14,14 +14,14 @@ const { fetchProducts, createProduct, updateProduct, deleteProduct, loading, err
 
 const products = ref<Product[]>([])
 const showProductForm = ref(false)
-const editingProductPublicId = ref<string | null>(null)
-const editName = ref('')
 const actionError = ref<string | null>(null)
 
 // Manage modal state
 const manageProduct = ref<Product | null>(null)
 const productHistoryCount = ref(0)
 const manageLoading = ref(false)
+const manageMode = ref<'info' | 'rename'>('info')
+const renameValue = ref('')
 
 async function load() {
   products.value = await fetchProducts()
@@ -36,34 +36,31 @@ async function handleCreateProduct(data: Parameters<typeof createProduct>[0]) {
   }
 }
 
-function startEdit(product: Product) {
-  editingProductPublicId.value = product.publicId
-  editName.value = product.name
-  actionError.value = null
-}
-
-async function handleEditSave(product: Product) {
-  if (!editName.value.trim() || !product.publicId) return
-  actionError.value = null
-  const updated = await updateProduct(product.publicId, { name: editName.value.trim() })
-  if (updated) {
-    editingProductPublicId.value = null
-    await load()
-  } else {
-    actionError.value = error.value
-  }
-}
-
 async function openManage(product: Product) {
   manageProduct.value = product
   actionError.value = null
-  // Check delivery history count
+  manageMode.value = 'info'
+  renameValue.value = product.name
   try {
     const res = await $fetch<{ data: { count: number } }>(`/api/products/${product.publicId}/delivery-count`)
     productHistoryCount.value = res.data.count
   } catch {
     productHistoryCount.value = 0
   }
+}
+
+async function handleRename() {
+  if (!manageProduct.value?.publicId || !renameValue.value.trim()) return
+  manageLoading.value = true
+  actionError.value = null
+  const updated = await updateProduct(manageProduct.value.publicId, { name: renameValue.value.trim() })
+  if (updated) {
+    manageProduct.value = null
+    await load()
+  } else {
+    actionError.value = error.value
+  }
+  manageLoading.value = false
 }
 
 async function handleHide() {
@@ -112,45 +109,20 @@ async function handleDelete() {
 
     <EmptyState v-if="products.length === 0 && !loading" title="No products yet" />
     <div v-else class="flex flex-col gap-sm">
-      <div v-for="product in products" :key="product.id" class="rounded-xl border border-outline-variant/30 bg-surface-container p-4">
-        <!-- Edit inline name -->
-        <div v-if="editingProductPublicId === product.publicId" class="flex items-center gap-2">
-          <input
-            v-model="editName"
-            class="flex-1 px-3 py-2 rounded-lg border border-surface-variant bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
-            @keydown.enter="handleEditSave(product)"
-            @keydown.escape="editingProductPublicId = null"
-          >
-          <Button size="sm" :disabled="loading" @click="handleEditSave(product)">Save</Button>
-          <Button size="sm" variant="outline" @click="editingProductPublicId = null">Cancel</Button>
+      <button
+        v-for="product in products"
+        :key="product.id"
+        class="flex items-center justify-between rounded-xl border border-outline-variant/30 bg-surface-container p-4 text-left w-full hover:border-outline-variant/50 transition-colors"
+        @click="openManage(product)"
+      >
+        <div>
+          <p class="text-data-primary text-on-surface">{{ product.name }}</p>
+          <p class="text-data-tertiary text-on-surface-variant mt-0.5">
+            {{ product.type }}<span v-if="product.cylinderSize"> · {{ product.cylinderSize }}kg</span>
+          </p>
         </div>
-
-        <!-- Normal view -->
-        <div v-else class="flex items-center justify-between">
-          <div class="flex-1">
-            <p class="text-data-primary text-on-surface">{{ product.name }}</p>
-            <p class="text-data-tertiary text-on-surface-variant mt-0.5">
-              {{ product.type }}<span v-if="product.cylinderSize"> · {{ product.cylinderSize }}kg</span>
-            </p>
-          </div>
-          <div class="flex gap-1.5 items-center">
-            <button
-              class="w-8 h-8 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-highest transition-colors"
-              title="Edit name"
-              @click="startEdit(product)"
-            >
-              <Icon name="edit" class="text-sm" />
-            </button>
-            <button
-              class="w-8 h-8 rounded-full flex items-center justify-center text-error hover:bg-error/10 transition-colors"
-              title="Manage product"
-              @click="openManage(product)"
-            >
-              <Icon name="delete" class="text-sm" />
-            </button>
-          </div>
-        </div>
-      </div>
+        <Icon name="chevron_right" class="text-on-surface-variant" />
+      </button>
     </div>
 
     <!-- Manage product modal -->
@@ -160,53 +132,83 @@ async function handleDelete() {
       @click.self="manageProduct = null"
     >
       <div class="w-full max-w-sm bg-surface-container-high rounded-2xl p-6 space-y-4">
-        <div>
-          <p class="text-data-primary text-on-surface font-semibold">{{ manageProduct.name }}</p>
-          <p class="text-data-tertiary text-on-surface-variant mt-0.5">
-            {{ manageProduct.type }}<span v-if="manageProduct.cylinderSize"> · {{ manageProduct.cylinderSize }}kg</span>
-          </p>
-        </div>
+        <!-- Info mode -->
+        <template v-if="manageMode === 'info'">
+          <div>
+            <p class="text-data-primary text-on-surface font-semibold">{{ manageProduct.name }}</p>
+            <p class="text-data-tertiary text-on-surface-variant mt-0.5">
+              {{ manageProduct.type }}<span v-if="manageProduct.cylinderSize"> · {{ manageProduct.cylinderSize }}kg</span>
+            </p>
+          </div>
 
-        <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
+          <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
 
-        <!-- Has delivery history — can only hide -->
-        <div v-if="productHistoryCount > 0" class="rounded-lg bg-surface-container-highest px-3 py-2">
-          <p class="text-data-secondary text-on-surface-variant">
-            Used in <span class="font-semibold text-on-surface">{{ productHistoryCount }}</span> deliveries. Cannot delete — will be hidden from the delivery list instead.
-          </p>
-        </div>
+          <div v-if="productHistoryCount > 0" class="rounded-lg bg-surface-container-highest px-3 py-2">
+            <p class="text-data-secondary text-on-surface-variant">
+              Used in <span class="font-semibold text-on-surface">{{ productHistoryCount }}</span> deliveries. Cannot delete — will be hidden instead.
+            </p>
+          </div>
+          <div v-else class="rounded-lg bg-surface-container-highest px-3 py-2">
+            <p class="text-data-secondary text-on-surface-variant">No delivery history. Can be permanently deleted.</p>
+          </div>
 
-        <!-- No delivery history — can delete -->
-        <div v-else class="rounded-lg bg-surface-container-highest px-3 py-2">
-          <p class="text-data-secondary text-on-surface-variant">
-            No delivery history. This product can be permanently deleted.
-          </p>
-        </div>
-
-        <div class="flex gap-2 pt-1">
+          <div class="flex gap-2">
+            <button
+              class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+              @click="manageMode = 'rename'"
+            >
+              <Icon name="edit" class="text-sm mr-1" /> Rename
+            </button>
+            <button
+              v-if="productHistoryCount > 0"
+              class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              :disabled="manageLoading"
+              @click="handleHide"
+            >
+              <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
+              <span v-else>Hide</span>
+            </button>
+            <button
+              v-else
+              class="flex-1 rounded-xl bg-error text-on-error py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              :disabled="manageLoading"
+              @click="handleDelete"
+            >
+              <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
+              <span v-else>Delete</span>
+            </button>
+          </div>
           <button
-            class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+            class="w-full rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
             @click="manageProduct = null"
           >Cancel</button>
-          <button
-            v-if="productHistoryCount > 0"
-            class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            :disabled="manageLoading"
-            @click="handleHide"
+        </template>
+
+        <!-- Rename mode -->
+        <template v-else>
+          <p class="text-data-primary text-on-surface font-semibold">Rename product</p>
+          <input
+            v-model="renameValue"
+            class="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+            placeholder="Product name"
+            @keydown.enter="handleRename"
           >
-            <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
-            <span v-else>Hide</span>
-          </button>
-          <button
-            v-else
-            class="flex-1 rounded-xl bg-error text-on-error py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
-            :disabled="manageLoading"
-            @click="handleDelete"
-          >
-            <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
-            <span v-else>Delete</span>
-          </button>
-        </div>
+          <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
+          <div class="flex gap-2">
+            <button
+              class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"
+              @click="manageMode = 'info'"
+            >Back</button>
+            <button
+              class="flex-1 rounded-xl bg-primary-container text-on-primary-container py-2.5 text-body-base font-semibold hover:opacity-90 transition-opacity disabled:opacity-50"
+              :disabled="manageLoading || !renameValue.trim()"
+              @click="handleRename"
+            >
+              <LoadingSpinner v-if="manageLoading" class="h-4 w-4 mx-auto" />
+              <span v-else>Save</span>
+            </button>
+          </div>
+        </template>
       </div>
     </div>
   </div>
