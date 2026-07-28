@@ -57,6 +57,7 @@ export const FEATURE_KEYS = {
   PURCHASES: 'purchases',
   EXPENSES: 'expenses',
   PAYMENTS: 'payments',
+  MANAGE_USERS: 'manage_users',
 } as const
 export type FeatureKey = typeof FEATURE_KEYS[keyof typeof FEATURE_KEYS]
 
@@ -67,4 +68,8 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
   purchases: 'Purchases',
   expenses: 'Expenses',
   payments: 'Payments',
+  manage_users: 'Manage Users',
 }
+
+// Features that only admin can toggle — not delegateable
+export const ADMIN_ONLY_FEATURES: FeatureKey[] = ['manage_users']

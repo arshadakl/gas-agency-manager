@@ -3,7 +3,10 @@ import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  const user = await requireUser(event)
+  const isAdmin = user.role === 'admin'
+  const canManage = isAdmin || (Array.isArray(user.featuresDisabled) && !user.featuresDisabled.includes('manage_users'))
+  if (!canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 
   const db = useDB(event)
   const rows = await db.select({

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { User } from '~/types/database'
-import { FEATURE_KEYS, FEATURE_LABELS } from '~/types'
+import { FEATURE_KEYS, FEATURE_LABELS, ADMIN_ONLY_FEATURES } from '~/types'
 import type { FeatureKey } from '~/types'
 
 definePageMeta({
@@ -10,7 +10,15 @@ definePageMeta({
 })
 
 const { user: currentUser } = useUserSession()
-if (currentUser.value?.role !== 'admin') await navigateTo('/')
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
+if (!hasFeature('manage_users')) await navigateTo('/')
+
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const featureKeys = computed(() => {
+  const all = Object.values(FEATURE_KEYS) as FeatureKey[]
+  return isAdmin.value ? all : all.filter(f => !ADMIN_ONLY_FEATURES.includes(f))
+})
 
 const { fetchUsers, createUser, updateUser, deleteUser, loading, error } = useAuth()
 
@@ -23,8 +31,6 @@ const newPassword = ref('')
 const pwError = ref<string | null>(null)
 const expandedUserId = ref<number | null>(null)
 const savingPermissions = ref(false)
-
-const featureKeys = Object.values(FEATURE_KEYS) as FeatureKey[]
 
 function getUserDisabledFeatures(u: User): FeatureKey[] {
   if (!u.featuresDisabled) return []
@@ -113,7 +119,7 @@ function closePasswordReset() {
   <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
       <h2 class="text-headline-md text-on-surface">Users</h2>
-      <Button size="icon" class="rounded-full" @click="showForm = true">
+      <Button v-if="isAdmin" size="icon" class="rounded-full" @click="showForm = true">
         <Icon name="add" />
       </Button>
     </div>
@@ -140,29 +146,31 @@ function closePasswordReset() {
               >
                 <Icon name="tune" class="text-sm" />
               </button>
-              <button
-                class="rounded-full px-3 py-1 text-data-tertiary border transition-colors"
-                :class="u.isActive
-                  ? 'border-success/40 bg-success/10 text-success'
-                  : 'border-outline-variant/30 bg-surface-container-highest text-on-surface-variant'"
-                @click="toggleActive(u)"
-              >
-                {{ u.isActive ? 'Active' : 'Inactive' }}
-              </button>
-              <button
-                class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
-                title="Reset password"
-                @click="openPasswordReset(u)"
-              >
-                <Icon name="key" class="text-sm" />
-              </button>
-              <button
-                class="flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error-container/30 transition-colors"
-                title="Delete user"
-                @click="userToDelete = u; showDeleteConfirm = true"
-              >
+              <template v-if="isAdmin">
+                <button
+                  class="rounded-full px-3 py-1 text-data-tertiary border transition-colors"
+                  :class="u.isActive
+                    ? 'border-success/40 bg-success/10 text-success'
+                    : 'border-outline-variant/30 bg-surface-container-highest text-on-surface-variant'"
+                  @click="toggleActive(u)"
+                >
+                  {{ u.isActive ? 'Active' : 'Inactive' }}
+                </button>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
+                  title="Reset password"
+                  @click="openPasswordReset(u)"
+                >
+                  <Icon name="key" class="text-sm" />
+                </button>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error-container/30 transition-colors"
+                  title="Delete user"
+                  @click="userToDelete = u; showDeleteConfirm = true"
+                >
                 <Icon name="delete" class="text-sm" />
               </button>
+              </template>
             </div>
           </div>
 
