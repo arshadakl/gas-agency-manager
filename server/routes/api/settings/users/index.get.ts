@@ -9,7 +9,10 @@ export default defineEventHandler(async (event) => {
   if (!canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 
   const db = useDB(event)
-  const whereClause = isAdmin ? undefined : ne(users.role, 'admin')
+  const whereClause = and(
+    ne(users.id, user.id),
+    isAdmin ? undefined : ne(users.role, 'admin'),
+  )
   const rows = await db.select({
     id: users.id,
     publicId: users.publicId,
