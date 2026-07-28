@@ -6,7 +6,8 @@ definePageMeta({
   middleware: ['auth'],
 })
 
-const { hasFeature } = usePermissions()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 const { fetchSummary, dateRange, loading } = useReports()
 const summary = ref<Awaited<ReturnType<typeof fetchSummary>> | null>(null)
 

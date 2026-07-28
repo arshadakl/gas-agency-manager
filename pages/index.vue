@@ -9,7 +9,8 @@ definePageMeta({
 
 const { user } = useUserSession()
 const { t } = useLocale()
-const { hasFeature } = usePermissions()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 const { fetchToday } = useDeliveries()
 const { fetchSummary } = useReports()
 const { fetchCylinderStock } = useInventory()

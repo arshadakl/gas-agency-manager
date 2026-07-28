@@ -7,7 +7,8 @@ definePageMeta({
   middleware: ['auth'],
 })
 
-const { hasFeature } = usePermissions()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 if (!hasFeature('super_gas_accounts')) await navigateTo('/')
 
 const { user } = useUserSession()

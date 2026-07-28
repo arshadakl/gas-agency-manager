@@ -4,7 +4,8 @@ definePageMeta({
   middleware: ['auth'],
 })
 
-const { hasFeature } = usePermissions()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 if (!hasFeature('profit_loss')) await navigateTo('/reports')
 
 const { fetchProfitLoss, fetchProfitLossTrend, dateRange, loading } = useReports()
