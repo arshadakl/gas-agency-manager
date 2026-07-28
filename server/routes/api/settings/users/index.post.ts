@@ -7,11 +7,16 @@ import { generateId } from '~/server/utils/id'
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const isAdmin = user.role === 'admin'
-  const canManage = isAdmin || (Array.isArray(user.featuresDisabled) && !user.featuresDisabled.includes('manage_users'))
+  const canManage = isAdmin || (user.role === 'delivery' && Array.isArray(user.featuresDisabled) && !user.featuresDisabled.includes('manage_users'))
   if (!canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 
   const body = await parseBody(event, UserSchema)
   const db = useDB(event)
+
+  // Non-admin managers can only create delivery/viewer accounts
+  if (!isAdmin && body.role === 'admin') {
+    body.role = 'delivery'
+  }
 
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.username, body.username)).get()
   if (existing) throw createError({ statusCode: 409, message: 'Username already taken' })

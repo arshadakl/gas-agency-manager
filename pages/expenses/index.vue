@@ -1,4 +1,4 @@
-t<script setup lang="ts">
+<script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { ExpenseTag, PaymentSource } from '~/types'
 import { EXPENSE_TAGS } from '~/types'
