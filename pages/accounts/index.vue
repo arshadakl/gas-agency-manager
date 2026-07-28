@@ -12,7 +12,7 @@ await refreshPermissions()
 if (!hasFeature('super_gas_accounts')) await navigateTo('/')
 
 const { user } = useUserSession()
-const { fetchBalances, fetchTransactions, withdraw, loading } = useAccounts()
+const { fetchBalances, fetchTransactions, withdraw, deposit, loading } = useAccounts()
 
 const balances = ref({ cash: 0, bank: 0, total: 0 })
 const transactions = ref<AccountTransaction[]>([])
@@ -22,6 +22,11 @@ const showWithdrawModal = ref(false)
 const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '' })
 const withdrawLoading = ref(false)
 const withdrawError = ref('')
+
+const showDepositModal = ref(false)
+const depositForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '' })
+const depositLoading = ref(false)
+const depositError = ref('')
 
 const txTypeLabels: Record<string, string> = {
   delivery_collection: 'Delivery',
@@ -33,6 +38,7 @@ const txTypeLabels: Record<string, string> = {
   conversion_out: 'Convert Out',
   adjustment: 'Adjustment',
   salary_withdrawal: 'Salary',
+  deposit: 'Deposit',
 }
 
 const txTypeIcons: Record<string, string> = {
@@ -45,6 +51,7 @@ const txTypeIcons: Record<string, string> = {
   conversion_out: 'arrow_upward',
   adjustment: 'sync_alt',
   salary_withdrawal: 'account_balance',
+  deposit: 'add_circle',
 }
 
 const accountIcons: Record<string, string> = {
@@ -101,6 +108,34 @@ async function handleWithdraw() {
   }
 }
 
+function openDepositModal() {
+  depositForm.amount = 0
+  depositForm.accountType = 'cash'
+  depositForm.notes = ''
+  depositError.value = ''
+  showDepositModal.value = true
+}
+
+async function handleDeposit() {
+  if (!depositForm.amount || depositForm.amount <= 0) return
+  depositLoading.value = true
+  depositError.value = ''
+  try {
+    const result = await deposit(depositForm.accountType, depositForm.amount, depositForm.notes || undefined)
+    if (result) {
+      balances.value[depositForm.accountType] = result.balance
+      balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
+      showDepositModal.value = false
+      const txData = await fetchTransactions({ limit: 50 })
+      transactions.value = txData
+    } else {
+      depositError.value = 'Failed to record deposit'
+    }
+  } finally {
+    depositLoading.value = false
+  }
+}
+
 function formatTxDate(date: string) {
   return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
@@ -121,17 +156,22 @@ function balanceTextClass(amount: number) {
         <Icon name="arrow_back" class="text-sm" />
         Reports
       </NuxtLink>
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-headline-md text-on-surface">SuperGas Accounts</h1>
-          <p class="text-data-secondary text-on-surface-variant mt-1">Cash & bank balances</p>
-        </div>
-        <NuxtLink to="/accounts/convert" class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-primary-container text-on-primary-container text-data-secondary">
+      <h1 class="text-headline-md text-on-surface">SuperGas Accounts</h1>
+      <p class="text-data-secondary text-on-surface-variant mt-1 mb-3">Cash & bank balances</p>
+      <div class="flex gap-2">
+        <NuxtLink to="/accounts/convert" class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant/30 text-on-surface-variant text-data-secondary">
           <Icon name="swap_horiz" class="text-sm" />
           Convert
         </NuxtLink>
         <button
-          class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-outline-variant/30 text-on-surface-variant text-data-secondary"
+          class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl bg-primary-container text-on-primary-container text-data-secondary"
+          @click="openDepositModal"
+        >
+          <Icon name="add_circle" class="text-sm" />
+          Deposit
+        </button>
+        <button
+          class="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-outline-variant/30 text-on-surface-variant text-data-secondary"
           @click="openWithdrawModal"
         >
           <Icon name="account_balance" class="text-sm" />
@@ -285,6 +325,75 @@ function balanceTextClass(amount: number) {
             >
               <LoadingSpinner v-if="withdrawLoading" class="h-4 w-4" />
               {{ withdrawLoading ? 'Recording...' : 'Record Withdrawal' }}
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
+
+    <!-- Deposit Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showDepositModal" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showDepositModal = false" />
+          <div class="relative bg-surface-container-high rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 border border-outline-variant/20 z-10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-headline-md text-on-surface">Deposit</h2>
+              <button class="p-2 -mr-2" @click="showDepositModal = false">
+                <Icon name="close" class="text-on-surface-variant" />
+              </button>
+            </div>
+
+            <p class="text-data-secondary text-on-surface-variant">Add funds to cash or bank account.</p>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Amount</label>
+              <input
+                v-model.number="depositForm.amount"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">To</label>
+              <div class="flex gap-2">
+                <button
+                  v-for="opt in [{ key: 'cash' as const, label: 'Cash', icon: 'payments' }, { key: 'bank' as const, label: 'Bank', icon: 'account_balance' }]"
+                  :key="opt.key"
+                  class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-data-secondary transition-colors"
+                  :class="depositForm.accountType === opt.key
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-outline-variant/30 text-on-surface-variant'"
+                  @click="depositForm.accountType = opt.key"
+                >
+                  <Icon :name="opt.icon" class="text-sm" />
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Notes (optional)</label>
+              <input
+                v-model="depositForm.notes"
+                type="text"
+                class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none"
+                placeholder="e.g. Initial deposit"
+              />
+            </div>
+
+            <p v-if="depositError" class="text-sm text-error">{{ depositError }}</p>
+
+            <button
+              :disabled="depositLoading || !depositForm.amount || depositForm.amount <= 0"
+              class="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              @click="handleDeposit"
+            >
+              <LoadingSpinner v-if="depositLoading" class="h-4 w-4" />
+              {{ depositLoading ? 'Recording...' : 'Record Deposit' }}
             </button>
           </div>
         </div>
