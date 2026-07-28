@@ -35,6 +35,7 @@ export const customers = sqliteTable('customers', {
   // back to the customer — NEVER part of the outstanding-balance ledger math.
   connectionDeposit: real('connection_deposit'),
   depositNote: text('deposit_note'),
+  type: text('type', { enum: ['restaurant', 'home'] }).notNull().default('restaurant'),
   isActive: integer('is_active').default(1).notNull(),
   ...timestamps,
 })
@@ -109,7 +110,7 @@ export const customerPayments = sqliteTable('customer_payments', {
   // those rows. Manual settle-up payments via /payments leave this null.
   deliveryId: integer('delivery_id').references(() => deliveries.id),
   amount: real('amount').notNull(),
-  paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'cheque'] }).notNull(),
+  paymentMode: text('payment_mode', { enum: ['cash', 'bank'] }).notNull(),
   paymentDate: text('payment_date').notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
@@ -159,7 +160,6 @@ export const purchases = sqliteTable('purchases', {
   totalAmount: real('total_amount').notNull(),
   connectionCharge: real('connection_charge').default(0).notNull(),
   amountPaid: real('amount_paid').default(0).notNull(),
-  paymentMode: text('payment_mode', { enum: ['cash', 'upi', 'bank', 'credit'] }),
   paymentStatus: text('payment_status', { enum: ['paid', 'partial', 'pending'] })
     .default('pending').notNull(),
   paymentReference: text('payment_reference'),
@@ -223,12 +223,26 @@ export const purchaseItems = sqliteTable('purchase_items', {
   purchaseIdx: index('purchase_items_purchase_idx').on(table.purchaseId),
 }))
 
+// Individual payments against a purchase (supports split: cash + bank in one clearing).
+export const purchasePayments = sqliteTable('purchase_payments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  purchaseId: integer('purchase_id').references(() => purchases.id).notNull(),
+  amount: real('amount').notNull(),
+  paymentMode: text('payment_mode', { enum: ['cash', 'bank'] }).notNull(),
+  notes: text('notes'),
+  createdBy: integer('created_by').references(() => users.id).notNull(),
+  createdByName: text('created_by_name').notNull(),
+  ...timestamps,
+}, (table) => ({
+  purchaseIdx: index('purchase_payments_purchase_idx').on(table.purchaseId),
+}))
+
 export const expenses = sqliteTable('expenses', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   publicId: text('public_id').unique(),
   expenseDate: text('expense_date').notNull(),
   amount: real('amount').notNull(),
-  tag: text('tag', { enum: ['fuel', 'maintenance', 'fine', 'other'] }).notNull(),
+  tag: text('tag', { enum: ['fuel', 'maintenance', 'free_accessory', 'other'] }).notNull(),
   paymentSource: text('payment_source', { enum: ['cash', 'bank'] }).default('cash').notNull(),
   notes: text('notes'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
@@ -252,7 +266,7 @@ export const accountTransactions = sqliteTable('account_transactions', {
   accountType: text('account_type', { enum: ['cash', 'bank'] }).notNull(),
   amount: real('amount').notNull(),
   transactionType: text('transaction_type', {
-    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment']
+    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment', 'salary_withdrawal']
   }).notNull(),
   referenceId: integer('reference_id'),
   referenceType: text('reference_type'),

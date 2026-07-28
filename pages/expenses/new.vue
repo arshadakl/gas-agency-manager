@@ -43,14 +43,14 @@ onMounted(async () => {
 const tagLabels: Record<ExpenseTag, string> = {
   fuel: 'Fuel',
   maintenance: 'Vehicle Maintenance',
-  fine: 'Fine',
+  free_accessory: 'Free Accessory',
   other: 'Other',
 }
 
 const tagColors: Record<ExpenseTag, string> = {
   fuel: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   maintenance: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  fine: 'bg-red-500/10 text-red-500 border-red-500/30',
+  free_accessory: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
   other: 'bg-surface-container-highest text-on-surface-variant border-outline-variant/30',
 }
 
@@ -106,7 +106,7 @@ async function handleSubmit() {
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <div>
         <label class="text-data-secondary text-on-surface-variant">Date</label>
-        <input v-model="form.expenseDate" type="date" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
+        <input v-model="form.expenseDate" type="date" class="block w-full px-0 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
       </div>
 
       <div>

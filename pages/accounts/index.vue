@@ -8,11 +8,16 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
-const { fetchBalances, fetchTransactions, loading } = useAccounts()
+const { fetchBalances, fetchTransactions, withdraw, loading } = useAccounts()
 
 const balances = ref({ cash: 0, bank: 0, total: 0 })
 const transactions = ref<AccountTransaction[]>([])
 const filter = ref<'all' | 'cash' | 'bank' | 'conversion'>('all')
+
+const showWithdrawModal = ref(false)
+const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '' })
+const withdrawLoading = ref(false)
+const withdrawError = ref('')
 
 const txTypeLabels: Record<string, string> = {
   delivery_collection: 'Delivery',
@@ -23,6 +28,7 @@ const txTypeLabels: Record<string, string> = {
   conversion_in: 'Convert In',
   conversion_out: 'Convert Out',
   adjustment: 'Adjustment',
+  salary_withdrawal: 'Salary',
 }
 
 const txTypeIcons: Record<string, string> = {
@@ -34,6 +40,7 @@ const txTypeIcons: Record<string, string> = {
   conversion_in: 'arrow_downward',
   conversion_out: 'arrow_upward',
   adjustment: 'sync_alt',
+  salary_withdrawal: 'account_balance',
 }
 
 const accountIcons: Record<string, string> = {
@@ -61,6 +68,34 @@ async function load() {
 }
 
 onMounted(load)
+
+function openWithdrawModal() {
+  withdrawForm.amount = 0
+  withdrawForm.accountType = 'cash'
+  withdrawForm.notes = ''
+  withdrawError.value = ''
+  showWithdrawModal.value = true
+}
+
+async function handleWithdraw() {
+  if (!withdrawForm.amount || withdrawForm.amount <= 0) return
+  withdrawLoading.value = true
+  withdrawError.value = ''
+  try {
+    const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined)
+    if (result) {
+      balances.value[withdrawForm.accountType] = result.balance
+      balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
+      showWithdrawModal.value = false
+      const txData = await fetchTransactions({ limit: 50 })
+      transactions.value = txData
+    } else {
+      withdrawError.value = 'Failed to record withdrawal'
+    }
+  } finally {
+    withdrawLoading.value = false
+  }
+}
 
 function formatTxDate(date: string) {
   return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
@@ -90,6 +125,13 @@ function balanceTextClass(amount: number) {
           <Icon name="swap_horiz" class="text-sm" />
           Convert
         </NuxtLink>
+        <button
+          class="flex items-center gap-1.5 px-3 py-2 rounded-full border border-outline-variant/30 text-on-surface-variant text-data-secondary"
+          @click="openWithdrawModal"
+        >
+          <Icon name="account_balance" class="text-sm" />
+          Withdraw
+        </button>
       </div>
     </div>
 
@@ -174,5 +216,74 @@ function balanceTextClass(amount: number) {
         </div>
       </div>
     </section>
+
+    <!-- Withdraw Modal -->
+    <Teleport to="body">
+      <Transition name="modal">
+        <div v-if="showWithdrawModal" class="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+          <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWithdrawModal = false" />
+          <div class="relative bg-surface-container-high rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 border border-outline-variant/20 z-10">
+            <div class="flex items-center justify-between">
+              <h2 class="text-headline-md text-on-surface">Salary Withdrawal</h2>
+              <button class="p-2 -mr-2" @click="showWithdrawModal = false">
+                <Icon name="close" class="text-on-surface-variant" />
+              </button>
+            </div>
+
+            <p class="text-data-secondary text-on-surface-variant">Mark a withdrawal from cash or bank for salary.</p>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Amount</label>
+              <input
+                v-model.number="withdrawForm.amount"
+                type="number"
+                min="1"
+                class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none"
+                placeholder="0"
+              />
+            </div>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">From</label>
+              <div class="flex gap-2">
+                <button
+                  v-for="opt in [{ key: 'cash' as const, label: 'Cash', icon: 'payments' }, { key: 'bank' as const, label: 'Bank', icon: 'account_balance' }]"
+                  :key="opt.key"
+                  class="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-data-secondary transition-colors"
+                  :class="withdrawForm.accountType === opt.key
+                    ? 'border-primary bg-primary/10 text-primary'
+                    : 'border-outline-variant/30 text-on-surface-variant'"
+                  @click="withdrawForm.accountType = opt.key"
+                >
+                  <Icon :name="opt.icon" class="text-sm" />
+                  {{ opt.label }}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Notes (optional)</label>
+              <input
+                v-model="withdrawForm.notes"
+                type="text"
+                class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none"
+                placeholder="e.g. July salary"
+              />
+            </div>
+
+            <p v-if="withdrawError" class="text-sm text-error">{{ withdrawError }}</p>
+
+            <button
+              :disabled="withdrawLoading || !withdrawForm.amount || withdrawForm.amount <= 0"
+              class="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              @click="handleWithdraw"
+            >
+              <LoadingSpinner v-if="withdrawLoading" class="h-4 w-4" />
+              {{ withdrawLoading ? 'Recording...' : 'Record Withdrawal' }}
+            </button>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>

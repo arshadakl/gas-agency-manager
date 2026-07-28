@@ -1,6 +1,6 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
-import type { Purchase, PurchaseItem } from '~/types/database'
+import type { Purchase, PurchaseItem, PurchasePayment } from '~/types/database'
 import type { CylinderSize, PurchaseType } from '~/types'
 
 export interface PurchaseLineItem {
@@ -13,8 +13,14 @@ export interface PurchaseLineItem {
   unitPrice?: number
 }
 
+export interface PurchasePaymentEntry {
+  amount: number
+  paymentMode: 'cash' | 'bank'
+}
+
 export interface PurchaseWithItems extends Purchase {
   items: Array<PurchaseLineItem | PurchaseItem>
+  payments: PurchasePayment[]
 }
 
 export interface PurchaseFormData {
@@ -22,8 +28,7 @@ export interface PurchaseFormData {
   purchaseDate: string
   totalAmount: number
   connectionCharge: number
-  amountPaid: number
-  paymentMode?: 'cash' | 'bank'
+  payments: PurchasePaymentEntry[]
   dueDate?: string
   notes?: string
   purchaseType?: PurchaseType
@@ -108,7 +113,7 @@ export function usePurchases() {
     }
   }
 
-  async function clearPurchase(publicId: string, data: { amount: number; paymentMode: 'cash' | 'bank'; notes?: string }) {
+  async function clearPurchase(publicId: string, data: { payments: PurchasePaymentEntry[]; notes?: string }) {
     error.value = null
     loading.value = true
     try {

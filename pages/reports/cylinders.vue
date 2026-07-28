@@ -13,7 +13,7 @@ async function load() {
 watch(dateRange, load, { immediate: true })
 
 const breakdown = computed(() => rows.value.map((r) => ({ cylinderSize: r.sizeKg, totalQuantity: r.totalDelivered })))
-const totalRevenue = computed(() => rows.value.reduce((sum, r) => sum + r.totalRevenue, 0))
+const totalDelivered = computed(() => rows.value.reduce((sum, r) => sum + r.totalDelivered, 0))
 </script>
 
 <template>
@@ -26,7 +26,7 @@ const totalRevenue = computed(() => rows.value.reduce((sum, r) => sum + r.totalR
     </div>
     <EmptyState v-else-if="rows.length === 0" title="No deliveries in this range" />
     <template v-else>
-      <KpiCard hero label="Total Revenue" :value="formatCurrency(totalRevenue)" />
+      <KpiCard hero label="Total Delivered" :value="`${totalDelivered} pcs`" />
       <section class="bg-surface-container rounded-xl p-5 space-y-md">
         <h2 class="text-data-primary text-on-surface flex items-center gap-2">
           <Icon name="local_shipping" class="text-primary-fixed-dim" /> By Size

@@ -1,11 +1,13 @@
 import { eq, inArray, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { deliveries, deliveryItems, inventory, products, customers } from '~/server/database/schema'
+import { deliveries, deliveryItems, inventory, products, customers, expenses } from '~/server/database/schema'
 import { DeliverySchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 import { recordCustomerPayment } from '~/server/utils/payment'
 import { generateId } from '~/server/utils/id'
+import { recordAccountTransaction } from '~/server/utils/account'
 import type { CylinderSize } from '~/types'
+import type { AccountType } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -39,12 +41,14 @@ export default defineEventHandler(async (event) => {
   // never leave an orphaned delivery record (see CLAUDE.md §23.4 D1 note).
   if (cylinderChanges.length > 0) await validateStockChanges(db, cylinderChanges)
 
+  const isFreeDelivery = body.freeAccessories && body.freeAccessories.length > 0
+
   const [delivery] = await db.insert(deliveries).values({
     publicId: generateId(),
     customerId: body.customerId,
     deliveryDate: body.deliveryDate,
     status: 'delivered',
-    paymentStatus: 'pending',
+    paymentStatus: isFreeDelivery ? 'paid' : 'pending',
     totalAmount: body.totalAmount,
     notes: body.notes,
     createdBy: user.id,
@@ -90,8 +94,49 @@ export default defineEventHandler(async (event) => {
       target: { type: 'fifo' },
       user,
     })
-    // FIFO may have updated this delivery (or only older ones) — refetch for accuracy.
     finalDelivery = await db.select().from(deliveries).where(eq(deliveries.id, delivery.id)).get() ?? delivery
+  } else if (isFreeDelivery) {
+    await recordCustomerPayment(db, {
+      customerId: body.customerId,
+      deliveryId: delivery.id,
+      amount: 0,
+      paymentDate: body.deliveryDate,
+      paymentMode: 'cash',
+      notes: 'Free delivery — no charge',
+      target: { type: 'fifo' },
+      user,
+    })
+  }
+
+  // Auto-create expense records for free accessories
+  if (body.freeAccessories && body.freeAccessories.length > 0) {
+    const customerName = await db.select({ name: customers.name }).from(customers).where(eq(customers.id, body.customerId)).get()
+    const customerDisplayName = customerName?.name ?? 'Unknown'
+
+    for (const fa of body.freeAccessories) {
+      const [expense] = await db.insert(expenses).values({
+        publicId: generateId(),
+        expenseDate: body.deliveryDate,
+        amount: fa.expenseAmount,
+        tag: 'free_accessory',
+        paymentSource: 'cash',
+        notes: `Free accessory — ${customerDisplayName}`,
+        createdBy: user.id,
+        createdByName: user.fullName,
+      }).returning()
+
+      if (expense && fa.expenseAmount > 0) {
+        await recordAccountTransaction(db, {
+          accountType: 'cash' as AccountType,
+          amount: -fa.expenseAmount,
+          transactionType: 'expense',
+          referenceId: expense.id,
+          referenceType: 'expense',
+          notes: `Free accessory — ${customerDisplayName}`,
+          user,
+        })
+      }
+    }
   }
 
   return { data: { ...finalDelivery, items: body.items } }

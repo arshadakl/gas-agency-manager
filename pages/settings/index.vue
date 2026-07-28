@@ -7,7 +7,7 @@ definePageMeta({
 const { user } = useUserSession()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
-const { locale, t, toggleLocale } = useLocale()
+const { t } = useLocale()
 
 type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock'
 const confirmClear = ref<ClearTarget | null>(null)
@@ -99,28 +99,6 @@ const links = computed(() => [
         <div
           class="w-4 h-4 rounded-full bg-on-surface transition-all"
           :class="theme === 'light' ? 'translate-x-6' : 'translate-x-0'"
-        />
-      </div>
-    </button>
-    <!-- Language toggle -->
-    <button
-      class="flex items-center gap-3 rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors w-full text-left"
-      @click="toggleLocale"
-    >
-      <Icon name="translate" class="text-primary-fixed-dim" />
-      <div class="flex-1">
-        <span class="text-data-primary text-on-surface">{{ t('language') }}</span>
-        <p class="text-data-tertiary text-on-surface-variant mt-0.5">
-          {{ locale === 'en' ? t('language_hint') : 'English — tap to switch to Malayalam' }}
-        </p>
-      </div>
-      <div
-        class="w-12 h-6 rounded-full transition-colors flex items-center px-1"
-        :class="locale === 'ml' ? 'bg-tertiary-container' : 'bg-surface-container-highest'"
-      >
-        <div
-          class="w-4 h-4 rounded-full bg-on-surface transition-all"
-          :class="locale === 'ml' ? 'translate-x-6' : 'translate-x-0'"
         />
       </div>
     </button>

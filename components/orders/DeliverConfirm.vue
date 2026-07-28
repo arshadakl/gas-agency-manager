@@ -38,7 +38,7 @@ function handleConfirm() {
         <input
           v-model="deliveryDate"
           type="date"
-          class="block w-full px-3 py-2.5 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
+          class="block w-full py-2.5 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
         >
       </div>
 

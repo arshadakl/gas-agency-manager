@@ -45,6 +45,23 @@ export function useAccounts() {
     }
   }
 
+  async function withdraw(accountType: AccountType, amount: number, notes?: string) {
+    error.value = null
+    loading.value = true
+    try {
+      const result = await $fetch<ApiResponse<{ balance: number; transaction: AccountTransaction }>>('/api/accounts/withdraw', {
+        method: 'POST',
+        body: { accountType, amount, notes },
+      })
+      return result.data
+    } catch (err: unknown) {
+      handleError(err, 'Failed to record withdrawal')
+      return null
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function convert(from: AccountType, amount: number, notes?: string) {
     error.value = null
     loading.value = true
@@ -62,5 +79,5 @@ export function useAccounts() {
     }
   }
 
-  return { fetchBalances, fetchTransactions, convert, loading, error }
+  return { fetchBalances, fetchTransactions, convert, withdraw, loading, error }
 }

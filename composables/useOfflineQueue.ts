@@ -5,7 +5,7 @@ interface PendingDelivery {
   items: Array<{ productId: number; quantity: number }>
   notes?: string
   paymentStatus?: 'paid' | 'pending'
-  paymentMode?: 'cash' | 'upi' | 'bank' | 'cheque'
+  paymentMode?: 'cash' | 'bank'
   queuedAt: string
 }
 

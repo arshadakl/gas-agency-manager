@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { purchases, purchaseItems, cylinderStock } from '~/server/database/schema'
+import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
-import type { CylinderSize } from '~/types'
+import { recordAccountTransaction, reverseAccountTransaction } from '~/server/utils/account'
+import type { CylinderSize, AccountType } from '~/types'
 
 export default defineEventHandler(async (event) => {
   const user = await requireRole(event, ['admin', 'delivery'])
@@ -17,6 +18,7 @@ export default defineEventHandler(async (event) => {
 
   const id = existing.id
   const oldItems = await db.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, id)).all()
+  const oldPayments = await db.select().from(purchasePayments).where(eq(purchasePayments.purchaseId, id)).all()
 
   // Auto-calculate connectionCharge from per-item cylinderCost.
   const totalCylinderCost = body.items.reduce((sum, i) => sum + (i.cylinderCost ?? 0), 0)
@@ -50,11 +52,12 @@ export default defineEventHandler(async (event) => {
     return { sizeKg, delta: newOwn - oldOwn }
   }).filter((u) => u.delta !== 0)
 
-  // Payment status is derived against the grand total (gas + connection charge).
+  // Derive payment status from new payments[] array.
+  const amountPaid = body.payments.reduce((sum, p) => sum + p.amount, 0)
   const grandTotal = body.totalAmount + body.connectionCharge
   const paymentStatus =
-    body.amountPaid >= grandTotal ? 'paid' :
-    body.amountPaid > 0 ? 'partial' : 'pending'
+    amountPaid >= grandTotal ? 'paid' :
+    amountPaid > 0 ? 'partial' : 'pending'
 
   await db.update(purchases).set({
     supplier: body.supplier,
@@ -62,8 +65,7 @@ export default defineEventHandler(async (event) => {
     invoiceNo: body.invoiceNo,
     totalAmount: body.totalAmount,
     connectionCharge: body.connectionCharge,
-    amountPaid: body.amountPaid,
-    paymentMode: body.paymentMode,
+    amountPaid,
     paymentStatus,
     paymentReference: body.paymentReference,
     dueDate: body.dueDate,
@@ -93,6 +95,34 @@ export default defineEventHandler(async (event) => {
       await db.update(cylinderStock)
         .set({ ownCount: Math.max(0, current.ownCount + update.delta), updatedAt: new Date().toISOString() })
         .where(eq(cylinderStock.sizeKg, update.sizeKg))
+    }
+  }
+
+  // Reverse old account transactions, then create new ones from new payments[].
+  if (oldPayments.length > 0) {
+    await reverseAccountTransaction(db, 'purchase', id, user)
+  }
+  await db.delete(purchasePayments).where(eq(purchasePayments.purchaseId, id))
+  if (body.payments.length > 0) {
+    await db.insert(purchasePayments).values(
+      body.payments.map((p) => ({
+        purchaseId: id,
+        amount: p.amount,
+        paymentMode: p.paymentMode,
+        createdBy: user.id,
+        createdByName: user.fullName,
+      })),
+    )
+    for (const p of body.payments) {
+      await recordAccountTransaction(db, {
+        accountType: p.paymentMode as AccountType,
+        amount: -p.amount,
+        transactionType: 'purchase_paid',
+        referenceId: id,
+        referenceType: 'purchase',
+        notes: `Purchase from ${body.supplier}`,
+        user,
+      })
     }
   }
 

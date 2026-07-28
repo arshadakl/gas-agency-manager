@@ -1,11 +1,11 @@
-import { eq, like, or, and, sql, getTableColumns } from 'drizzle-orm'
+import { eq, like, or, and, sql, getTableColumns, isNotNull } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { customers, deliveries, customerPayments } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
 
-  const query = getQuery(event) as { search?: string; isActive?: string }
+  const query = getQuery(event) as { search?: string; isActive?: string; type?: string; hasDeposit?: string }
   const db = useDB(event)
 
   const isActiveFilter = query.isActive === '0' ? 0 : 1
@@ -15,6 +15,14 @@ export default defineEventHandler(async (event) => {
   if (query.search) {
     const searchCondition = or(like(customers.name, `%${query.search}%`), like(customers.phone, `%${query.search}%`))
     if (searchCondition) conditions.push(searchCondition)
+  }
+
+  if (query.type && (query.type === 'restaurant' || query.type === 'home')) {
+    conditions.push(eq(customers.type, query.type))
+  }
+
+  if (query.hasDeposit === 'true') {
+    conditions.push(isNotNull(customers.connectionDeposit))
   }
 
   const where = conditions.length > 1 ? and(...conditions) : conditions[0]!

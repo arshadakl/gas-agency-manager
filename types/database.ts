@@ -11,6 +11,7 @@ import type {
   stockMovements,
   purchases,
   purchaseItems,
+  purchasePayments,
   orders,
   orderItems,
   expenses,
@@ -83,3 +84,6 @@ export type NewAccount = InferInsertModel<typeof accounts>
 
 export type AccountTransaction = InferSelectModel<typeof accountTransactions>
 export type NewAccountTransaction = InferInsertModel<typeof accountTransactions>
+
+export type PurchasePayment = InferSelectModel<typeof purchasePayments>
+export type NewPurchasePayment = InferInsertModel<typeof purchasePayments>

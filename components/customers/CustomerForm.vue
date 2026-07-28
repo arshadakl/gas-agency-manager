@@ -3,6 +3,7 @@ import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Textarea } from '~/components/ui/textarea'
 import { Button } from '~/components/ui/button'
+import { CUSTOMER_TYPES } from '~/types'
 import type { Customer, NewCustomer } from '~/types/database'
 
 const props = defineProps<{
@@ -25,6 +26,7 @@ const form = reactive({
   phone: props.customer?.phone ?? '',
   whatsappNumber: props.customer?.whatsappNumber ?? '',
   address: props.customer?.address ?? '',
+  type: (props.customer?.type ?? 'restaurant') as 'restaurant' | 'home',
   connectionDeposit: props.customer?.connectionDeposit ?? ('' as number | ''),
   depositNote: props.customer?.depositNote ?? '',
 })
@@ -57,6 +59,7 @@ function handleSubmit() {
     phone: form.phone.replace(/\s/g, ''),
     whatsappNumber: form.whatsappNumber ? form.whatsappNumber.replace(/\s/g, '') : undefined,
     address: form.address || undefined,
+    type: form.type,
     connectionDeposit: form.connectionDeposit === '' ? null : Number(form.connectionDeposit),
     depositNote: form.depositNote || null,
   })
@@ -68,6 +71,23 @@ function handleSubmit() {
     <div class="space-y-1">
       <Label for="name">Name</Label>
       <Input id="name" v-model="form.name" required />
+    </div>
+    <div class="space-y-1">
+      <Label>Type</Label>
+      <div class="flex gap-2">
+        <button
+          v-for="t in CUSTOMER_TYPES"
+          :key="t"
+          type="button"
+          class="flex-1 py-2.5 rounded-xl border text-data-secondary capitalize transition-colors"
+          :class="form.type === t
+            ? 'border-primary bg-primary/10 text-primary font-medium'
+            : 'border-outline-variant/30 text-on-surface-variant'"
+          @click="form.type = t"
+        >
+          {{ t }}
+        </button>
+      </div>
     </div>
     <div class="space-y-1">
       <Label for="contactPerson">Contact Person</Label>

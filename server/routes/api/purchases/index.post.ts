@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { purchases, purchaseItems, cylinderStock } from '~/server/database/schema'
+import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
 import { recordAccountTransaction } from '~/server/utils/account'
@@ -17,11 +17,12 @@ export default defineEventHandler(async (event) => {
   const totalCylinderCost = body.items.reduce((sum, i) => sum + (i.cylinderCost ?? 0), 0)
   body.connectionCharge = totalCylinderCost
 
-  // Payment status is derived against the grand total (gas + connection charge).
+  // Derive payment status from payments[] array.
+  const amountPaid = body.payments.reduce((sum, p) => sum + p.amount, 0)
   const grandTotal = body.totalAmount + body.connectionCharge
   const paymentStatus =
-    body.amountPaid >= grandTotal ? 'paid' :
-    body.amountPaid > 0 ? 'partial' : 'pending'
+    amountPaid >= grandTotal ? 'paid' :
+    amountPaid > 0 ? 'partial' : 'pending'
 
   // Stock: refill exchange (full in, empty out) + new connection (full in, no empty out)
   // + empty new cylinders (empty in, no full). Sequential — see §23.4 D1 note.
@@ -44,8 +45,7 @@ export default defineEventHandler(async (event) => {
     invoiceNo: body.invoiceNo,
     totalAmount: body.totalAmount,
     connectionCharge: body.connectionCharge,
-    amountPaid: body.amountPaid,
-    paymentMode: body.paymentMode,
+    amountPaid,
     paymentStatus,
     paymentReference: body.paymentReference,
     dueDate: body.dueDate,
@@ -86,17 +86,29 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Track payment in accounts if cash or bank
-  if (body.amountPaid > 0 && body.paymentMode && (body.paymentMode === 'cash' || body.paymentMode === 'bank')) {
-    await recordAccountTransaction(db, {
-      accountType: body.paymentMode as AccountType,
-      amount: -body.amountPaid,
-      transactionType: 'purchase_paid',
-      referenceId: purchase.id,
-      referenceType: 'purchase',
-      notes: `Purchase from ${body.supplier}`,
-      user,
-    })
+  // Record each payment in purchase_payments + account transactions
+  if (body.payments.length > 0) {
+    await db.insert(purchasePayments).values(
+      body.payments.map((p) => ({
+        purchaseId: purchase.id,
+        amount: p.amount,
+        paymentMode: p.paymentMode,
+        createdBy: user.id,
+        createdByName: user.fullName,
+      })),
+    )
+
+    for (const p of body.payments) {
+      await recordAccountTransaction(db, {
+        accountType: p.paymentMode as AccountType,
+        amount: -p.amount,
+        transactionType: 'purchase_paid',
+        referenceId: purchase.id,
+        referenceType: 'purchase',
+        notes: `Purchase from ${body.supplier}`,
+        user,
+      })
+    }
   }
 
   return { data: { ...purchase, items: body.items } }

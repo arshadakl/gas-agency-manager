@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { Product } from '~/types/database'
+import type { PurchasePaymentEntry } from '~/composables/usePurchases'
 
 definePageMeta({
   layout: 'default',
@@ -20,12 +21,11 @@ const accessories = computed(() => products.value.filter(p => p.type === 'access
 const form = reactive({
   purchaseDate: new Date().toISOString().split('T')[0],
   totalAmount: 0,
-  amountPaid: 0,
-  paymentMode: 'cash' as 'cash' | 'bank',
   notes: '',
 })
 
 const payNow = ref(true)
+const paymentMode = ref<'cash' | 'bank'>('cash')
 const quantities = reactive<Record<number, number>>({})
 
 onMounted(async () => {
@@ -49,21 +49,18 @@ const selectedItems = computed(() =>
 const hasItems = computed(() => selectedItems.value.length > 0)
 const totalQty = computed(() => selectedItems.value.reduce((sum, i) => sum + i.quantity, 0))
 
-watch(payNow, (v) => {
-  if (!v) form.amountPaid = 0
-  else form.amountPaid = form.totalAmount
-})
-
 async function handleSubmit() {
   if (!hasItems.value || form.totalAmount <= 0) return
-  if (payNow.value && (!form.paymentMode || form.amountPaid <= 0)) return
+
+  const payments: PurchasePaymentEntry[] = payNow.value
+    ? [{ amount: form.totalAmount, paymentMode: paymentMode.value }]
+    : []
 
   const data = {
     purchaseDate: form.purchaseDate as string,
     totalAmount: form.totalAmount,
     connectionCharge: 0,
-    amountPaid: payNow.value ? form.amountPaid : 0,
-    paymentMode: payNow.value ? form.paymentMode : undefined,
+    payments,
     notes: form.notes || undefined,
     purchaseType: 'accessories' as const,
     items: selectedItems.value.map(i => ({
@@ -98,7 +95,7 @@ async function handleSubmit() {
     <!-- Date -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
-      <input v-model="form.purchaseDate" type="date" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
+      <input v-model="form.purchaseDate" type="date" class="block w-full px-0 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
     </section>
 
     <!-- Item list -->
@@ -190,20 +187,17 @@ async function handleSubmit() {
 
       <div v-if="payNow" class="space-y-md">
         <div>
-          <label class="block text-data-secondary text-on-surface-variant mb-sm">Amount Paid</label>
-          <input v-model.number="form.amountPaid" type="number" min="0" step="0.01" :max="form.totalAmount" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
-        </div>
-        <div>
           <label class="block text-data-secondary text-on-surface-variant mb-3">Payment Method</label>
           <div class="flex gap-sm">
-            <button type="button" class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border" :class="form.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="form.paymentMode = 'cash'">
+            <button type="button" class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border" :class="paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="paymentMode = 'cash'">
               <Icon name="payments" class="text-[18px]" /> Cash
             </button>
-            <button type="button" class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border" :class="form.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="form.paymentMode = 'bank'">
+            <button type="button" class="flex-1 px-5 py-2.5 rounded-full text-data-secondary transition-all flex items-center justify-center gap-2 border" :class="paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="paymentMode = 'bank'">
               <Icon name="account_balance" class="text-[18px]" /> Bank
             </button>
           </div>
         </div>
+        <p class="text-data-secondary text-on-surface-variant">Paying {{ formatCurrency(form.totalAmount) }} via {{ paymentMode }}</p>
       </div>
 
       <div v-else class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20">
@@ -225,11 +219,11 @@ async function handleSubmit() {
       <button
         type="button"
         class="bg-primary text-primary-foreground px-6 py-3 rounded-lg flex flex-col items-center justify-center active:scale-95 transition-all disabled:opacity-50"
-        :disabled="loading || !hasItems || form.totalAmount <= 0 || (payNow && (!form.paymentMode || form.amountPaid <= 0))"
+        :disabled="loading || !hasItems || form.totalAmount <= 0"
         @click="handleSubmit"
       >
         <span class="text-data-primary">{{ loading ? 'Saving...' : 'Save Purchase' }}</span>
-        <span class="text-data-tertiary opacity-80 mt-0.5">{{ payNow ? 'Will deduct from ' + form.paymentMode : 'Pay later' }}</span>
+        <span class="text-data-tertiary opacity-80 mt-0.5">{{ payNow ? 'Will deduct from ' + paymentMode : 'Pay later' }}</span>
       </button>
     </div>
   </div>

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { Purchase } from '~/types/database'
+import type { PurchasePaymentEntry } from '~/composables/usePurchases'
 
 definePageMeta({
   layout: 'default',
@@ -14,10 +15,21 @@ const { showToast } = useToast()
 const purchases = ref<Purchase[]>([])
 const tab = ref<'gas' | 'accessories'>('gas')
 const clearingId = ref<string | null>(null)
-const clearAmount = ref<number>(0)
-const clearMode = ref<'cash' | 'bank'>('cash')
 const pageSize = 5
 const visibleCount = ref(pageSize)
+
+// Split clear state
+interface ClearPaymentRow {
+  id: number
+  amount: number
+  paymentMode: 'cash' | 'bank'
+}
+let nextClearRowId = 1
+function makeClearRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): ClearPaymentRow {
+  return { id: nextClearRowId++, amount, paymentMode: mode }
+}
+const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
+const clearPendingAmount = ref(0)
 
 onMounted(async () => {
   purchases.value = await fetchPurchases()
@@ -48,15 +60,31 @@ function initials(name: string) {
 function startClear(p: Purchase) {
   clearingId.value = p.publicId
   const grandTotal = p.totalAmount + (p.connectionCharge ?? 0)
-  clearAmount.value = Math.round((grandTotal - p.amountPaid) * 100) / 100
-  clearMode.value = 'cash'
+  const pending = Math.round((grandTotal - p.amountPaid) * 100) / 100
+  clearPendingAmount.value = pending
+  clearRows.value = [makeClearRow(pending)]
+}
+
+const clearTotalPaid = computed(() => clearRows.value.reduce((sum, r) => sum + (Number(r.amount) || 0), 0))
+const clearIsValid = computed(() => clearTotalPaid.value > 0 && clearTotalPaid.value <= clearPendingAmount.value + 0.01)
+
+function addClearRow() {
+  clearRows.value.push(makeClearRow())
+}
+
+function removeClearRow(rowId: number) {
+  if (clearRows.value.length <= 1) return
+  clearRows.value = clearRows.value.filter((r) => r.id !== rowId)
 }
 
 async function handleClear() {
-  if (!clearingId.value || clearAmount.value <= 0) return
-  const result = await clearPurchase(clearingId.value, { amount: clearAmount.value, paymentMode: clearMode.value })
+  if (!clearingId.value || !clearIsValid.value) return
+  const payments: PurchasePaymentEntry[] = clearRows.value
+    .filter((r) => (Number(r.amount) || 0) > 0)
+    .map((r) => ({ amount: Number(r.amount), paymentMode: r.paymentMode }))
+  const result = await clearPurchase(clearingId.value, { payments })
   if (result) {
-    showToast(`₹${clearAmount.value.toLocaleString()} payment recorded`)
+    showToast(`${formatCurrency(clearTotalPaid.value)} payment recorded`)
     clearingId.value = null
     purchases.value = await fetchPurchases()
   }
@@ -115,30 +143,80 @@ async function handleClear() {
       </div>
     </section>
 
-    <!-- Clear payment dialog -->
+    <!-- Split Clear payment dialog -->
     <div v-if="clearingId" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6">
-      <div class="bg-surface-container rounded-2xl p-6 w-full max-w-sm border border-outline-variant/30">
-        <h3 class="text-headline-md text-on-surface mb-4">Clear Payment</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="text-data-secondary text-on-surface-variant">Amount</label>
-            <input v-model.number="clearAmount" type="number" inputmode="numeric" min="0.01" step="0.01" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary mt-1">
+      <div class="bg-surface-container rounded-2xl p-6 w-full max-w-sm border border-outline-variant/30 space-y-4">
+        <h3 class="text-headline-md text-on-surface">Clear Payment</h3>
+        <p class="text-data-secondary text-on-surface-variant">Split between Cash and Bank if needed.</p>
+
+        <div v-for="(row, idx) in clearRows" :key="row.id" class="bg-surface-container-high rounded-xl p-4 border border-outline-variant/20 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Payment {{ idx + 1 }}</span>
+            <button
+              v-if="clearRows.length > 1"
+              type="button"
+              class="w-7 h-7 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-error-container/20 hover:text-error"
+              @click="removeClearRow(row.id)"
+            >
+              <Icon name="close" class="text-sm" />
+            </button>
           </div>
           <div>
-            <label class="text-data-secondary text-on-surface-variant mb-2 block">Payment Method</label>
+            <label class="text-data-tertiary text-on-surface-variant mb-1 block">Amount</label>
+            <input
+              v-model.number="row.amount"
+              type="number"
+              inputmode="numeric"
+              min="0.01"
+              step="0.01"
+              class="w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+            >
+          </div>
+          <div>
+            <label class="text-data-tertiary text-on-surface-variant mb-2 block">From</label>
             <div class="flex gap-2">
-              <button type="button" class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors" :class="clearMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="clearMode = 'cash'">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                :class="row.paymentMode === 'cash' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                @click="row.paymentMode = 'cash'"
+              >
                 <Icon name="payments" class="text-sm mr-1" /> Cash
               </button>
-              <button type="button" class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors" :class="clearMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'" @click="clearMode = 'bank'">
+              <button
+                type="button"
+                class="flex-1 px-4 py-2.5 rounded-full text-data-secondary border transition-colors"
+                :class="row.paymentMode === 'bank' ? 'border-primary text-primary bg-primary/10' : 'border-outline-variant text-on-surface-variant'"
+                @click="row.paymentMode = 'bank'"
+              >
                 <Icon name="account_balance" class="text-sm mr-1" /> Bank
               </button>
             </div>
           </div>
         </div>
-        <div class="flex gap-3 mt-6">
+
+        <button
+          type="button"
+          class="w-full py-2 rounded-xl border border-dashed border-outline-variant/50 text-data-secondary text-on-surface-variant flex items-center justify-center gap-1.5"
+          @click="addClearRow"
+        >
+          <Icon name="add" class="text-sm" /> Add Payment
+        </button>
+
+        <div class="bg-surface-container-low rounded-xl p-3 border border-outline-variant/20 space-y-1">
+          <div class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Paying now</span>
+            <span class="text-data-primary text-on-surface">{{ formatCurrency(clearTotalPaid) }}</span>
+          </div>
+          <div v-if="clearPendingAmount - clearTotalPaid > 0" class="flex items-center justify-between">
+            <span class="text-data-secondary text-on-surface-variant">Still pending</span>
+            <span class="text-data-primary text-error">{{ formatCurrency(clearPendingAmount - clearTotalPaid) }}</span>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
           <Button variant="outline" class="flex-1" @click="clearingId = null">Cancel</Button>
-          <Button class="flex-1" :disabled="loading || clearAmount <= 0" @click="handleClear">
+          <Button class="flex-1" :disabled="loading || !clearIsValid" @click="handleClear">
             <LoadingSpinner v-if="loading" class="h-4 w-4 mr-2" />
             Confirm
           </Button>

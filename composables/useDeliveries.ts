@@ -8,6 +8,12 @@ interface DeliveryFormItem {
   quantity: number
 }
 
+export interface FreeAccessoryItem {
+  productId: number
+  quantity: number
+  expenseAmount: number
+}
+
 export interface DeliveryCreatePayload {
   customerId: number
   deliveryDate: string
@@ -16,6 +22,7 @@ export interface DeliveryCreatePayload {
   notes?: string
   amountCollected?: number
   paymentMode?: PaymentMode
+  freeAccessories?: FreeAccessoryItem[]
 }
 
 export function useDeliveries() {

@@ -1,13 +1,15 @@
 import { z } from 'zod'
 import { eq } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { purchases } from '~/server/database/schema'
+import { purchases, purchasePayments } from '~/server/database/schema'
 import { recordAccountTransaction } from '~/server/utils/account'
 import type { AccountType } from '~/types'
 
 const ClearSchema = z.object({
-  amount: z.number().positive(),
-  paymentMode: z.enum(['cash', 'bank']),
+  payments: z.array(z.object({
+    amount: z.number().positive(),
+    paymentMode: z.enum(['cash', 'bank']),
+  })).min(1),
   notes: z.string().max(500).optional(),
 })
 
@@ -24,27 +26,40 @@ export default defineEventHandler(async (event) => {
   const grandTotal = existing.totalAmount + (existing.connectionCharge ?? 0)
   const remaining = Math.round((grandTotal - existing.amountPaid) * 100) / 100
 
-  if (body.amount > remaining + 0.01) {
+  const totalClear = body.payments.reduce((sum, p) => sum + p.amount, 0)
+  if (totalClear > remaining + 0.01) {
     throw createError({ statusCode: 422, message: `Amount exceeds remaining due of ₹${remaining.toFixed(2)}` })
   }
 
-  const newAmountPaid = Math.round((existing.amountPaid + body.amount) * 100) / 100
+  const newAmountPaid = Math.round((existing.amountPaid + totalClear) * 100) / 100
   const newStatus = newAmountPaid >= grandTotal ? 'paid' : 'partial'
 
   await db.update(purchases)
     .set({ amountPaid: newAmountPaid, paymentStatus: newStatus })
     .where(eq(purchases.id, existing.id))
 
-  // Track in accounts
-  await recordAccountTransaction(db, {
-    accountType: body.paymentMode as AccountType,
-    amount: -body.amount,
-    transactionType: 'purchase_clear',
-    referenceId: existing.id,
-    referenceType: 'purchase',
-    notes: body.notes ?? `Clear payment for purchase ${existing.supplier}`,
-    user,
-  })
+  // Record each payment in purchase_payments + account transactions
+  await db.insert(purchasePayments).values(
+    body.payments.map((p) => ({
+      purchaseId: existing.id,
+      amount: p.amount,
+      paymentMode: p.paymentMode,
+      createdBy: user.id,
+      createdByName: user.fullName,
+    })),
+  )
+
+  for (const p of body.payments) {
+    await recordAccountTransaction(db, {
+      accountType: p.paymentMode as AccountType,
+      amount: -p.amount,
+      transactionType: 'purchase_clear',
+      referenceId: existing.id,
+      referenceType: 'purchase',
+      notes: body.notes ?? `Clear payment for purchase ${existing.supplier}`,
+      user,
+    })
+  }
 
   return { data: { id: existing.id, amountPaid: newAmountPaid, paymentStatus: newStatus } }
 })

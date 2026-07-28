@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const customerId = query.customerId ? Number(query.customerId) : undefined
   const isValidCustomer = customerId !== undefined && Number.isFinite(customerId) && customerId > 0
 
-  const validPaymentModes = ['cash', 'upi', 'bank', 'cheque'] as const
+  const validPaymentModes = ['cash', 'bank'] as const
   const paymentMode = query.paymentMode && validPaymentModes.includes(query.paymentMode as typeof validPaymentModes[number])
     ? query.paymentMode as typeof validPaymentModes[number]
     : undefined
