@@ -20,13 +20,15 @@ export function useCustomers() {
     error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
   }
 
-  async function fetchCustomers(search?: string, isActive?: '1' | '0') {
+  async function fetchCustomers(search?: string, isActive?: '1' | '0', filters?: { type?: string; hasDeposit?: boolean }) {
     error.value = null
     loading.value = true
     try {
       const params: Record<string, string> = {}
       if (search) params.search = search
       if (isActive !== undefined) params.isActive = isActive
+      if (filters?.type) params.type = filters.type
+      if (filters?.hasDeposit) params.hasDeposit = 'true'
       const result = await $fetch<ApiListResponse<CustomerWithBalance>>('/api/customers', { query: params })
       return result.data
     } catch (err: unknown) {

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { ROLES, PAYMENT_MODES, PRODUCT_TYPES } from '~/types'
+import { ROLES, PAYMENT_MODES, PRODUCT_TYPES, CUSTOMER_TYPES } from '~/types'
 
 export const phoneSchema = z.string().regex(/^[6-9]\d{9}$/, 'Enter a valid 10-digit phone number')
 
@@ -15,6 +15,7 @@ export const CustomerSchema = z.object({
   openingBalance: z.number().min(0).optional(),
   connectionDeposit: z.number().min(0).nullable().optional(),
   depositNote: z.string().max(300).nullable().optional(),
+  type: z.enum(CUSTOMER_TYPES).default('restaurant'),
 })
 
 export const PaymentPromiseSchema = z.object({
@@ -40,6 +41,11 @@ export const DeliverySchema = z.object({
   notes: z.string().max(500).optional(),
   amountCollected: z.number().min(0).default(0),
   paymentMode: z.enum(PAYMENT_MODES).optional(),
+  freeAccessories: z.array(z.object({
+    productId: z.number().int().positive(),
+    quantity: z.number().positive(),
+    expenseAmount: z.number().min(0),
+  })).optional(),
 }).refine((data) => data.amountCollected === 0 || !!data.paymentMode, {
   message: 'paymentMode is required when collecting an amount',
   path: ['paymentMode'],

@@ -2,6 +2,7 @@
 import { Button } from '~/components/ui/button'
 import type { CustomerWithBalance, NewCustomer } from '~/types/database'
 import { getOutstandingLevel, OUTSTANDING_LEVELS, type OutstandingLevel } from '~/utils/outstanding'
+import { CUSTOMER_TYPES, type CustomerType } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -19,6 +20,8 @@ const showForm = ref(false)
 const filter = ref<'active' | 'outstanding'>(route.query.filter === 'outstanding' ? 'outstanding' : 'active')
 const statusFilter = ref<'active' | 'archived'>('active')
 const levelFilter = ref<OutstandingLevel | null>(null)
+const typeFilter = ref<CustomerType | null>(null)
+const hasDepositFilter = ref(false)
 const severityLevels = OUTSTANDING_LEVELS.filter((l): l is Exclude<OutstandingLevel, 'clear'> => l !== 'clear')
 
 function levelLabel(level: Exclude<OutstandingLevel, 'clear'>) {
@@ -27,11 +30,16 @@ function levelLabel(level: Exclude<OutstandingLevel, 'clear'>) {
 
 async function load() {
   const isActive = statusFilter.value === 'archived' ? '0' as const : '1' as const
-  customers.value = await fetchCustomers(search.value || undefined, isActive)
+  customers.value = await fetchCustomers(search.value || undefined, isActive, {
+    type: typeFilter.value ?? undefined,
+    hasDeposit: hasDepositFilter.value,
+  })
 }
 
 watch(search, () => load())
 watch(statusFilter, () => load())
+watch(typeFilter, () => load())
+watch(hasDepositFilter, () => load())
 onMounted(load)
 
 function selectAll() {
@@ -41,6 +49,10 @@ function selectAll() {
 
 function toggleLevelFilter(level: Exclude<OutstandingLevel, 'clear'>) {
   levelFilter.value = levelFilter.value === level ? null : level
+}
+
+function toggleTypeFilter(type: CustomerType) {
+  typeFilter.value = typeFilter.value === type ? null : type
 }
 
 const filteredCustomers = computed(() => {
@@ -86,6 +98,30 @@ async function handleCreate(data: NewCustomer) {
           placeholder="Search by business name or phone..."
           class="w-full bg-surface-container-low border border-outline-variant/50 rounded-xl pl-12 pr-md py-sm text-on-surface text-body-base focus:border-primary focus:outline-none placeholder:text-on-surface-variant/50"
         >
+      </div>
+      <!-- Type filter chips -->
+      <div class="flex gap-1.5 overflow-x-auto no-scrollbar -mx-2 px-2">
+        <button
+          v-for="t in CUSTOMER_TYPES"
+          :key="t"
+          class="px-3 py-1.5 rounded-full text-data-secondary border whitespace-nowrap transition-colors shrink-0 capitalize"
+          :class="typeFilter === t
+            ? 'border-primary bg-primary/10 text-primary'
+            : 'border-outline-variant/30 text-on-surface-variant'"
+          @click="toggleTypeFilter(t)"
+        >
+          {{ t }}
+        </button>
+        <button
+          class="px-3 py-1.5 rounded-full text-data-secondary border whitespace-nowrap transition-colors shrink-0 inline-flex items-center gap-1"
+          :class="hasDepositFilter
+            ? 'border-primary bg-primary/10 text-primary'
+            : 'border-outline-variant/30 text-on-surface-variant'"
+          @click="hasDepositFilter = !hasDepositFilter"
+        >
+          <Icon name="savings" class="text-xs" />
+          <span>Has Deposit</span>
+        </button>
       </div>
       <!-- Active / Archived status filter -->
       <div v-if="user?.role === 'admin'" class="flex bg-surface-container-low rounded-lg p-xs border border-outline-variant/30">
