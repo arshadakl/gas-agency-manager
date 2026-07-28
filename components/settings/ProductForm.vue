@@ -2,8 +2,6 @@
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { Button } from '~/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '~/components/ui/select'
-import { CYLINDER_SIZES } from '~/types'
 import type { Product, NewProduct } from '~/types/database'
 
 const props = defineProps<{
@@ -69,13 +67,8 @@ function handleSubmit() {
     </div>
 
     <div v-if="form.type === 'cylinder'" class="space-y-1">
-      <Label>Cylinder Size</Label>
-      <Select v-model="form.cylinderSize">
-        <SelectTrigger><SelectValue placeholder="Select size" /></SelectTrigger>
-        <SelectContent>
-          <SelectItem v-for="size in CYLINDER_SIZES" :key="size" :value="size">{{ size }} kg</SelectItem>
-        </SelectContent>
-      </Select>
+      <Label for="cylinderSize">Cylinder Size (kg)</Label>
+      <Input id="cylinderSize" v-model.number="form.cylinderSize" type="number" min="1" step="1" placeholder="e.g. 5, 10, 25" required />
     </div>
 
     <p v-if="props.error" class="text-sm text-destructive">{{ props.error }}</p>
