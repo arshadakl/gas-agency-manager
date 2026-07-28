@@ -11,17 +11,29 @@ const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 const { t } = useLocale()
 
-type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock'
+type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock' | 'transactions'
 const confirmClear = ref<ClearTarget | null>(null)
 const clearing = ref(false)
 const clearError = ref<string | null>(null)
+const counts = ref<Record<ClearTarget, number>>({ deliveries: 0, purchases: 0, customers: 0, stock: 0, transactions: 0 })
+const countsLoaded = ref(false)
 
-const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string }> = {
-  deliveries: { label: 'Clear All Deliveries', desc: 'Removes all delivery (selling) records and resets order statuses', icon: 'local_shipping' },
-  purchases:  { label: 'Clear All Purchases', desc: 'Removes all purchase (buying) records from suppliers', icon: 'shopping_cart' },
-  customers:  { label: 'Clear All Customers', desc: 'Removes customers, deliveries, payments and orders', icon: 'groups' },
-  stock:      { label: 'Reset Stock Data', desc: 'Resets all cylinder counts to zero and clears movement history', icon: 'inventory_2' },
+const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string; countLabel: string }> = {
+  deliveries:   { label: 'Clear All Deliveries', desc: 'Removes all delivery (selling) records and resets order statuses', icon: 'local_shipping', countLabel: 'deliveries' },
+  purchases:    { label: 'Clear All Purchases', desc: 'Removes all purchase (buying) records from suppliers', icon: 'shopping_cart', countLabel: 'purchases' },
+  customers:    { label: 'Clear All Customers', desc: 'Removes customers, deliveries, payments and orders', icon: 'groups', countLabel: 'customers' },
+  stock:        { label: 'Reset Stock Data', desc: 'Resets all cylinder counts to zero and clears movement history', icon: 'inventory_2', countLabel: 'stock movements' },
+  transactions: { label: 'Clear All Transactions', desc: 'Deletes all account transactions, expenses and resets balances to zero', icon: 'receipt_long', countLabel: 'records' },
 }
+
+async function loadCounts() {
+  try {
+    const res = await $fetch<{ data: Record<ClearTarget, number> }>('/api/admin/clear/counts')
+    counts.value = res.data
+    countsLoaded.value = true
+  } catch { /* ignore */ }
+}
+onMounted(loadCounts)
 
 async function handleClear() {
   if (!confirmClear.value) return
@@ -30,6 +42,7 @@ async function handleClear() {
   try {
     await $fetch(`/api/admin/clear/${confirmClear.value}`, { method: 'DELETE' })
     confirmClear.value = null
+    await loadCounts()
   } catch (e: any) {
     clearError.value = e?.data?.message ?? 'Failed to clear data'
   } finally {
@@ -144,6 +157,11 @@ const links = computed(() => [
           </div>
         </div>
         <p class="text-body-base text-on-surface-variant">{{ clearMeta[confirmClear].desc }}. All deleted data is permanent.</p>
+        <div v-if="countsLoaded" class="rounded-lg bg-error-container/10 border border-error/20 px-3 py-2">
+          <p class="text-data-secondary text-error">
+            This will delete <span class="font-semibold">{{ counts[confirmClear].toLocaleString() }}</span> {{ clearMeta[confirmClear].countLabel }}
+          </p>
+        </div>
         <p v-if="clearError" class="text-sm text-error">{{ clearError }}</p>
         <div class="flex gap-2 pt-1">
           <button
