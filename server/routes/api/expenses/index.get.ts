@@ -11,7 +11,7 @@ export default defineEventHandler(async (event) => {
   const conditions: ReturnType<typeof eq>[] = []
 
   if (query.tag) {
-    conditions.push(eq(expenses.tag, query.tag as 'fuel' | 'maintenance' | 'fine' | 'other'))
+    conditions.push(eq(expenses.tag, query.tag as 'fuel' | 'maintenance' | 'free_accessory' | 'other'))
   }
   if (query.from) {
     conditions.push(gte(expenses.expenseDate, query.from))

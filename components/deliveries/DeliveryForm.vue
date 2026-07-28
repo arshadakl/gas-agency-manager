@@ -17,7 +17,7 @@ interface DeliveryInitial {
 const props = defineProps<{
   customers: CustomerWithBalance[]
   products: Product[]
-  cylinderFullStock?: Record<number, number>  // sizeKg → fullCount
+  cylinderFullStock?: Record<number, number>
   loading?: boolean
   error?: string | null
   initial?: DeliveryInitial
@@ -27,8 +27,6 @@ const emit = defineEmits<{
   submit: [data: DeliveryCreatePayload & { whatsapp?: boolean }]
   cancel: []
 }>()
-
-const { fetchFavoriteProductId } = useCustomers()
 
 const customerSearch = ref('')
 const selectedCustomerId = ref<number | undefined>(undefined)
@@ -40,8 +38,9 @@ const amountCollected = ref<number | ''>('')
 const paymentMode = ref<typeof PAYMENT_MODES[number]>('cash')
 const validationError = ref('')
 const itemTab = ref<'cylinders' | 'accessories'>('cylinders')
+const giveFree = ref(false)
+const addFreeExpense = ref(false)
 
-// Prefill form when editing an existing delivery
 if (props.initial) {
   selectedCustomerId.value = props.initial.customerId
   deliveryDate.value = props.initial.deliveryDate
@@ -87,19 +86,11 @@ function isOutOfStock(product: Product): boolean {
 async function selectCustomer(customer: CustomerWithBalance) {
   selectedCustomerId.value = customer.id
   customerSearch.value = customer.name
-  // Prefill the customer's most-frequently-ordered item — still removable, more addable.
-  if (!customer.publicId) return
-  const favoriteProductId = await fetchFavoriteProductId(customer.publicId)
-  if (favoriteProductId && !quantities[favoriteProductId]) {
-    quantities[favoriteProductId] = 1
-  }
 }
 
 function clearCustomer() {
   selectedCustomerId.value = undefined
   customerSearch.value = ''
-  // Items selected so far were chosen in the context of that customer
-  // (e.g. the favorite-item prefill) — start the item list fresh too.
   for (const key of Object.keys(quantities)) delete quantities[Number(key)]
 }
 
@@ -119,6 +110,20 @@ function dec(productId: number) {
   quantities[productId] = Math.max(0, (quantities[productId] ?? 0) - 1)
 }
 
+function switchTab(tab: 'cylinders' | 'accessories') {
+  if (tab === itemTab.value) return
+  if (tab === 'cylinders' && selectedAccessoryCount.value > 0) {
+    validationError.value = 'This delivery already has accessories. Save it first, then create a new cylinder delivery.'
+    return
+  }
+  if (tab === 'accessories' && selectedCylinderCount.value > 0) {
+    validationError.value = 'This delivery already has cylinders. Save it first, then create a new accessory delivery.'
+    return
+  }
+  validationError.value = ''
+  itemTab.value = tab
+}
+
 const selectedItems = computed(() =>
   Object.entries(quantities)
     .map(([productId, quantity]) => ({ productId: Number(productId), quantity }))
@@ -126,6 +131,13 @@ const selectedItems = computed(() =>
 )
 const totalUnits = computed(() => selectedItems.value.reduce((sum, i) => sum + i.quantity, 0))
 const goesToOutstanding = computed(() => Math.max(Number(totalAmount.value || 0) - Number(amountCollected.value || 0), 0))
+
+const selectedFreeItems = computed(() =>
+  selectedItems.value.filter(i => {
+    const product = props.products.find(p => p.id === i.productId)
+    return product?.type === 'accessory' && giveFree.value
+  }),
+)
 
 function buildPayload(): DeliveryCreatePayload | null {
   validationError.value = ''
@@ -157,6 +169,13 @@ function buildPayload(): DeliveryCreatePayload | null {
     notes: notes.value || undefined,
     amountCollected: Number(amountCollected.value || 0),
     paymentMode: amountCollected.value && amountCollected.value > 0 ? paymentMode.value : undefined,
+    freeAccessories: (giveFree.value && addFreeExpense.value)
+      ? selectedFreeItems.value.map(i => ({
+          productId: i.productId,
+          quantity: i.quantity,
+          expenseAmount: Number(totalAmount.value || 0),
+        }))
+      : [],
   }
 }
 
@@ -225,7 +244,7 @@ function handleSubmit() {
         v-model="deliveryDate"
         type="date"
         required
-        class="block w-full pl-3 pr-3 py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
+        class="block w-full py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
       >
     </section>
 
@@ -241,7 +260,7 @@ function handleSubmit() {
           :class="itemTab === 'cylinders'
             ? 'bg-primary-container text-on-primary-container'
             : 'text-on-surface-variant hover:text-on-surface'"
-          @click="itemTab = 'cylinders'"
+          @click="switchTab('cylinders')"
         >
           Cylinders
           <span v-if="selectedCylinderCount > 0" class="ml-1 text-data-tertiary">({{ selectedCylinderCount }})</span>
@@ -252,7 +271,7 @@ function handleSubmit() {
           :class="itemTab === 'accessories'
             ? 'bg-primary-container text-on-primary-container'
             : 'text-on-surface-variant hover:text-on-surface'"
-          @click="itemTab = 'accessories'"
+          @click="switchTab('accessories')"
         >
           Accessories
           <span v-if="selectedAccessoryCount > 0" class="ml-1 text-data-tertiary">({{ selectedAccessoryCount }})</span>
@@ -359,7 +378,40 @@ function handleSubmit() {
       </div>
     </section>
 
-    <!-- 7. Order Summary -->
+    <!-- 7. Free Accessory (only for accessory deliveries) -->
+    <section v-if="itemTab === 'accessories' && selectedAccessoryCount > 0" class="rounded-xl overflow-hidden">
+      <button
+        type="button"
+        class="w-full flex items-center justify-between p-4 transition-colors"
+        :class="giveFree ? 'bg-purple-500/10 border border-purple-500/30' : 'bg-surface-container-low border border-surface-variant'"
+        @click="giveFree = !giveFree; addFreeExpense = giveFree"
+      >
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" :class="giveFree ? 'bg-purple-500/20 text-purple-500' : 'bg-surface-variant text-on-surface-variant'">
+            <Icon name="redeem" class="text-lg" />
+          </div>
+          <div class="text-left">
+            <p class="text-data-primary" :class="giveFree ? 'text-purple-500' : 'text-on-surface'">Give as Free</p>
+            <p class="text-data-tertiary text-on-surface-variant">{{ selectedAccessoryCount }} accessory items will be free of charge</p>
+          </div>
+        </div>
+        <div class="w-10 h-6 rounded-full transition-colors flex items-center px-0.5" :class="giveFree ? 'bg-purple-500 justify-end' : 'bg-surface-variant justify-start'">
+          <div class="w-5 h-5 rounded-full bg-white shadow-sm" />
+        </div>
+      </button>
+      <div v-if="giveFree" class="px-4 py-3 bg-purple-500/5 border-x border-b border-purple-500/20 space-y-3">
+        <p class="text-data-tertiary text-on-surface-variant flex items-center gap-1.5">
+          <Icon name="info" class="text-sm text-purple-500" />
+          These accessories will be recorded as free — no charge to the customer.
+        </p>
+        <label class="flex items-center gap-2.5 cursor-pointer">
+          <input type="checkbox" v-model="addFreeExpense" class="w-4 h-4 rounded border-outline-variant accent-purple-500">
+          <span class="text-data-secondary text-on-surface-variant">Add as expense</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 8. Order Summary -->
     <section class="bg-surface-container-high border border-surface-variant p-6 rounded-xl space-y-2">
       <h3 class="text-data-secondary text-on-surface-variant uppercase tracking-wider mb-2">Order Summary</h3>
       <div class="flex justify-between items-center text-body-base text-on-surface">
@@ -386,19 +438,24 @@ function handleSubmit() {
     <p v-if="props.error" class="text-data-secondary text-error">{{ props.error }}</p>
 
     <!-- Sticky Bottom Actions -->
-    <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-surface-variant p-4 flex gap-4 z-30">
+    <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-surface-variant p-4 flex gap-3 z-30">
       <button
+        v-if="props.initial"
         type="button"
-        class="flex-1 rounded-lg bg-surface-container-highest text-on-surface border border-outline-variant/40 py-2 px-4 font-medium hover:bg-surface-variant transition-colors disabled:opacity-50"
+        class="rounded-lg bg-surface-container-highest text-on-surface border border-outline-variant/40 py-2.5 px-4 font-medium hover:bg-surface-variant transition-colors disabled:opacity-50"
         :disabled="props.loading"
         @click="emit('cancel')"
       >
         Cancel
       </button>
-      <Button type="submit" class="flex-[2] rounded-lg" :disabled="props.loading" @click="submitMode = 'save-whatsapp'">
+      <Button type="submit" variant="outline" class="flex-1 rounded-lg" :disabled="props.loading" @click="submitMode = 'save-only'">
         <LoadingSpinner v-if="props.loading" class="h-4 w-4 mr-2" />
-        <Icon v-else name="send" class="text-base mr-2" />
-        {{ props.loading ? 'Saving...' : 'Save & WhatsApp Receipt' }}
+        {{ props.loading ? 'Saving...' : 'Save' }}
+      </Button>
+      <Button type="submit" class="flex-[1.5] rounded-lg" :disabled="props.loading" @click="submitMode = 'save-whatsapp'">
+        <LoadingSpinner v-if="props.loading" class="h-4 w-4 mr-2" />
+        <Icon v-else name="chat" class="text-base mr-2" />
+        {{ props.loading ? 'Saving...' : 'Save & WhatsApp' }}
       </Button>
     </div>
   </form>

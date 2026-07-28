@@ -83,21 +83,21 @@ function formatShortDate(date: string) {
 const tagLabels: Record<ExpenseTag, string> = {
   fuel: 'Fuel',
   maintenance: 'Vehicle Maintenance',
-  fine: 'Fine',
+  free_accessory: 'Free Accessory',
   other: 'Other',
 }
 
 const tagIcons: Record<ExpenseTag, string> = {
   fuel: 'local_gas_station',
   maintenance: 'build',
-  fine: 'gavel',
+  free_accessory: 'inventory_2',
   other: 'more_horiz',
 }
 
 const tagColors: Record<ExpenseTag, string> = {
   fuel: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
   maintenance: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  fine: 'bg-red-500/10 text-red-500 border-red-500/30',
+  free_accessory: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
   other: 'bg-surface-container-highest text-on-surface-variant border-outline-variant/30',
 }
 
@@ -146,7 +146,7 @@ const sourceColors: Record<PaymentSource, string> = {
         class="bg-surface-container rounded-xl p-3 border border-outline-variant/30"
       >
         <div class="flex items-center gap-2 mb-1">
-          <Icon :name="tagIcons[tag]" class="text-sm" :class="tag === 'fuel' ? 'text-amber-500' : tag === 'maintenance' ? 'text-blue-500' : tag === 'fine' ? 'text-red-500' : 'text-on-surface-variant'" />
+          <Icon :name="tagIcons[tag]" class="text-sm" :class="tag === 'fuel' ? 'text-amber-500' : tag === 'maintenance' ? 'text-blue-500' : tag === 'free_accessory' ? 'text-purple-500' : 'text-on-surface-variant'" />
           <span class="text-data-tertiary text-on-surface-variant">{{ tagLabels[tag] }}</span>
         </div>
         <p class="text-data-primary text-on-surface">{{ formatCurrency(byTag[tag] ?? 0) }}</p>
