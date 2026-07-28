@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
   })))
 
   if (netChanges.length > 0) {
-    await commitStockChanges(db, netChanges, 'adjustment', id, 'purchase', user, 'net stock impact of purchase edit')
+    await commitStockChanges(db, netChanges, 'purchase', id, 'purchase', user, 'net stock impact of purchase edit')
   }
 
   // Apply net ownCount changes.

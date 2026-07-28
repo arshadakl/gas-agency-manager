@@ -48,7 +48,7 @@ async function fetchPnl(db: ReturnType<typeof useDB>, from: string, to: string) 
       .from(accountTransactions)
       .where(and(
         eq(accountTransactions.transactionType, 'salary_withdrawal'),
-        gte(accountTransactions.createdAt, from),
+        gte(sql`date(${accountTransactions.createdAt})`, from),
         lte(sql`date(${accountTransactions.createdAt})`, to),
       ))
       .get(),

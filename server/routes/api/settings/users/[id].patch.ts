@@ -23,7 +23,7 @@ export default defineEventHandler(async (event) => {
 
   const isSelf = currentUser.id === target.id
   const isAdmin = currentUser.role === 'admin'
-  const canManage = isAdmin || (Array.isArray(currentUser.featuresDisabled) && !currentUser.featuresDisabled.includes('manage_users'))
+  const canManage = isAdmin || (currentUser.role === 'delivery' && Array.isArray(currentUser.featuresDisabled) && !currentUser.featuresDisabled.includes('manage_users'))
 
   if (!isSelf && !canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 

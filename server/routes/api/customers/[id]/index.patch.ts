@@ -32,6 +32,8 @@ export default defineEventHandler(async (event) => {
       ...(rest.phone !== undefined ? { phone: rest.phone } : {}),
       ...(rest.whatsappNumber !== undefined ? { whatsappNumber: rest.whatsappNumber } : {}),
       ...(rest.address !== undefined ? { address: rest.address } : {}),
+      ...(rest.openingBalance !== undefined ? { openingBalance: rest.openingBalance } : {}),
+      ...(rest.type !== undefined ? { type: rest.type } : {}),
       ...(rest.connectionDeposit !== undefined ? { connectionDeposit: rest.connectionDeposit } : {}),
       ...(rest.depositNote !== undefined ? { depositNote: rest.depositNote } : {}),
       ...(isActive !== undefined ? { isActive: Number(isActive) } : {}),

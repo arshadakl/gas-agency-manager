@@ -3,9 +3,8 @@ import type { TranslationKey } from '~/utils/i18n'
 
 type Locale = 'en' | 'ml'
 
-const locale = ref<Locale>('en')
-
 export function useLocale() {
+  const locale = useState<Locale>('locale', () => 'en')
   const isMalayalam = computed(() => locale.value === 'ml')
 
   function t(key: TranslationKey): string {

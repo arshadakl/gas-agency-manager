@@ -16,6 +16,8 @@ export default defineEventHandler(async (event) => {
     area: body.area ?? null,
     whatsappNumber: body.whatsappNumber ?? null,
     address: body.address ?? null,
+    openingBalance: body.openingBalance ?? 0,
+    type: body.type ?? 'restaurant',
     connectionDeposit: body.connectionDeposit ?? null,
     depositNote: body.depositNote ?? null,
     publicId: generateId(),
