@@ -68,7 +68,7 @@ export function useAuth() {
     }
   }
 
-  async function updateUser(publicId: string, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string }) {
+  async function updateUser(publicId: string, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string; featuresDisabled?: string[] }) {
     error.value = null
     loading.value = true
     try {

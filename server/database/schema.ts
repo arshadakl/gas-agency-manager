@@ -13,6 +13,7 @@ export const users = sqliteTable('users', {
   fullName: text('full_name').notNull(),
   role: text('role', { enum: ['admin', 'delivery', 'viewer'] }).notNull(),
   isActive: integer('is_active').default(1).notNull(),
+  featuresDisabled: text('features_disabled'),  // JSON array of disabled feature keys, null = full access
   ...timestamps,
 })
 

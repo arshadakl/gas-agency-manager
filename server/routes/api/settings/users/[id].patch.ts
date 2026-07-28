@@ -10,6 +10,7 @@ const AdminUpdateSchema = z.object({
   role: z.enum([ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER]).optional(),
   isActive: z.boolean().optional(),
   newPassword: z.string().min(8).max(100).optional(),
+  featuresDisabled: z.array(z.string()).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -52,6 +53,7 @@ export default defineEventHandler(async (event) => {
       ...(body.role !== undefined ? { role: body.role } : {}),
       ...(body.isActive !== undefined ? { isActive: Number(body.isActive) } : {}),
       ...(body.newPassword ? { passwordHash: await hashPassword(body.newPassword) } : {}),
+      ...(body.featuresDisabled !== undefined ? { featuresDisabled: JSON.stringify(body.featuresDisabled) } : {}),
     }
   }
 
@@ -65,6 +67,7 @@ export default defineEventHandler(async (event) => {
       fullName: users.fullName,
       role: users.role,
       isActive: users.isActive,
+      featuresDisabled: users.featuresDisabled,
       createdAt: users.createdAt,
     })
 

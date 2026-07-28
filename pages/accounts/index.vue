@@ -7,6 +7,9 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { hasFeature } = usePermissions()
+if (!hasFeature('super_gas_accounts')) await navigateTo('/')
+
 const { user } = useUserSession()
 const { fetchBalances, fetchTransactions, withdraw, loading } = useAccounts()
 

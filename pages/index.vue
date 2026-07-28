@@ -9,6 +9,7 @@ definePageMeta({
 
 const { user } = useUserSession()
 const { t } = useLocale()
+const { hasFeature } = usePermissions()
 const { fetchToday } = useDeliveries()
 const { fetchSummary } = useReports()
 const { fetchCylinderStock } = useInventory()
@@ -64,6 +65,7 @@ function initials(name: string) {
       </section>
 
       <NuxtLink
+        v-if="hasFeature('payments')"
         to="/payments"
         class="flex items-center justify-between rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"
       >
@@ -75,6 +77,7 @@ function initials(name: string) {
       </NuxtLink>
 
       <NuxtLink
+        v-if="hasFeature('expenses')"
         to="/expenses"
         class="flex items-center justify-between rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"
       >
