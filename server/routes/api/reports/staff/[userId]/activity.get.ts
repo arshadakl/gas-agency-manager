@@ -1,6 +1,6 @@
 import { and, eq, gte, lte, desc } from 'drizzle-orm'
 import { useDB } from '~/server/database'
-import { deliveries, orders, customerPayments } from '~/server/database/schema'
+import { deliveries, orders, customerPayments, customers } from '~/server/database/schema'
 import { ReportQuerySchema } from '~/utils/validators'
 
 export default defineEventHandler(async (event) => {
@@ -15,7 +15,18 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   const [staffDeliveries, staffOrders, staffPayments] = await Promise.all([
-    db.select().from(deliveries)
+    db.select({
+      id: deliveries.id,
+      customerId: deliveries.customerId,
+      customerName: customers.name,
+      deliveryDate: deliveries.deliveryDate,
+      totalAmount: deliveries.totalAmount,
+      status: deliveries.status,
+      paymentStatus: deliveries.paymentStatus,
+      notes: deliveries.notes,
+    })
+      .from(deliveries)
+      .innerJoin(customers, eq(customers.id, deliveries.customerId))
       .where(and(eq(deliveries.createdBy, userId), gte(deliveries.deliveryDate, from), lte(deliveries.deliveryDate, to)))
       .orderBy(desc(deliveries.deliveryDate))
       .all(),
@@ -23,7 +34,17 @@ export default defineEventHandler(async (event) => {
       .where(and(eq(orders.createdBy, userId), gte(orders.orderDate, from), lte(orders.orderDate, to)))
       .orderBy(desc(orders.orderDate))
       .all(),
-    db.select().from(customerPayments)
+    db.select({
+      id: customerPayments.id,
+      customerId: customerPayments.customerId,
+      customerName: customers.name,
+      amount: customerPayments.amount,
+      paymentMode: customerPayments.paymentMode,
+      paymentDate: customerPayments.paymentDate,
+      notes: customerPayments.notes,
+    })
+      .from(customerPayments)
+      .innerJoin(customers, eq(customers.id, customerPayments.customerId))
       .where(and(eq(customerPayments.createdBy, userId), gte(customerPayments.paymentDate, from), lte(customerPayments.paymentDate, to)))
       .orderBy(desc(customerPayments.paymentDate))
       .all(),
