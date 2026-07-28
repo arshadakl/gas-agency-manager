@@ -5,7 +5,8 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
-const { hasFeature } = usePermissions()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 const { t } = useLocale()
