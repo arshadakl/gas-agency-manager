@@ -21,9 +21,15 @@ function handleCustomChange() {
         {{ p.label }}
       </button>
     </div>
-    <div v-if="preset === 'custom'" class="flex gap-2">
-      <input v-model="customFrom" type="date" class="flex-1 rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 text-body-base text-on-surface" @change="handleCustomChange" />
-      <input v-model="customTo" type="date" class="flex-1 rounded-lg border border-outline-variant bg-surface-container-highest px-3 py-2 text-body-base text-on-surface" @change="handleCustomChange" />
+    <div v-if="preset === 'custom'" class="flex items-end gap-3">
+      <div class="flex-1 min-w-0">
+        <label class="text-data-tertiary text-on-surface-variant text-xs block mb-1">Start Date</label>
+        <input v-model="customFrom" type="date" class="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-0 py-2 text-body-base text-on-surface" @change="handleCustomChange" />
+      </div>
+      <div class="flex-1 min-w-0">
+        <label class="text-data-tertiary text-on-surface-variant text-xs block mb-1">End Date</label>
+        <input v-model="customTo" type="date" class="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-0 py-2 text-body-base text-on-surface" @change="handleCustomChange" />
+      </div>
     </div>
   </div>
 </template>

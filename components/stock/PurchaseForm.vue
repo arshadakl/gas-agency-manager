@@ -221,9 +221,9 @@ function handleSubmit() {
         <Icon name="storefront" :filled="true" class="text-primary" />
         <h2 class="text-data-primary text-on-surface">Purchase Details</h2>
       </div>
-      <div>
+      <div class="m-0 p-0">
         <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
-        <Input v-model="form.purchaseDate" type="date" required />
+        <Input v-model="form.purchaseDate" type="date" class="px-0 mx-0" required/>
       </div>
     </section>
 

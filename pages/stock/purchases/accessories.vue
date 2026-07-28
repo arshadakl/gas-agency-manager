@@ -95,7 +95,7 @@ async function handleSubmit() {
     <!-- Date -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <label class="block text-data-secondary text-on-surface-variant mb-sm">Date</label>
-      <input v-model="form.purchaseDate" type="date" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
+      <input v-model="form.purchaseDate" type="date" class="block w-full px-0 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
     </section>
 
     <!-- Item list -->
