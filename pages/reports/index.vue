@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import type { FeatureKey } from '~/types'
+
 definePageMeta({
   layout: 'default',
   middleware: ['auth'],
 })
 
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 const { fetchSummary, dateRange, loading } = useReports()
 const summary = ref<Awaited<ReturnType<typeof fetchSummary>> | null>(null)
 
@@ -13,19 +17,21 @@ async function load() {
 watch(dateRange, load, { immediate: true })
 
 const links = [
-  { to: '/accounts', label: 'SuperGas Accounts', icon: 'account_balance' },
-  { to: '/reports/own-cylinders', label: 'Own Cylinders', icon: 'new_releases' },
-  { to: '/reports/cylinders', label: 'Cylinders Delivered', icon: 'local_shipping' },
-  { to: '/reports/customers', label: 'Top Customers', icon: 'groups' },
-  { to: '/reports/staff', label: 'Staff Work', icon: 'badge' },
-  { to: '/reports/profit-loss', label: 'Profit & Loss', icon: 'trending_up' },
+  { to: '/accounts', label: 'SuperGas Accounts', icon: 'account_balance', feature: 'super_gas_accounts' as FeatureKey },
+  { to: '/reports/own-cylinders', label: 'Own Cylinders', icon: 'new_releases', feature: null },
+  { to: '/reports/cylinders', label: 'Cylinders Delivered', icon: 'local_shipping', feature: null },
+  { to: '/reports/customers', label: 'Top Customers', icon: 'groups', feature: null },
+  { to: '/reports/staff', label: 'Staff Work', icon: 'badge', feature: null },
+  { to: '/reports/profit-loss', label: 'Profit & Loss', icon: 'trending_up', feature: 'profit_loss' as FeatureKey },
 ]
+
+const visibleLinks = computed(() => links.filter(l => !l.feature || hasFeature(l.feature)))
 </script>
 
 <template>
   <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <h1 class="text-headline-md text-on-surface">Reports</h1>
-    <DateRangeFilter />
+    <DateRangeFilter :max-months="hasFeature('reports_full_range') ? null : 3" />
 
     <div v-if="loading && !summary" class="flex justify-center py-8">
       <LoadingSpinner />
@@ -50,7 +56,7 @@ const links = [
 
     <div class="flex flex-col gap-sm">
       <NuxtLink
-        v-for="link in links"
+        v-for="link in visibleLinks"
         :key="link.to"
         :to="link.to"
         class="flex items-center gap-3 rounded-xl bg-surface-container p-4 border border-outline-variant/20 hover:border-outline-variant/40 transition-colors"

@@ -34,8 +34,9 @@ export default defineEventHandler(async (event) => {
       username: user.username,
       fullName: user.fullName,
       role: user.role,
+      featuresDisabled: user.featuresDisabled ? JSON.parse(user.featuresDisabled) : [],
     },
   })
 
-  return { data: { id: user.id, publicId: user.publicId, username: user.username, fullName: user.fullName, role: user.role } }
+  return { data: { id: user.id, publicId: user.publicId, username: user.username, fullName: user.fullName, role: user.role, featuresDisabled: user.featuresDisabled ? JSON.parse(user.featuresDisabled) : [] } }
 })

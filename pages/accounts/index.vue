@@ -7,6 +7,10 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
+if (!hasFeature('super_gas_accounts')) await navigateTo('/')
+
 const { user } = useUserSession()
 const { fetchBalances, fetchTransactions, withdraw, loading } = useAccounts()
 
@@ -102,10 +106,11 @@ function formatTxDate(date: string) {
 }
 
 function balanceTextClass(amount: number) {
-  const text = formatCurrency(amount)
-  if (text.length > 12) return 'text-headline-md'
-  if (text.length > 9) return 'text-xl font-semibold'
-  return 'text-display-lg'
+  const abs = Math.abs(amount)
+  if (abs >= 1_00_00_000) return 'text-xl font-semibold'
+  if (abs >= 10_00_000) return 'text-2xl font-semibold'
+  if (abs >= 1_00_000) return 'text-[26px] font-semibold'
+  return 'text-headline-md font-semibold'
 }
 </script>
 

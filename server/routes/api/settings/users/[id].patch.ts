@@ -2,7 +2,7 @@ import { eq, and, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
-import { ROLES } from '~/types'
+import { ROLES, ADMIN_ONLY_FEATURES } from '~/types'
 import { PasswordChangeSchema } from '~/utils/validators'
 
 const AdminUpdateSchema = z.object({
@@ -10,6 +10,7 @@ const AdminUpdateSchema = z.object({
   role: z.enum([ROLES.ADMIN, ROLES.DELIVERY, ROLES.VIEWER]).optional(),
   isActive: z.boolean().optional(),
   newPassword: z.string().min(8).max(100).optional(),
+  featuresDisabled: z.array(z.string()).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -22,8 +23,9 @@ export default defineEventHandler(async (event) => {
 
   const isSelf = currentUser.id === target.id
   const isAdmin = currentUser.role === 'admin'
+  const canManage = isAdmin || (Array.isArray(currentUser.featuresDisabled) && !currentUser.featuresDisabled.includes('manage_users'))
 
-  if (!isSelf && !isAdmin) throw createError({ statusCode: 403, message: 'Forbidden' })
+  if (!isSelf && !canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 
   let updates: Partial<typeof users.$inferInsert> = {}
 
@@ -34,6 +36,17 @@ export default defineEventHandler(async (event) => {
     updates.passwordHash = await hashPassword(body.newPassword)
   } else {
     const body = await parseBody(event, AdminUpdateSchema)
+
+    // Non-admin managers cannot set admin-only features
+    if (!isAdmin && body.featuresDisabled) {
+      body.featuresDisabled = body.featuresDisabled.filter(f => !ADMIN_ONLY_FEATURES.includes(f as any))
+    }
+
+    // Non-admin managers cannot change roles or deactivate users
+    if (!isAdmin) {
+      delete body.role
+      delete body.isActive
+    }
 
     const isDemoting = body.role !== undefined && body.role !== 'admin'
     const isDeactivating = body.isActive === false
@@ -52,6 +65,7 @@ export default defineEventHandler(async (event) => {
       ...(body.role !== undefined ? { role: body.role } : {}),
       ...(body.isActive !== undefined ? { isActive: Number(body.isActive) } : {}),
       ...(body.newPassword ? { passwordHash: await hashPassword(body.newPassword) } : {}),
+      ...(body.featuresDisabled !== undefined ? { featuresDisabled: JSON.stringify(body.featuresDisabled) } : {}),
     }
   }
 
@@ -65,6 +79,7 @@ export default defineEventHandler(async (event) => {
       fullName: users.fullName,
       role: users.role,
       isActive: users.isActive,
+      featuresDisabled: users.featuresDisabled,
       createdAt: users.createdAt,
     })
 

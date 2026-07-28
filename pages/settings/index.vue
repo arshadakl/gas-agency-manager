@@ -5,6 +5,8 @@ definePageMeta({
 })
 
 const { user } = useUserSession()
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 const { t } = useLocale()
@@ -36,9 +38,9 @@ async function handleClear() {
 }
 
 const links = computed(() => [
-  ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/stock/purchases', label: 'Purchases', icon: 'shopping_cart' }] : []),
+  ...(hasFeature('purchases') ? [{ to: '/stock/purchases', label: 'Purchases', icon: 'shopping_cart' }] : []),
   ...(user.value?.role === 'admin' || user.value?.role === 'delivery' ? [{ to: '/settings/products', label: t('products_pricing'), icon: 'inventory_2' }] : []),
-  ...(user.value?.role === 'admin' ? [{ to: '/settings/users', label: t('users'), icon: 'groups' }] : []),
+  ...(hasFeature('manage_users') ? [{ to: '/settings/users', label: t('users'), icon: 'groups' }] : []),
   ...(user.value?.role === 'admin' ? [{ to: '/settings/import', label: 'Import Customers (Notebook)', icon: 'upload_file' }] : []),
   { to: '/settings/account', label: t('my_account'), icon: 'account_circle' },
 ])

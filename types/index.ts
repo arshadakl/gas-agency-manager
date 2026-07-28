@@ -49,3 +49,27 @@ export type PurchaseType = typeof PURCHASE_TYPES[number]
 
 export const CUSTOMER_TYPES = ['restaurant', 'home'] as const
 export type CustomerType = typeof CUSTOMER_TYPES[number]
+
+export const FEATURE_KEYS = {
+  SUPER_GAS_ACCOUNTS: 'super_gas_accounts',
+  PROFIT_LOSS: 'profit_loss',
+  REPORTS_FULL_RANGE: 'reports_full_range',
+  PURCHASES: 'purchases',
+  EXPENSES: 'expenses',
+  PAYMENTS: 'payments',
+  MANAGE_USERS: 'manage_users',
+} as const
+export type FeatureKey = typeof FEATURE_KEYS[keyof typeof FEATURE_KEYS]
+
+export const FEATURE_LABELS: Record<FeatureKey, string> = {
+  super_gas_accounts: 'SuperGas Accounts',
+  profit_loss: 'Profit & Loss',
+  reports_full_range: 'Full Report Range',
+  purchases: 'Purchases',
+  expenses: 'Expenses',
+  payments: 'Payments',
+  manage_users: 'Manage Users',
+}
+
+// Features that only admin can toggle — not delegateable
+export const ADMIN_ONLY_FEATURES: FeatureKey[] = ['manage_users']

@@ -1,4 +1,4 @@
-import type { Role } from './index'
+import type { Role, FeatureKey } from './index'
 
 declare module '#auth-utils' {
   interface User {
@@ -7,6 +7,7 @@ declare module '#auth-utils' {
     username: string
     fullName: string
     role: Role
+    featuresDisabled: FeatureKey[]
   }
 }
 

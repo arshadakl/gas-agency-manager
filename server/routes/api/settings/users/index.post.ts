@@ -5,7 +5,10 @@ import { UserSchema } from '~/utils/validators'
 import { generateId } from '~/server/utils/id'
 
 export default defineEventHandler(async (event) => {
-  await requireRole(event, ['admin'])
+  const user = await requireUser(event)
+  const isAdmin = user.role === 'admin'
+  const canManage = isAdmin || (Array.isArray(user.featuresDisabled) && !user.featuresDisabled.includes('manage_users'))
+  if (!canManage) throw createError({ statusCode: 403, message: 'Forbidden' })
 
   const body = await parseBody(event, UserSchema)
   const db = useDB(event)

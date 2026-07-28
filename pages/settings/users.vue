@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
 import type { User } from '~/types/database'
+import { FEATURE_KEYS, FEATURE_LABELS, ADMIN_ONLY_FEATURES } from '~/types'
+import type { FeatureKey } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -8,7 +10,15 @@ definePageMeta({
 })
 
 const { user: currentUser } = useUserSession()
-if (currentUser.value?.role !== 'admin') await navigateTo('/')
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
+if (!hasFeature('manage_users')) await navigateTo('/')
+
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const featureKeys = computed(() => {
+  const all = Object.values(FEATURE_KEYS) as FeatureKey[]
+  return isAdmin.value ? all : all.filter(f => !ADMIN_ONLY_FEATURES.includes(f))
+})
 
 const { fetchUsers, createUser, updateUser, deleteUser, loading, error } = useAuth()
 
@@ -19,6 +29,33 @@ const showDeleteConfirm = ref(false)
 const userToResetPw = ref<User | null>(null)
 const newPassword = ref('')
 const pwError = ref<string | null>(null)
+const expandedUserId = ref<number | null>(null)
+const savingPermissions = ref(false)
+
+function getUserDisabledFeatures(u: User): FeatureKey[] {
+  if (!u.featuresDisabled) return []
+  try {
+    return JSON.parse(u.featuresDisabled) as FeatureKey[]
+  } catch {
+    return []
+  }
+}
+
+function isFeatureDisabled(u: User, feature: FeatureKey): boolean {
+  return getUserDisabledFeatures(u).includes(feature)
+}
+
+async function toggleFeature(u: User, feature: FeatureKey) {
+  if (!u.publicId) return
+  savingPermissions.value = true
+  const current = getUserDisabledFeatures(u)
+  const updated = current.includes(feature)
+    ? current.filter(f => f !== feature)
+    : [...current, feature]
+  await updateUser(u.publicId, { featuresDisabled: updated })
+  await load()
+  savingPermissions.value = false
+}
 
 async function load() {
   users.value = await fetchUsers()
@@ -82,7 +119,7 @@ function closePasswordReset() {
   <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-center justify-between">
       <h2 class="text-headline-md text-on-surface">Users</h2>
-      <Button size="icon" class="rounded-full" @click="showForm = true">
+      <Button v-if="isAdmin" size="icon" class="rounded-full" @click="showForm = true">
         <Icon name="add" />
       </Button>
     </div>
@@ -92,37 +129,84 @@ function closePasswordReset() {
     </div>
 
     <div class="rounded-xl border border-outline-variant/30 bg-surface-container overflow-hidden">
-      <div v-for="u in users" :key="u.id" class="flex items-center justify-between border-b border-outline-variant/20 px-4 py-3 last:border-0 gap-2">
-        <div class="flex-1">
-          <p class="text-data-primary text-on-surface">{{ u.fullName }}</p>
-          <p class="text-data-tertiary text-on-surface-variant mt-0.5">@{{ u.username }} · {{ u.role }}</p>
+      <template v-for="u in users" :key="u.id">
+        <!-- User row -->
+        <div class="border-b border-outline-variant/20 last:border-0">
+          <div class="flex items-center justify-between px-4 py-3 gap-2">
+            <div class="flex-1 min-w-0">
+              <p class="text-data-primary text-on-surface truncate">{{ u.fullName }}</p>
+              <p class="text-data-tertiary text-on-surface-variant mt-0.5">@{{ u.username }} · {{ u.role }}</p>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button
+                class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
+                :class="expandedUserId === u.id ? 'bg-surface-container-high text-primary' : ''"
+                title="Permissions"
+                @click="expandedUserId = expandedUserId === u.id ? null : u.id"
+              >
+                <Icon name="tune" class="text-sm" />
+              </button>
+              <template v-if="isAdmin">
+                <button
+                  class="rounded-full px-3 py-1 text-data-tertiary border transition-colors"
+                  :class="u.isActive
+                    ? 'border-success/40 bg-success/10 text-success'
+                    : 'border-outline-variant/30 bg-surface-container-highest text-on-surface-variant'"
+                  @click="toggleActive(u)"
+                >
+                  {{ u.isActive ? 'Active' : 'Inactive' }}
+                </button>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
+                  title="Reset password"
+                  @click="openPasswordReset(u)"
+                >
+                  <Icon name="key" class="text-sm" />
+                </button>
+                <button
+                  class="flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error-container/30 transition-colors"
+                  title="Delete user"
+                  @click="userToDelete = u; showDeleteConfirm = true"
+                >
+                <Icon name="delete" class="text-sm" />
+              </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Permissions section (expandable) -->
+          <div v-if="expandedUserId === u.id" class="px-4 pb-3 pt-1 border-t border-outline-variant/10">
+            <p class="text-data-secondary text-on-surface-variant mb-2 font-medium">Disable features for {{ u.fullName }}:</p>
+            <div class="space-y-2">
+              <label
+                v-for="feature in featureKeys"
+                :key="feature"
+                class="flex items-center justify-between py-1.5 px-3 rounded-lg bg-surface-container-low"
+              >
+                <span class="text-data-secondary text-on-surface">{{ FEATURE_LABELS[feature] }}</span>
+                <button
+                  type="button"
+                  role="switch"
+                  :aria-checked="!isFeatureDisabled(u, feature)"
+                  :disabled="savingPermissions"
+                  class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50"
+                  :class="isFeatureDisabled(u, feature)
+                    ? 'bg-surface-container-highest border-outline-variant/40'
+                    : 'bg-primary-container'"
+                  @click="toggleFeature(u, feature)"
+                >
+                  <span
+                    class="pointer-events-none inline-block h-5 w-5 transform rounded-full shadow-lg ring-0 transition duration-200 ease-in-out mt-px"
+                    :class="isFeatureDisabled(u, feature)
+                      ? 'translate-x-0 bg-on-surface-variant'
+                      : 'translate-x-5 bg-on-primary-container'"
+                  />
+                </button>
+              </label>
+            </div>
+          </div>
         </div>
-        <div class="flex items-center gap-2 shrink-0">
-          <button
-            class="rounded-full px-3 py-1 text-data-tertiary border transition-colors"
-            :class="u.isActive
-              ? 'border-success/40 bg-success/10 text-success'
-              : 'border-outline-variant/30 bg-surface-container-highest text-on-surface-variant'"
-            @click="toggleActive(u)"
-          >
-            {{ u.isActive ? 'Active' : 'Inactive' }}
-          </button>
-          <button
-            class="flex h-8 w-8 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-variant transition-colors"
-            title="Reset password"
-            @click="openPasswordReset(u)"
-          >
-            <Icon name="key" class="text-sm" />
-          </button>
-          <button
-            class="flex h-8 w-8 items-center justify-center rounded-full text-error hover:bg-error-container/30 transition-colors"
-            title="Delete user"
-            @click="userToDelete = u; showDeleteConfirm = true"
-          >
-            <Icon name="delete" class="text-sm" />
-          </button>
-        </div>
-      </div>
+      </template>
     </div>
 
     <!-- Password reset modal -->

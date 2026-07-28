@@ -4,6 +4,10 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { hasFeature, refreshPermissions } = usePermissions()
+await refreshPermissions()
+if (!hasFeature('profit_loss')) await navigateTo('/reports')
+
 const { fetchProfitLoss, fetchProfitLossTrend, dateRange, loading } = useReports()
 const report = ref<Awaited<ReturnType<typeof fetchProfitLoss>> | null>(null)
 const trend = ref<Array<{ month: string; revenue: number; costs: number; expenses: number; profit: number }>>([])
