@@ -4,6 +4,7 @@ import type { Purchase } from '~/types/database'
 import type { PurchasePaymentEntry } from '~/composables/usePurchases'
 import { type ClearPaymentRow, makeClearRow } from '~/utils/clearPayment'
 import { initials } from '~/utils/formatters'
+import { getPresetRange, type DatePreset } from '~/utils/datePresets'
 
 definePageMeta({
   layout: 'default',
@@ -16,9 +17,20 @@ const { showToast } = useToast()
 
 const purchases = ref<Purchase[]>([])
 const tab = ref<'gas' | 'accessories'>('gas')
+const statusFilter = ref<'all' | 'pending' | 'paid' | 'partial'>('all')
 const clearingId = ref<string | null>(null)
 const pageSize = 5
 const visibleCount = ref(pageSize)
+
+// Date filter
+const datePreset = ref<DatePreset>('this_month')
+const customFrom = ref('')
+const customTo = ref('')
+const dateRange = computed(() =>
+  datePreset.value === 'custom'
+    ? { from: customFrom.value, to: customTo.value }
+    : getPresetRange(datePreset.value),
+)
 
 // Split clear state
 const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
@@ -28,9 +40,15 @@ onMounted(async () => {
   purchases.value = await fetchPurchases()
 })
 
-const filteredPurchases = computed(() =>
-  purchases.value.filter(p => (p.purchaseType ?? 'gas') === tab.value)
-)
+const filteredPurchases = computed(() => {
+  return purchases.value.filter(p => {
+    if ((p.purchaseType ?? 'gas') !== tab.value) return false
+    if (statusFilter.value !== 'all' && p.paymentStatus !== statusFilter.value) return false
+    if (dateRange.value.from && p.purchaseDate < dateRange.value.from) return false
+    if (dateRange.value.to && p.purchaseDate > dateRange.value.to) return false
+    return true
+  })
+})
 
 const visiblePurchases = computed(() => filteredPurchases.value.slice(0, visibleCount.value))
 const hasMore = computed(() => visibleCount.value < filteredPurchases.value.length)
@@ -40,6 +58,10 @@ function loadMore() {
 }
 
 watch(tab, () => {
+  visibleCount.value = pageSize
+})
+
+watch([statusFilter, dateRange], () => {
   visibleCount.value = pageSize
 })
 
@@ -119,6 +141,42 @@ async function handleClear() {
         <Icon name="inventory_2" class="text-base" />
         Accessories
       </button>
+    </div>
+
+    <!-- Payment status filter -->
+    <div class="flex gap-sm overflow-x-auto pb-1">
+      <button
+        v-for="s in (['all', 'pending', 'paid', 'partial'] as const)"
+        :key="s"
+        class="shrink-0 rounded-full px-4 py-2 text-data-secondary whitespace-nowrap transition-colors border"
+        :class="statusFilter === s ? 'bg-primary-container text-on-primary-container font-bold border-primary-container' : 'border-outline text-on-surface-variant'"
+        @click="statusFilter = s"
+      >
+        {{ s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1) }}
+      </button>
+    </div>
+
+    <!-- Date filter -->
+    <div class="flex gap-sm overflow-x-auto pb-1">
+      <button
+        v-for="p in (['today', 'this_week', 'this_month', '3_months', '6_months', 'custom'] as const)"
+        :key="p"
+        class="shrink-0 rounded-full px-4 py-2 text-data-secondary whitespace-nowrap transition-colors border"
+        :class="datePreset === p ? 'bg-surface-container-high text-on-surface font-bold border-outline-variant/30' : 'border-outline text-on-surface-variant'"
+        @click="datePreset = p"
+      >
+        {{ p === 'today' ? 'Today' : p === 'this_week' ? 'This Week' : p === 'this_month' ? 'This Month' : p === '3_months' ? '3 Months' : p === '6_months' ? '6 Months' : 'Custom' }}
+      </button>
+    </div>
+    <div v-if="datePreset === 'custom'" class="flex items-end gap-3">
+      <div class="flex-1 min-w-0">
+        <label class="text-data-tertiary text-on-surface-variant text-xs block mb-1">From</label>
+        <input v-model="customFrom" type="date" class="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-0 py-2 text-body-base text-on-surface" />
+      </div>
+      <div class="flex-1 min-w-0">
+        <label class="text-data-tertiary text-on-surface-variant text-xs block mb-1">To</label>
+        <input v-model="customTo" type="date" class="w-full rounded-lg border border-outline-variant bg-surface-container-highest px-0 py-2 text-body-base text-on-surface" />
+      </div>
     </div>
 
     <!-- Summary -->
