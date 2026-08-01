@@ -3,6 +3,7 @@ import { Button } from '~/components/ui/button'
 import type { ExpenseTag } from '~/types'
 import { EXPENSE_TAGS, PAYMENT_SOURCES } from '~/types'
 import type { PaymentSource } from '~/composables/useExpenses'
+import { TAG_LABELS, TAG_COLORS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
 
 definePageMeta({
   layout: 'default',
@@ -45,26 +46,11 @@ onMounted(async () => {
   }
 })
 
-const tagLabels: Record<ExpenseTag, string> = {
-  fuel: 'Fuel',
-  maintenance: 'Vehicle Maintenance',
-  free_accessory: 'Free Accessory',
-  other: 'Other',
-}
-
-const tagColors: Record<ExpenseTag, string> = {
-  fuel: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-  maintenance: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  free_accessory: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
-  other: 'bg-surface-container-highest text-on-surface-variant border-outline-variant/30',
-}
-
-const sourceLabels: Record<PaymentSource, string> = { cash: 'Cash', bank: 'Bank' }
-const sourceIcons: Record<PaymentSource, string> = { cash: 'payments', bank: 'account_balance' }
-const sourceColors: Record<PaymentSource, string> = {
-  cash: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-  bank: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-}
+const tagLabels = TAG_LABELS
+const tagColors = TAG_COLORS
+const sourceLabels = SOURCE_LABELS
+const sourceIcons = SOURCE_ICONS
+const sourceColors = SOURCE_COLORS
 
 async function handleSubmit() {
   formError.value = null

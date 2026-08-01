@@ -2,6 +2,8 @@
 import { Button } from '~/components/ui/button'
 import type { Purchase } from '~/types/database'
 import type { PurchasePaymentEntry } from '~/composables/usePurchases'
+import { type ClearPaymentRow, makeClearRow } from '~/utils/clearPayment'
+import { initials } from '~/utils/formatters'
 
 definePageMeta({
   layout: 'default',
@@ -19,15 +21,6 @@ const pageSize = 5
 const visibleCount = ref(pageSize)
 
 // Split clear state
-interface ClearPaymentRow {
-  id: number
-  amount: number
-  paymentMode: 'cash' | 'bank'
-}
-let nextClearRowId = 1
-function makeClearRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): ClearPaymentRow {
-  return { id: nextClearRowId++, amount, paymentMode: mode }
-}
 const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
 const clearPendingAmount = ref(0)
 
@@ -53,9 +46,6 @@ watch(tab, () => {
 const totalTrips = computed(() => filteredPurchases.value.length)
 const totalSpent = computed(() => filteredPurchases.value.reduce((sum, p) => sum + p.totalAmount + (p.connectionCharge ?? 0), 0))
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 
 function startClear(p: Purchase) {
   clearingId.value = p.publicId

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { initials } from '~/utils/formatters'
+
 definePageMeta({
   layout: 'default',
   middleware: ['auth'],
@@ -12,9 +14,6 @@ async function load() {
 }
 watch(dateRange, load, { immediate: true })
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 </script>
 
 <template>

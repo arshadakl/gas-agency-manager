@@ -2,6 +2,7 @@
 import { Button } from '~/components/ui/button'
 import type { PurchaseWithItems, PurchaseFormData, PurchasePaymentEntry } from '~/composables/usePurchases'
 import type { CylinderSize } from '~/types'
+import { type ClearPaymentRow, makeClearRow } from '~/utils/clearPayment'
 
 definePageMeta({
   layout: 'default',
@@ -19,15 +20,6 @@ const editing = ref(false)
 const clearing = ref(false)
 
 // Split clear state
-interface ClearPaymentRow {
-  id: number
-  amount: number
-  paymentMode: 'cash' | 'bank'
-}
-let nextClearRowId = 1
-function makeClearRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): ClearPaymentRow {
-  return { id: nextClearRowId++, amount, paymentMode: mode }
-}
 const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
 
 onMounted(async () => {

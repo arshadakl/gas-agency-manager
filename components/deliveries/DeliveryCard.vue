@@ -3,6 +3,7 @@ import { Badge } from '~/components/ui/badge'
 import { PAYMENT_MODES } from '~/types'
 import type { DeliveryWithRelations } from '~/types/database'
 import type { PaymentMode } from '~/types'
+import { initials } from '~/utils/formatters'
 
 const props = defineProps<{
   delivery: DeliveryWithRelations
@@ -33,9 +34,6 @@ const badgeClass = computed(() => {
   return 'bg-error-container/40 text-error border-error/30'
 })
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 
 function canEdit() {
   return user.value?.role === 'admin' || user.value?.role === 'delivery'
