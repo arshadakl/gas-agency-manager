@@ -32,3 +32,7 @@ export function formatPhone(phone: string): string {
 export function toISODate(date: Date): string {
   return date.toISOString().split('T')[0]!
 }
+
+export function initials(name: string): string {
+  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
+}

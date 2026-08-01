@@ -102,7 +102,7 @@ export function useInventory() {
     }
   }
 
-  async function collectEmpties(data: { date: string; items: { sizeKg: number; qty: number }[]; notes?: string; customerName?: string }) {
+  async function collectEmpties(data: { date: string; items: { sizeKg: number; qty: number }[]; notes?: string; customerName: string }) {
     error.value = null
     loading.value = true
     try {

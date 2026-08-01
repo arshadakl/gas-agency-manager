@@ -42,8 +42,9 @@ async function handleClear() {
     await $fetch(`/api/admin/clear/${confirmClear.value}`, { method: 'DELETE' })
     confirmClear.value = null
     await loadCounts()
-  } catch (e: any) {
-    showToast(e?.data?.message || 'Failed to clear data', 'destructive')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : (e as { data?: { message?: string } })?.data?.message || 'Failed to clear data'
+    showToast(msg, 'destructive')
   } finally {
     clearing.value = false
   }

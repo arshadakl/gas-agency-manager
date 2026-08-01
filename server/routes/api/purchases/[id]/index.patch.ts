@@ -3,7 +3,7 @@ import { useDB } from '~/server/database'
 import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
-import { recordAccountTransaction, reverseAccountTransaction } from '~/server/utils/account'
+import { recordAccountTransaction, reverseAccountTransaction, getAccountBalance } from '~/server/utils/account'
 import type { CylinderSize, AccountType } from '~/types'
 
 export default defineEventHandler(async (event) => {
@@ -42,6 +42,29 @@ export default defineEventHandler(async (event) => {
   }).filter((c) => c.fullChange !== 0 || c.emptyChange !== 0)
 
   if (netChanges.length > 0) await validateStockChanges(db, netChanges)
+
+  // Validate account balances before any write — simulate reversal + new payments.
+  // Old payments are reversed (credited back), then new payments are deducted.
+  const balanceAdjustments = new Map<string, number>()
+  for (const op of oldPayments) {
+    const key = op.paymentMode
+    balanceAdjustments.set(key, (balanceAdjustments.get(key) ?? 0) + op.amount)
+  }
+  for (const np of body.payments) {
+    const key = np.paymentMode
+    balanceAdjustments.set(key, (balanceAdjustments.get(key) ?? 0) - np.amount)
+  }
+  for (const [mode, delta] of balanceAdjustments) {
+    if (delta < 0) {
+      const balance = await getAccountBalance(db, mode as AccountType)
+      if (balance + delta < 0) {
+        throw createError({
+          statusCode: 422,
+          message: `Insufficient ${mode} balance. Available: ₹${balance.toLocaleString('en-IN')}, needed: ₹${Math.abs(delta).toLocaleString('en-IN')}`,
+        })
+      }
+    }
+  }
 
   // Net ownCount change per size.
   const ownUpdates = Array.from(allSizes).map((sizeKg) => {

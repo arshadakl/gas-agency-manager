@@ -6,6 +6,9 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { hasFeature } = usePermissions()
+if (!hasFeature('super_gas_accounts')) await navigateTo('/')
+
 const { fetchBalances, convert, loading, error } = useAccounts()
 const { showToast } = useToast()
 
@@ -42,9 +45,6 @@ async function confirmConvert() {
   }
 }
 
-function formatShortDate(date: string) {
-  return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-}
 </script>
 
 <template>

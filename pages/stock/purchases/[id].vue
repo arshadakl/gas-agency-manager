@@ -2,6 +2,7 @@
 import { Button } from '~/components/ui/button'
 import type { PurchaseWithItems, PurchaseFormData, PurchasePaymentEntry } from '~/composables/usePurchases'
 import type { CylinderSize } from '~/types'
+import { type ClearPaymentRow, makeClearRow } from '~/utils/clearPayment'
 
 definePageMeta({
   layout: 'default',
@@ -17,17 +18,9 @@ const { fetchPurchase, updatePurchase, deletePurchase, clearPurchase, loading, e
 const purchase = ref<PurchaseWithItems | null>(null)
 const editing = ref(false)
 const clearing = ref(false)
+const showDeleteConfirm = ref(false)
 
 // Split clear state
-interface ClearPaymentRow {
-  id: number
-  amount: number
-  paymentMode: 'cash' | 'bank'
-}
-let nextClearRowId = 1
-function makeClearRow(amount = 0, mode: 'cash' | 'bank' = 'cash'): ClearPaymentRow {
-  return { id: nextClearRowId++, amount, paymentMode: mode }
-}
 const clearRows = ref<ClearPaymentRow[]>([makeClearRow()])
 
 onMounted(async () => {
@@ -98,6 +91,8 @@ async function handleClear() {
     showToast(`${formatCurrency(clearTotalPaid.value)} payment recorded`)
     clearing.value = false
     purchase.value = await fetchPurchase(id)
+  } else {
+    showToast(error.value || 'Payment failed. Check your account balance.', 'destructive')
   }
 }
 
@@ -109,7 +104,8 @@ async function handleSubmit(data: PurchaseFormData) {
   }
 }
 
-async function handleDelete() {
+async function confirmDelete() {
+  showDeleteConfirm.value = false
   const ok = await deletePurchase(id)
   if (ok) await navigateTo('/stock/purchases')
 }
@@ -333,7 +329,7 @@ async function handleDelete() {
         </div>
 
         <div v-if="user?.role === 'admin' || user?.role === 'delivery'" class="flex flex-col sm:flex-row gap-sm justify-end">
-          <Button variant="outline" class="rounded-lg border-error text-error hover:bg-error/10" @click="handleDelete">
+          <Button variant="outline" class="rounded-lg border-error text-error hover:bg-error/10" @click="showDeleteConfirm = true">
             <Icon name="delete" class="text-lg mr-2" /> Delete Record
           </Button>
           <Button class="rounded-lg" @click="editing = true">
@@ -351,5 +347,15 @@ async function handleDelete() {
         @cancel="editing = false"
       />
     </template>
+
+    <ConfirmDialog
+      :open="showDeleteConfirm"
+      title="Delete purchase?"
+      message="This purchase record and all its data will be permanently removed. Stock changes will be reversed. This cannot be undone."
+      confirm-text="Yes, Delete"
+      :destructive="true"
+      @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>

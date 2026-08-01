@@ -2,6 +2,7 @@
 import { Button } from '~/components/ui/button'
 import type { ExpenseTag, PaymentSource } from '~/types'
 import { EXPENSE_TAGS } from '~/types'
+import { TAG_LABELS, TAG_COLORS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
 
 definePageMeta({
   layout: 'default',
@@ -18,6 +19,8 @@ const bySource = ref<Record<string, number>>({})
 const tagFilter = ref<ExpenseTag | ''>('')
 const datePreset = ref<string>('this_month')
 const loadingList = ref(true)
+const deleteTargetId = ref<string | null>(null)
+const showDeleteConfirm = ref(false)
 
 type DatePreset = 'today' | 'this_week' | 'this_month' | 'last_3_months' | 'last_6_months' | 'this_year' | 'all'
 
@@ -71,8 +74,15 @@ watch([tagFilter, datePreset], () => load())
 onMounted(load)
 
 async function handleDelete(publicId: string) {
-  if (!confirm('Delete this expense?')) return
-  const success = await deleteExpense(publicId)
+  deleteTargetId.value = publicId
+  showDeleteConfirm.value = true
+}
+
+async function confirmDelete() {
+  if (!deleteTargetId.value) return
+  const success = await deleteExpense(deleteTargetId.value)
+  showDeleteConfirm.value = false
+  deleteTargetId.value = null
   if (success) await load()
 }
 
@@ -80,12 +90,7 @@ function formatShortDate(date: string) {
   return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
 }
 
-const tagLabels: Record<ExpenseTag, string> = {
-  fuel: 'Fuel',
-  maintenance: 'Vehicle Maintenance',
-  free_accessory: 'Free Accessory',
-  other: 'Other',
-}
+const tagLabels = TAG_LABELS
 
 const tagIcons: Record<ExpenseTag, string> = {
   fuel: 'local_gas_station',
@@ -94,19 +99,11 @@ const tagIcons: Record<ExpenseTag, string> = {
   other: 'more_horiz',
 }
 
-const tagColors: Record<ExpenseTag, string> = {
-  fuel: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
-  maintenance: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-  free_accessory: 'bg-purple-500/10 text-purple-500 border-purple-500/30',
-  other: 'bg-surface-container-highest text-on-surface-variant border-outline-variant/30',
-}
+const tagColors = TAG_COLORS
 
-const sourceLabels: Record<PaymentSource, string> = { cash: 'Cash', bank: 'Bank' }
-const sourceIcons: Record<PaymentSource, string> = { cash: 'payments', bank: 'account_balance' }
-const sourceColors: Record<PaymentSource, string> = {
-  cash: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30',
-  bank: 'bg-blue-500/10 text-blue-500 border-blue-500/30',
-}
+const sourceLabels = SOURCE_LABELS
+const sourceIcons = SOURCE_ICONS
+const sourceColors = SOURCE_COLORS
 </script>
 
 <template>
@@ -212,5 +209,15 @@ const sourceColors: Record<PaymentSource, string> = {
         </div>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="showDeleteConfirm"
+      title="Delete expense?"
+      message="This expense will be permanently removed. This cannot be undone."
+      confirm-text="Yes, Delete"
+      :destructive="true"
+      @confirm="confirmDelete"
+      @cancel="showDeleteConfirm = false; deleteTargetId = null"
+    />
   </div>
 </template>

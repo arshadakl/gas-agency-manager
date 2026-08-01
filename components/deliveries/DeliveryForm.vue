@@ -3,6 +3,7 @@ import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import { PAYMENT_MODES } from '~/types'
 import type { CustomerWithBalance, Product, DeliveryWithRelations } from '~/types/database'
+import { initials } from '~/utils/formatters'
 import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
 
 interface DeliveryInitial {
@@ -94,9 +95,6 @@ function clearCustomer() {
   for (const key of Object.keys(quantities)) delete quantities[Number(key)]
 }
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 
 function productIcon(product: Product) {
   if (product.type !== 'cylinder') return 'inventory_2'

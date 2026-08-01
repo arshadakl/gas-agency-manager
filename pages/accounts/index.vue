@@ -103,8 +103,9 @@ async function handleWithdraw() {
     } else {
       showToast(withdrawError.value || 'Failed to record withdrawal', 'destructive')
     }
-  } catch (e: any) {
-    showToast(e?.data?.message || 'Failed to record withdrawal', 'destructive')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : (e as { data?: { message?: string } })?.data?.message || 'Failed to record withdrawal'
+    showToast(msg, 'destructive')
   } finally {
     withdrawLoading.value = false
   }
@@ -132,8 +133,9 @@ async function handleDeposit() {
     } else {
       showToast(depositError.value || 'Failed to record deposit', 'destructive')
     }
-  } catch (e: any) {
-    showToast(e?.data?.message || 'Failed to record deposit', 'destructive')
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : (e as { data?: { message?: string } })?.data?.message || 'Failed to record deposit'
+    showToast(msg, 'destructive')
   } finally {
     depositLoading.value = false
   }

@@ -3,6 +3,7 @@ import { Button } from '~/components/ui/button'
 import { Textarea } from '~/components/ui/textarea'
 import type { Customer, Product } from '~/types/database'
 import type { OrderCreatePayload } from '~/composables/useOrders'
+import { initials } from '~/utils/formatters'
 
 const props = defineProps<{
   customers: Customer[]
@@ -48,9 +49,6 @@ function clearCustomer() {
   for (const key of Object.keys(quantities)) delete quantities[Number(key)]
 }
 
-function initials(name: string) {
-  return name.split(' ').filter(Boolean).slice(0, 2).map((p) => p[0]).join('').toUpperCase()
-}
 
 function productIcon(product: Product) {
   if (product.type !== 'cylinder') return 'inventory_2'

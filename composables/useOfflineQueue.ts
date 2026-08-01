@@ -1,11 +1,7 @@
-interface PendingDelivery {
+import type { DeliveryCreatePayload } from '~/composables/useDeliveries'
+
+interface PendingDelivery extends DeliveryCreatePayload {
   localId?: number
-  customerId: number
-  deliveryDate: string
-  items: Array<{ productId: number; quantity: number }>
-  notes?: string
-  paymentStatus?: 'paid' | 'pending'
-  paymentMode?: 'cash' | 'bank'
   queuedAt: string
 }
 
@@ -24,7 +20,7 @@ function openDB(): Promise<IDBDatabase> {
 }
 
 export function useOfflineQueue() {
-  async function queueDelivery(data: Omit<PendingDelivery, 'queuedAt'>) {
+  async function queueDelivery(data: DeliveryCreatePayload) {
     const db = await openDB()
     const tx = db.transaction(STORE_NAME, 'readwrite')
     tx.objectStore(STORE_NAME).add({ ...data, queuedAt: new Date().toISOString() })
@@ -54,7 +50,7 @@ export function useOfflineQueue() {
         await $fetch('/api/deliveries', { method: 'POST', body: item })
         if (item.localId) await removePendingDelivery(item.localId)
       } catch {
-        break
+        // Continue with remaining items instead of breaking
       }
     }
   }

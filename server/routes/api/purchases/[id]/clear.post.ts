@@ -31,24 +31,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 422, message: `Amount exceeds remaining due of ₹${remaining.toFixed(2)}` })
   }
 
-  const newAmountPaid = Math.round((existing.amountPaid + totalClear) * 100) / 100
-  const newStatus = newAmountPaid >= grandTotal ? 'paid' : 'partial'
-
-  await db.update(purchases)
-    .set({ amountPaid: newAmountPaid, paymentStatus: newStatus })
-    .where(eq(purchases.id, existing.id))
-
-  // Record each payment in purchase_payments + account transactions
-  await db.insert(purchasePayments).values(
-    body.payments.map((p) => ({
-      purchaseId: existing.id,
-      amount: p.amount,
-      paymentMode: p.paymentMode,
-      createdBy: user.id,
-      createdByName: user.fullName,
-    })),
-  )
-
+  // 1. Record account transactions FIRST — balance check happens here.
+  //    If insufficient balance, this throws and purchase stays 'pending' (correct).
   for (const p of body.payments) {
     await recordAccountTransaction(db, {
       accountType: p.paymentMode as AccountType,
@@ -60,6 +44,24 @@ export default defineEventHandler(async (event) => {
       user,
     })
   }
+
+  // 2. Only after ALL account transactions succeed — update purchase record.
+  const newAmountPaid = Math.round((existing.amountPaid + totalClear) * 100) / 100
+  const newStatus = newAmountPaid >= grandTotal ? 'paid' : 'partial'
+
+  await db.update(purchases)
+    .set({ amountPaid: newAmountPaid, paymentStatus: newStatus })
+    .where(eq(purchases.id, existing.id))
+
+  await db.insert(purchasePayments).values(
+    body.payments.map((p) => ({
+      purchaseId: existing.id,
+      amount: p.amount,
+      paymentMode: p.paymentMode,
+      createdBy: user.id,
+      createdByName: user.fullName,
+    })),
+  )
 
   return { data: { id: existing.id, amountPaid: newAmountPaid, paymentStatus: newStatus } }
 })

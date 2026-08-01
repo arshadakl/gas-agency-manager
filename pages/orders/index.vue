@@ -7,6 +7,9 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { user } = useUserSession()
+const canCreate = computed(() => user.value?.role === 'admin' || user.value?.role === 'delivery')
+
 const { fetchOrders, loading } = useOrders()
 const orders = ref<OrderWithRelations[]>([])
 const filter = ref<'pending' | 'delivered'>('pending')
@@ -22,7 +25,7 @@ onMounted(load)
   <div class="px-margin-mobile py-lg flex flex-col gap-lg">
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">Orders</h1>
-      <Button size="icon" class="rounded-full" as-child>
+      <Button v-if="canCreate" size="icon" class="rounded-full" as-child>
         <NuxtLink to="/orders/new"><Icon name="add" /></NuxtLink>
       </Button>
     </div>

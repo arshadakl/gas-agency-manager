@@ -2,6 +2,7 @@ import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { User } from '#auth-utils'
 import type { User as AppUser } from '~/types/database'
+import type { FeatureKey } from '~/types'
 
 export function useAuth() {
   const { user, loggedIn, session, fetch: refreshSession, clear } = useUserSession()
@@ -68,7 +69,7 @@ export function useAuth() {
     }
   }
 
-  async function updateUser(publicId: string, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string; featuresDisabled?: string[] }) {
+  async function updateUser(publicId: string, data: { fullName?: string; role?: string; isActive?: boolean; newPassword?: string; featuresDisabled?: FeatureKey[] }) {
     error.value = null
     loading.value = true
     try {

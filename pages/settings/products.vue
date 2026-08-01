@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import type { Product } from '~/types/database'
+import type { Product, NewProduct } from '~/types/database'
 
 definePageMeta({
   layout: 'default',
@@ -22,6 +22,7 @@ const productHistoryCount = ref(0)
 const manageLoading = ref(false)
 const manageMode = ref<'info' | 'rename'>('info')
 const renameValue = ref('')
+const showDeleteConfirm = ref(false)
 
 async function load() {
   products.value = await fetchProducts()
@@ -64,7 +65,7 @@ async function handleRename() {
 async function handleHide() {
   if (!manageProduct.value?.publicId) return
   manageLoading.value = true
-  const updated = await updateProduct(manageProduct.value.publicId, { isActive: false } as any)
+  const updated = await updateProduct(manageProduct.value.publicId, { isActive: 0 } as Partial<NewProduct>)
   if (updated) {
     manageProduct.value = null
     await load()
@@ -74,7 +75,12 @@ async function handleHide() {
   manageLoading.value = false
 }
 
-async function handleDelete() {
+function handleDelete() {
+  showDeleteConfirm.value = true
+}
+
+async function confirmDeleteProduct() {
+  showDeleteConfirm.value = false
   if (!manageProduct.value?.publicId) return
   manageLoading.value = true
   const ok = await deleteProduct(manageProduct.value.publicId)
@@ -202,5 +208,15 @@ async function handleDelete() {
         </template>
       </div>
     </div>
+
+    <ConfirmDialog
+      :open="showDeleteConfirm"
+      title="Delete product?"
+      message="This product will be permanently removed. Any existing deliveries using this product will still show it, but you won't be able to create new ones."
+      confirm-text="Yes, Delete"
+      :destructive="true"
+      @confirm="confirmDeleteProduct"
+      @cancel="showDeleteConfirm = false"
+    />
   </div>
 </template>

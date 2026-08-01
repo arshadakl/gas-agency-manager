@@ -8,7 +8,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event) as { accountType?: string; limit?: string }
   const db = useDB(event)
-  const limit = query.limit ? parseInt(query.limit) : 50
+  const limit = Math.min(query.limit ? parseInt(query.limit) : 50, 200)
 
   const whereClause = query.accountType
     ? eq(accountTransactions.accountType, query.accountType as AccountType)
