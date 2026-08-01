@@ -77,6 +77,8 @@ async function handleSubmit() {
   if (created) {
     showToast('Accessories purchase recorded')
     await navigateTo('/stock/purchases')
+  } else {
+    showToast(error.value || 'Failed to record purchase', 'destructive')
   }
 }
 </script>
@@ -207,8 +209,6 @@ async function handleSubmit() {
         </p>
       </div>
     </section>
-
-    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
 
     <!-- Sticky bottom bar -->
     <div class="fixed bottom-16 inset-x-0 mx-auto max-w-[480px] bg-surface-container border-t border-outline-variant/30 px-margin-mobile py-4 z-30 flex items-center justify-between gap-4">

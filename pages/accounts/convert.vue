@@ -37,6 +37,8 @@ async function confirmConvert() {
   if (result) {
     showToast(`₹${amountNum.value.toLocaleString()} converted from ${fromType.value} to ${toType.value}`)
     await navigateTo('/accounts')
+  } else {
+    showToast(error.value || 'Failed to convert', 'destructive')
   }
 }
 
@@ -116,8 +118,6 @@ function formatShortDate(date: string) {
         class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary mt-1"
       >
     </div>
-
-    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
 
     <!-- Submit button -->
     <Button class="w-full" :disabled="!isValid || loading" @click="handleConvert">

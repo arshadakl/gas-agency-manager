@@ -16,6 +16,8 @@ async function handleSubmit() {
     showToast('Password changed successfully')
     currentPassword.value = ''
     newPassword.value = ''
+  } else {
+    showToast(error.value || 'Failed to change password', 'destructive')
   }
 }
 
@@ -44,7 +46,6 @@ async function handleLogout() {
           <label class="block text-data-secondary text-on-surface-variant mb-2">New Password</label>
           <input v-model="newPassword" type="password" minlength="8" required class="w-full px-3 py-2 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary" />
         </div>
-        <p v-if="error" class="text-data-secondary text-error">{{ error }}</p>
         <button type="submit" :disabled="loading" class="w-full bg-primary-container text-on-primary-container px-4 py-3 rounded-lg font-medium transition-opacity disabled:opacity-50">
           <LoadingSpinner v-if="loading" class="h-4 w-4 mr-2 inline-block" />
           {{ loading ? 'Saving...' : 'Change Password' }}

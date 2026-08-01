@@ -12,9 +12,10 @@ export function useToast() {
   function showToast(message: string, variant: Toast['variant'] = 'default') {
     const id = nextId++
     toasts.value.push({ id, message, variant })
+    const duration = variant === 'destructive' ? 5000 : 3000
     setTimeout(() => {
       toasts.value = toasts.value.filter((t) => t.id !== id)
-    }, 3000)
+    }, duration)
   }
 
   return { toasts, showToast }

@@ -11,6 +11,7 @@ definePageMeta({
 const { user } = useUserSession()
 const { fetchPayments, recordPayment, loading, error } = usePayments()
 const { fetchCustomers } = useCustomers()
+const { showToast } = useToast()
 
 const route = useRoute()
 const payments = ref<Awaited<ReturnType<typeof fetchPayments>>>([])
@@ -47,6 +48,8 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
   if (created) {
     showForm.value = false
     await load()
+  } else {
+    showToast(error.value || 'Failed to record payment', 'destructive')
   }
 }
 </script>
@@ -70,7 +73,7 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
     </div>
 
     <div v-if="showForm" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-      <PaymentForm :customers="customers" :initial-customer-id="preselectedCustomerId" :loading="loading" :error="error" @submit="handleSubmit" />
+      <PaymentForm :customers="customers" :initial-customer-id="preselectedCustomerId" :loading="loading" @submit="handleSubmit" />
     </div>
 
     <div class="flex gap-3 flex-wrap items-center">

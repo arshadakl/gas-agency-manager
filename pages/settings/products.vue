@@ -11,10 +11,10 @@ const { user } = useUserSession()
 if (user.value?.role !== 'admin' && user.value?.role !== 'delivery') await navigateTo('/')
 
 const { fetchProducts, createProduct, updateProduct, deleteProduct, loading, error } = usePricing()
+const { showToast } = useToast()
 
 const products = ref<Product[]>([])
 const showProductForm = ref(false)
-const actionError = ref<string | null>(null)
 
 // Manage modal state
 const manageProduct = ref<Product | null>(null)
@@ -38,7 +38,6 @@ async function handleCreateProduct(data: Parameters<typeof createProduct>[0]) {
 
 async function openManage(product: Product) {
   manageProduct.value = product
-  actionError.value = null
   manageMode.value = 'info'
   renameValue.value = product.name
   try {
@@ -52,13 +51,12 @@ async function openManage(product: Product) {
 async function handleRename() {
   if (!manageProduct.value?.publicId || !renameValue.value.trim()) return
   manageLoading.value = true
-  actionError.value = null
   const updated = await updateProduct(manageProduct.value.publicId, { name: renameValue.value.trim() })
   if (updated) {
     manageProduct.value = null
     await load()
   } else {
-    actionError.value = error.value
+    showToast(error.value || 'Failed to rename product', 'destructive')
   }
   manageLoading.value = false
 }
@@ -66,13 +64,12 @@ async function handleRename() {
 async function handleHide() {
   if (!manageProduct.value?.publicId) return
   manageLoading.value = true
-  actionError.value = null
   const updated = await updateProduct(manageProduct.value.publicId, { isActive: false } as any)
   if (updated) {
     manageProduct.value = null
     await load()
   } else {
-    actionError.value = error.value
+    showToast(error.value || 'Failed to hide product', 'destructive')
   }
   manageLoading.value = false
 }
@@ -80,13 +77,12 @@ async function handleHide() {
 async function handleDelete() {
   if (!manageProduct.value?.publicId) return
   manageLoading.value = true
-  actionError.value = null
   const ok = await deleteProduct(manageProduct.value.publicId)
   if (ok) {
     manageProduct.value = null
     await load()
   } else {
-    actionError.value = error.value
+    showToast(error.value || 'Failed to delete product', 'destructive')
   }
   manageLoading.value = false
 }
@@ -102,10 +98,8 @@ async function handleDelete() {
     </div>
 
     <div v-if="showProductForm" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-      <ProductForm :loading="loading" :error="error" @submit="handleCreateProduct" @cancel="showProductForm = false" />
+      <ProductForm :loading="loading" @submit="handleCreateProduct" @cancel="showProductForm = false" />
     </div>
-
-    <p v-if="actionError" class="text-data-secondary text-error">{{ actionError }}</p>
 
     <EmptyState v-if="products.length === 0 && !loading" title="No products yet" />
     <div v-else class="flex flex-col gap-sm">
@@ -140,8 +134,6 @@ async function handleDelete() {
               {{ manageProduct.type }}<span v-if="manageProduct.cylinderSize"> · {{ manageProduct.cylinderSize }}kg</span>
             </p>
           </div>
-
-          <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
 
           <div v-if="productHistoryCount > 0" class="rounded-lg bg-surface-container-highest px-3 py-2">
             <p class="text-data-secondary text-on-surface-variant">
@@ -193,7 +185,6 @@ async function handleDelete() {
             placeholder="Product name"
             @keydown.enter="handleRename"
           >
-          <p v-if="actionError" class="text-sm text-error">{{ actionError }}</p>
           <div class="flex gap-2">
             <button
               class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"

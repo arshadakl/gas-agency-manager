@@ -12,6 +12,7 @@ const id = route.params.id as string
 
 const { fetchLedger, updateCustomer, setPromise, archiveCustomer, loading, error } = useCustomers()
 const { user } = useUserSession()
+const { showToast } = useToast()
 
 const customer = ref<Customer | null>(null)
 const openingBalance = ref(0)
@@ -72,7 +73,7 @@ async function handleSavePromise() {
     editingPromise.value = false
     await load()
   } else {
-    promiseError.value = error.value
+    showToast(error.value || 'Failed to save promise', 'destructive')
   }
 }
 

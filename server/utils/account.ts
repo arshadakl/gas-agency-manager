@@ -15,6 +15,14 @@ export async function updateAccountBalance(
 ) {
   const current = await getAccountBalance(db, type)
   const newBalance = Math.round((current + amountChange) * 100) / 100
+
+  if (newBalance < 0) {
+    throw createError({
+      statusCode: 422,
+      message: `Insufficient ${type} balance. Available: ₹${current.toLocaleString('en-IN')}`,
+    })
+  }
+
   await db.update(accounts)
     .set({ balance: newBalance, updatedAt: new Date().toISOString() })
     .where(eq(accounts.type, type))

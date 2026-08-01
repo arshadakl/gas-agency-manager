@@ -37,7 +37,7 @@ const rows = ref<ImportRow[]>([])
 const issues = ref<RowIssue[]>([])
 const result = ref<ImportResult | null>(null)
 const submitting = ref(false)
-const submitError = ref<string | null>(null)
+const { showToast } = useToast()
 
 const PHONE = /^[6-9]\d{9}$/
 
@@ -72,7 +72,6 @@ function splitCsvLine(line: string): string[] {
 // CSV columns: name, phone, contact person, area, opening balance, deposit
 function parseCsv() {
   result.value = null
-  submitError.value = null
   const parsed: ImportRow[] = []
   const problems: RowIssue[] = []
   const seenPhones = new Set<string>()
@@ -146,7 +145,6 @@ const totalOpening = computed(() => rows.value.reduce((sum, r) => sum + r.openin
 async function handleImport() {
   if (rows.value.length === 0) return
   submitting.value = true
-  submitError.value = null
 
   // Server caps a request at 1000 rows — send in chunks of 500 and aggregate,
   // so a 2000-line notebook import just works.
@@ -168,10 +166,11 @@ async function handleImport() {
     rows.value = []
     raw.value = ''
   } catch (err: unknown) {
-    submitError.value = err instanceof FetchError
+    const msg = err instanceof FetchError
       ? (err.data?.message ?? 'Import failed partway.')
         + ` ${combined.inserted} customers were already saved — fix the file and re-import; saved phones will be skipped automatically.`
       : 'Network error. Some customers may already be saved — re-import is safe, duplicates are skipped by phone.'
+    showToast(msg, 'destructive')
   } finally {
     submitting.value = false
   }
@@ -240,7 +239,6 @@ async function handleImport() {
           </tbody>
         </table>
       </div>
-      <p v-if="submitError" class="text-data-secondary text-error mt-3">{{ submitError }}</p>
       <Button class="w-full mt-md" :disabled="submitting" @click="handleImport">
         <LoadingSpinner v-if="submitting" class="h-4 w-4 mr-2" />
         {{ submitting ? 'Importing...' : `Import ${rows.length} Customers` }}
