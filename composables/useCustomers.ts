@@ -1,6 +1,6 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
-import type { Customer, NewCustomer, Delivery, CustomerPayment, CustomerWithBalance, DeliveryWithRelations } from '~/types/database'
+import type { Customer, NewCustomer, CustomerPayment, CustomerWithBalance, DeliveryWithRelations } from '~/types/database'
 
 interface CustomerLedger {
   customer: Customer

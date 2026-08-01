@@ -1,6 +1,6 @@
 import { FetchError } from 'ofetch'
 import type { ApiResponse } from '~/types/api'
-import type { Delivery, Order, CustomerPayment } from '~/types/database'
+import type { Order } from '~/types/database'
 import { getPresetRange, type DatePreset } from '~/utils/datePresets'
 
 interface ReportSummary {

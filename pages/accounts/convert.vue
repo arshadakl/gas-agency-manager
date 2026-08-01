@@ -45,9 +45,6 @@ async function confirmConvert() {
   }
 }
 
-function formatShortDate(date: string) {
-  return new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })
-}
 </script>
 
 <template>
