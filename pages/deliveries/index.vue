@@ -54,8 +54,12 @@ async function loadToday() {
   deliveries.value = []
   allLoaded.value = true
   const today = toISODate(new Date())
-  const rows = await fetchDeliveries({ mine: mineOnly.value, from: today, to: today })
+  const [rows, customerRows] = await Promise.all([
+    fetchDeliveries({ mine: mineOnly.value, from: today, to: today }),
+    fetchCustomers(),
+  ])
   deliveries.value = rows
+  customers.value = customerRows
 }
 
 async function loadMore() {
