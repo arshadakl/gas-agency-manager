@@ -7,6 +7,10 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { user } = useUserSession()
+const canCreate = computed(() => user.value?.role === 'admin' || user.value?.role === 'delivery')
+if (!canCreate.value) await navigateTo('/deliveries')
+
 const { createDelivery, loading, error } = useDeliveries()
 const { fetchCustomers, fetchLedger } = useCustomers()
 const { fetchProducts } = usePricing()

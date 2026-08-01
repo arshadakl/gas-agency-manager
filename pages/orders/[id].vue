@@ -9,6 +9,9 @@ definePageMeta({
   middleware: ['auth'],
 })
 
+const { user } = useUserSession()
+const canAct = computed(() => user.value?.role === 'admin' || user.value?.role === 'delivery')
+
 const route = useRoute()
 const id = route.params.id as string
 
@@ -60,7 +63,7 @@ async function handleConfirmCancel() {
         </div>
       </section>
 
-      <template v-if="order.status === 'pending'">
+      <template v-if="order.status === 'pending' && canAct">
         <Button class="w-full rounded-lg" @click="showConfirm = true">
           <Icon name="local_shipping" class="text-base mr-2" /> Mark Delivered
         </Button>
