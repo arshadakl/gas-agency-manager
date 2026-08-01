@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Input } from '~/components/ui/input'
 import { CYLINDER_SIZES, type CylinderSize } from '~/types'
-import type { PurchaseFormData, PurchasePaymentEntry } from '~/composables/usePurchases'
+import type { PurchaseFormData, PurchasePaymentEntry, PurchaseLineItem } from '~/composables/usePurchases'
 
 const props = defineProps<{
   initial?: Partial<PurchaseFormData>
@@ -93,9 +93,9 @@ function removePaymentRow(rowId: number) {
   paymentRows.value = paymentRows.value.filter((r) => r.id !== rowId)
 }
 
-function buildApiItems() {
+function buildApiItems(): PurchaseLineItem[] {
   return items.map((i) => ({
-    sizeKg: i.sizeKg,
+    sizeKg: i.sizeKg as CylinderSize,
     receivedQty: includeOwnCylinders.value ? Math.max(0, i.totalReceived - i.ownQty) : i.totalReceived,
     returnedQty: i.returnedQty,
     newConnectionQty: includeOwnCylinders.value ? i.ownQty : 0,
@@ -208,7 +208,7 @@ function handleSubmit() {
     dueDate: form.dueDate || undefined,
     notes: form.notes || undefined,
     purchaseType: props.initial?.purchaseType,
-    items: apiItems as any,
+    items: apiItems,
   })
 }
 </script>
