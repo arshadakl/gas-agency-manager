@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { CylinderStock, StockMovement } from '~/types/database'
 import type { StockAdjustmentInput } from '~/composables/useInventory'
+import type { CylinderSize } from '~/types'
 
 definePageMeta({
   layout: 'default',
@@ -40,7 +41,7 @@ async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange
   }
 
   debounceTimers.value[sizeKg] = setTimeout(async () => {
-    const ok = await adjustStock({ sizeKg: sizeKg as any, fullChange, emptyChange })
+    const ok = await adjustStock({ sizeKg: sizeKg as CylinderSize, fullChange, emptyChange })
     pendingSizes.value = pendingSizes.value.filter(s => s !== sizeKg)
     if (ok) {
       showToast(`${sizeKg}kg stock updated`)

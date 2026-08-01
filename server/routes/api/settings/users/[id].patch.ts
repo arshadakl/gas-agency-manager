@@ -2,7 +2,7 @@ import { eq, and, ne, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
-import { ROLES, ADMIN_ONLY_FEATURES } from '~/types'
+import { ROLES, ADMIN_ONLY_FEATURES, type FeatureKey } from '~/types'
 import { PasswordChangeSchema } from '~/utils/validators'
 
 const AdminUpdateSchema = z.object({
@@ -39,7 +39,7 @@ export default defineEventHandler(async (event) => {
 
     // Non-admin managers cannot set admin-only features
     if (!isAdmin && body.featuresDisabled) {
-      body.featuresDisabled = body.featuresDisabled.filter(f => !ADMIN_ONLY_FEATURES.includes(f as any))
+      body.featuresDisabled = body.featuresDisabled.filter(f => !ADMIN_ONLY_FEATURES.includes(f as FeatureKey))
     }
 
     // Non-admin managers cannot change roles or deactivate users

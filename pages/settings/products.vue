@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Button } from '~/components/ui/button'
-import type { Product } from '~/types/database'
+import type { Product, NewProduct } from '~/types/database'
 
 definePageMeta({
   layout: 'default',
@@ -64,7 +64,7 @@ async function handleRename() {
 async function handleHide() {
   if (!manageProduct.value?.publicId) return
   manageLoading.value = true
-  const updated = await updateProduct(manageProduct.value.publicId, { isActive: false } as any)
+  const updated = await updateProduct(manageProduct.value.publicId, { isActive: 0 } as Partial<NewProduct>)
   if (updated) {
     manageProduct.value = null
     await load()

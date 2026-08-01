@@ -95,7 +95,7 @@ watch(dateRange, load, { immediate: true })
           <NuxtLink
             v-for="p in report.purchases"
             :key="p.publicId"
-            :to="`/stock/purchases/${p.publicId}` as any"
+            :to="`/stock/purchases/${p.publicId}`"
             class="block py-3 border-b border-surface-container-highest last:border-0"
           >
             <div class="flex items-center justify-between mb-1">
