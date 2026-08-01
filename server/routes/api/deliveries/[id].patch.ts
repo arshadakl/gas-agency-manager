@@ -20,6 +20,11 @@ export default defineEventHandler(async (event) => {
 
   if (!originalDelivery) throw createError({ statusCode: 404, message: 'Delivery not found' })
 
+  // Block customerId changes — orphaning FIFO payment allocations
+  if (body.customerId !== originalDelivery.customerId) {
+    throw createError({ statusCode: 422, message: 'Cannot change customer on an existing delivery' })
+  }
+
   // Fetch original items to compute stock net changes
   const originalItems = await db.select()
     .from(deliveryItems)
