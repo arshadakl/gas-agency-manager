@@ -12,6 +12,7 @@ definePageMeta({
 const { fetchCustomers, createCustomer, loading, error } = useCustomers()
 const { user } = useUserSession()
 const { t } = useLocale()
+const { showToast } = useToast()
 
 const route = useRoute()
 const search = ref('')
@@ -69,6 +70,8 @@ async function handleCreate(data: NewCustomer) {
   if (created) {
     showForm.value = false
     await load()
+  } else {
+    showToast(error.value || 'Failed to create customer', 'destructive')
   }
 }
 </script>
@@ -86,7 +89,7 @@ async function handleCreate(data: NewCustomer) {
     </div>
 
     <div v-if="showForm" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-      <CustomerForm :loading="loading" :error="error" @submit="handleCreate" @cancel="showForm = false" />
+      <CustomerForm :loading="loading" @submit="handleCreate" @cancel="showForm = false" />
     </div>
 
     <div class="flex flex-col gap-md">

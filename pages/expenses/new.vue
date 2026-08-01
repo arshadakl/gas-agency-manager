@@ -11,6 +11,7 @@ definePageMeta({
 
 const route = useRoute()
 const { getExpense, createExpense, updateExpense, loading, error } = useExpenses()
+const { showToast } = useToast()
 
 const editId = computed(() => route.query.id as string | undefined)
 const isEdit = computed(() => Boolean(editId.value))
@@ -80,14 +81,14 @@ async function handleSubmit() {
     if (updated) {
       await navigateTo('/expenses')
     } else {
-      formError.value = error.value
+      showToast(error.value || 'Failed to update expense', 'destructive')
     }
   } else {
     const created = await createExpense(data)
     if (created) {
       await navigateTo('/expenses')
     } else {
-      formError.value = error.value
+      showToast(error.value || 'Failed to create expense', 'destructive')
     }
   }
 }

@@ -13,6 +13,7 @@ if (!hasFeature('super_gas_accounts')) await navigateTo('/')
 
 const { user } = useUserSession()
 const { fetchBalances, fetchTransactions, withdraw, deposit, loading } = useAccounts()
+const { showToast } = useToast()
 
 const balances = ref({ cash: 0, bank: 0, total: 0 })
 const transactions = ref<AccountTransaction[]>([])
@@ -91,7 +92,6 @@ function openWithdrawModal() {
 async function handleWithdraw() {
   if (!withdrawForm.amount || withdrawForm.amount <= 0) return
   withdrawLoading.value = true
-  withdrawError.value = ''
   try {
     const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined)
     if (result) {
@@ -101,8 +101,10 @@ async function handleWithdraw() {
       const txData = await fetchTransactions({ limit: 50 })
       transactions.value = txData
     } else {
-      withdrawError.value = 'Failed to record withdrawal'
+      showToast(withdrawError.value || 'Failed to record withdrawal', 'destructive')
     }
+  } catch (e: any) {
+    showToast(e?.data?.message || 'Failed to record withdrawal', 'destructive')
   } finally {
     withdrawLoading.value = false
   }
@@ -119,7 +121,6 @@ function openDepositModal() {
 async function handleDeposit() {
   if (!depositForm.amount || depositForm.amount <= 0) return
   depositLoading.value = true
-  depositError.value = ''
   try {
     const result = await deposit(depositForm.accountType, depositForm.amount, depositForm.notes || undefined)
     if (result) {
@@ -129,8 +130,10 @@ async function handleDeposit() {
       const txData = await fetchTransactions({ limit: 50 })
       transactions.value = txData
     } else {
-      depositError.value = 'Failed to record deposit'
+      showToast(depositError.value || 'Failed to record deposit', 'destructive')
     }
+  } catch (e: any) {
+    showToast(e?.data?.message || 'Failed to record deposit', 'destructive')
   } finally {
     depositLoading.value = false
   }
@@ -316,8 +319,6 @@ function balanceTextClass(amount: number) {
               />
             </div>
 
-            <p v-if="withdrawError" class="text-sm text-error">{{ withdrawError }}</p>
-
             <button
               :disabled="withdrawLoading || !withdrawForm.amount || withdrawForm.amount <= 0"
               class="w-full py-3 rounded-xl bg-primary-container text-on-primary-container font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
@@ -384,8 +385,6 @@ function balanceTextClass(amount: number) {
                 placeholder="e.g. Initial deposit"
               />
             </div>
-
-            <p v-if="depositError" class="text-sm text-error">{{ depositError }}</p>
 
             <button
               :disabled="depositLoading || !depositForm.amount || depositForm.amount <= 0"

@@ -10,11 +10,11 @@ await refreshPermissions()
 const { theme, toggleTheme } = useTheme()
 const { isInstallable, isInstalled, install } = usePwaInstall()
 const { t } = useLocale()
+const { showToast } = useToast()
 
 type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock' | 'transactions'
 const confirmClear = ref<ClearTarget | null>(null)
 const clearing = ref(false)
-const clearError = ref<string | null>(null)
 const counts = ref<Record<ClearTarget, number>>({ deliveries: 0, purchases: 0, customers: 0, stock: 0, transactions: 0 })
 const countsLoaded = ref(false)
 
@@ -38,13 +38,12 @@ onMounted(loadCounts)
 async function handleClear() {
   if (!confirmClear.value) return
   clearing.value = true
-  clearError.value = null
   try {
     await $fetch(`/api/admin/clear/${confirmClear.value}`, { method: 'DELETE' })
     confirmClear.value = null
     await loadCounts()
   } catch (e: any) {
-    clearError.value = e?.data?.message ?? 'Failed to clear data'
+    showToast(e?.data?.message || 'Failed to clear data', 'destructive')
   } finally {
     clearing.value = false
   }
@@ -127,7 +126,7 @@ const links = computed(() => [
             v-for="(meta, key) in clearMeta"
             :key="key"
             class="flex items-center gap-3 rounded-xl bg-error-container/10 p-4 border border-error/20 hover:bg-error-container/20 transition-colors w-full text-left"
-            @click="confirmClear = key as ClearTarget; clearError = null"
+            @click="confirmClear = key as ClearTarget"
           >
             <Icon :name="meta.icon" class="text-error" />
             <div class="flex-1">
@@ -162,7 +161,6 @@ const links = computed(() => [
             This will delete <span class="font-semibold">{{ counts[confirmClear].toLocaleString() }}</span> {{ clearMeta[confirmClear].countLabel }}
           </p>
         </div>
-        <p v-if="clearError" class="text-sm text-error">{{ clearError }}</p>
         <div class="flex gap-2 pt-1">
           <button
             class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors"

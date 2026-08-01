@@ -21,6 +21,7 @@ const featureKeys = computed(() => {
 })
 
 const { fetchUsers, createUser, updateUser, deleteUser, loading, error } = useAuth()
+const { showToast } = useToast()
 
 const users = ref<User[]>([])
 const showForm = ref(false)
@@ -103,8 +104,9 @@ async function handleResetPassword() {
   if (updated) {
     userToResetPw.value = null
     newPassword.value = ''
+    showToast('Password reset successfully')
   } else {
-    pwError.value = error.value
+    showToast(error.value || 'Failed to reset password', 'destructive')
   }
 }
 
@@ -125,7 +127,7 @@ function closePasswordReset() {
     </div>
 
     <div v-if="showForm" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4">
-      <UserForm :loading="loading" :error="error" @submit="handleCreate" @cancel="showForm = false" />
+      <UserForm :loading="loading" @submit="handleCreate" @cancel="showForm = false" />
     </div>
 
     <div class="rounded-xl border border-outline-variant/30 bg-surface-container overflow-hidden">

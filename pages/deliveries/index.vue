@@ -113,6 +113,8 @@ async function handleCollectEmpties() {
     showToast('Empty cylinders recorded')
     showCollectPanel.value = false
     resetCollectForm()
+  } else {
+    showToast(collectError.value || 'Failed to record empties', 'destructive')
   }
 }
 </script>
@@ -178,7 +180,6 @@ async function handleCollectEmpties() {
         placeholder="Notes (optional)"
         class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
       >
-      <p v-if="collectError" class="text-data-tertiary text-error">{{ collectError }}</p>
       <Button :disabled="collectLoading" @click="handleCollectEmpties">
         <LoadingSpinner v-if="collectLoading" class="h-4 w-4 mr-2" />
         Record Empty Cylinders
