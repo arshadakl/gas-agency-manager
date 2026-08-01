@@ -55,7 +55,7 @@ async function handleLogout() {
 
     <div class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <h3 class="text-data-primary text-on-surface mb-4">Session</h3>
-      <button @click="handleLogout" class="w-full bg-error-container text-on-primary-container px-4 py-3 rounded-lg font-medium transition-opacity hover:opacity-90">
+      <button @click="handleLogout" class="w-full bg-error-container text-white px-4 py-3 rounded-lg font-medium transition-opacity hover:opacity-90">
         Logout
       </button>
     </div>
