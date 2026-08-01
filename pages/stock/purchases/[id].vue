@@ -98,6 +98,8 @@ async function handleClear() {
     showToast(`${formatCurrency(clearTotalPaid.value)} payment recorded`)
     clearing.value = false
     purchase.value = await fetchPurchase(id)
+  } else {
+    showToast(error.value || 'Payment failed. Check your account balance.', 'destructive')
   }
 }
 

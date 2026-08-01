@@ -3,7 +3,7 @@ import { useDB } from '~/server/database'
 import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
 import { validateStockChanges, commitStockChanges } from '~/server/utils/stock'
-import { recordAccountTransaction } from '~/server/utils/account'
+import { recordAccountTransaction, getAccountBalance } from '~/server/utils/account'
 import { generateId } from '~/server/utils/id'
 import type { AccountType, CylinderSize } from '~/types'
 
@@ -37,6 +37,18 @@ export default defineEventHandler(async (event) => {
   // Validate before any write — D1 has no rollback, so a failure here must
   // never leave an orphaned purchase record (see CLAUDE.md §23.4 D1 note).
   if (changes.length > 0) await validateStockChanges(db, changes)
+
+  // Validate account balances before any write — prevent purchase from being
+  // created with wrong paymentStatus if account has insufficient funds.
+  for (const p of body.payments) {
+    const balance = await getAccountBalance(db, p.paymentMode as AccountType)
+    if (balance - p.amount < 0) {
+      throw createError({
+        statusCode: 422,
+        message: `Insufficient ${p.paymentMode} balance. Available: ₹${balance.toLocaleString('en-IN')}`,
+      })
+    }
+  }
 
   const [purchase] = await db.insert(purchases).values({
     publicId: generateId(),
@@ -87,6 +99,8 @@ export default defineEventHandler(async (event) => {
   }
 
   // Record each payment in purchase_payments + account transactions
+  // MUST happen before returning — if account transaction fails (insufficient balance),
+  // the purchase stays with paymentStatus = 'pending' (correct).
   if (body.payments.length > 0) {
     await db.insert(purchasePayments).values(
       body.payments.map((p) => ({
