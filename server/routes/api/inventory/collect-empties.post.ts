@@ -10,7 +10,7 @@ const CollectEmptiesSchema = z.object({
     qty: z.number().int().positive(),
   })).min(1),
   notes: z.string().max(500).optional(),
-  customerName: z.string().max(100).optional(),
+  customerName: z.string().min(1).max(100),
 })
 
 export default defineEventHandler(async (event) => {
@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
   const noteText = [
     body.notes,
-    body.customerName ? `Customer: ${body.customerName}` : undefined,
+    `Customer: ${body.customerName}`,
     `Date: ${body.date}`,
   ].filter(Boolean).join(' | ')
 
