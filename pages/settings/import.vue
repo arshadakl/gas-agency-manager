@@ -32,12 +32,26 @@ interface ImportResult {
   total: number
 }
 
+interface RestoreResult {
+  mode: 'wipe' | 'merge'
+  restored: Record<string, { table: string; restored: number; skipped: number }>
+}
+
 const raw = ref('')
 const rows = ref<ImportRow[]>([])
 const issues = ref<RowIssue[]>([])
 const result = ref<ImportResult | null>(null)
 const submitting = ref(false)
 const { showToast } = useToast()
+
+// ── Restore state ────────────────────────────────────────────────────
+const restoreRaw = ref('')
+const restoreData = ref<Record<string, unknown[]> | null>(null)
+const restoreParseError = ref('')
+const restoreMode = ref<'wipe' | 'merge'>('merge')
+const restoreSubmitting = ref(false)
+const restoreResult = ref<RestoreResult | null>(null)
+const restoreConfirm = ref(false)
 
 const PHONE = /^[6-9]\d{9}$/
 
@@ -175,6 +189,95 @@ async function handleImport() {
     submitting.value = false
   }
 }
+
+// ── Restore from backup ──────────────────────────────────────────────
+function parseRestoreJson() {
+  restoreResult.value = null
+  restoreParseError.value = ''
+  restoreData.value = null
+  const text = restoreRaw.value.trim()
+  if (!text) return
+  try {
+    const parsed = JSON.parse(text)
+    const d = parsed.data ?? parsed
+    if (!d || typeof d !== 'object') throw new Error('Invalid backup format')
+    restoreData.value = d
+  } catch (e: unknown) {
+    restoreParseError.value = e instanceof Error ? e.message : 'Invalid JSON'
+  }
+}
+
+watch(restoreRaw, parseRestoreJson)
+
+const restoreTableNames: Record<string, string> = {
+  customers: 'Customers', products: 'Products', inventory: 'Inventory',
+  deliveries: 'Deliveries', deliveryItems: 'Delivery Items',
+  customerPayments: 'Payments', purchases: 'Purchases',
+  purchaseItems: 'Purchase Items', purchasePayments: 'Purchase Payments',
+  orders: 'Orders', orderItems: 'Order Items', expenses: 'Expenses',
+  accounts: 'Accounts', accountTransactions: 'Account Transactions',
+  cylinderStock: 'Cylinder Stock',
+}
+
+const restorePreview = computed(() => {
+  if (!restoreData.value) return []
+  return Object.entries(restoreTableNames)
+    .map(([key, label]) => ({ key, label, count: Array.isArray(restoreData.value![key]) ? restoreData.value![key].length : 0 }))
+    .filter((r) => r.count > 0)
+})
+
+const restoreTotalRows = computed(() => restorePreview.value.reduce((s, r) => s + r.count, 0))
+
+const restoreBackupDate = computed(() => {
+  if (!restoreData.value) return null
+  const ts = restoreData.value.exportedAt
+  if (typeof ts === 'string') {
+    try { return new Date(ts).toLocaleString('en-IN') } catch { return ts }
+  }
+  return null
+})
+
+function handleRestoreFile(e: Event) {
+  const input = e.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    restoreRaw.value = String(reader.result ?? '')
+  }
+  reader.readAsText(file)
+  input.value = ''
+}
+
+async function handleRestore() {
+  if (!restoreData.value) return
+  if (restoreMode.value === 'wipe') {
+    restoreConfirm.value = true
+    return
+  }
+  await doRestore()
+}
+
+async function doRestore() {
+  restoreConfirm.value = false
+  if (!restoreData.value) return
+  restoreSubmitting.value = true
+  try {
+    const res = await $fetch<ApiResponse<RestoreResult>>('/api/admin/import/restore', {
+      method: 'POST',
+      body: { mode: restoreMode.value, data: restoreData.value },
+    })
+    restoreResult.value = res.data
+    showToast(`Restore complete — ${res.data.mode} mode`)
+  } catch (err: unknown) {
+    const msg = err instanceof FetchError
+      ? err.data?.message ?? 'Restore failed'
+      : 'Network error during restore'
+    showToast(msg, 'destructive')
+  } finally {
+    restoreSubmitting.value = false
+  }
+}
 </script>
 
 <template>
@@ -264,5 +367,125 @@ async function handleImport() {
     </section>
 
     <EmptyState v-if="!rows.length && !result && !raw" title="Nothing to preview yet" description="Paste rows above or pick a CSV file exported from Excel/Sheets." />
+
+    <!-- ═══ RESTORE FROM BACKUP ═══════════════════════════════════════ -->
+    <div class="mt-lg pt-lg border-t border-outline-variant/20">
+      <h2 class="text-headline-md text-on-surface mb-1">Restore from Backup</h2>
+      <p class="text-data-secondary text-on-surface-variant mb-sm">
+        Paste a backup JSON or upload a <span class="font-mono">.json</span> file exported from the backup endpoint.
+      </p>
+
+      <div class="flex flex-col gap-sm">
+        <!-- Mode selector -->
+        <div class="flex gap-sm">
+          <button
+            class="flex-1 rounded-xl p-3 border text-left transition-colors"
+            :class="restoreMode === 'merge'
+              ? 'border-primary-container bg-primary-container/10 text-on-surface'
+              : 'border-outline-variant/30 bg-surface-container text-on-surface-variant'"
+            @click="restoreMode = 'merge'"
+          >
+            <p class="text-data-primary font-medium flex items-center gap-1.5">
+              <Icon name="merge" class="text-base" /> Merge
+            </p>
+            <p class="text-data-tertiary text-on-surface-variant mt-0.5">Skip duplicates, keep existing data</p>
+          </button>
+          <button
+            class="flex-1 rounded-xl p-3 border text-left transition-colors"
+            :class="restoreMode === 'wipe'
+              ? 'border-error bg-error/10 text-on-surface'
+              : 'border-outline-variant/30 bg-surface-container text-on-surface-variant'"
+            @click="restoreMode = 'wipe'"
+          >
+            <p class="text-data-primary font-medium flex items-center gap-1.5">
+              <Icon name="delete_forever" class="text-base text-error" /> Wipe &amp; Restore
+            </p>
+            <p class="text-data-tertiary text-on-surface-variant mt-0.5">Delete everything first, then import</p>
+          </button>
+        </div>
+
+        <!-- Paste / upload -->
+        <div class="bg-surface-container rounded-xl p-4 border border-outline-variant/30 flex flex-col gap-md">
+          <label class="text-data-secondary text-on-surface-variant">Paste backup JSON or choose a file</label>
+          <Textarea
+            v-model="restoreRaw"
+            rows="6"
+            placeholder='{"data":{"customers":[...],"products":[...],...}}'
+            class="font-mono text-sm"
+          />
+          <input type="file" accept=".json" class="text-data-secondary text-on-surface-variant" @change="handleRestoreFile">
+        </div>
+
+        <!-- Parse error -->
+        <div v-if="restoreParseError" class="bg-error-container/10 border border-error/30 rounded-xl p-3">
+          <p class="text-data-secondary text-error">{{ restoreParseError }}</p>
+        </div>
+
+        <!-- Preview -->
+        <div v-if="restorePreview.length" class="bg-surface-container rounded-xl p-4 border border-outline-variant/30">
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-data-primary text-on-surface font-medium">
+              {{ restoreTotalRows.toLocaleString() }} rows across {{ restorePreview.length }} tables
+            </p>
+            <p v-if="restoreBackupDate" class="text-data-tertiary text-on-surface-variant">
+              Backup: {{ restoreBackupDate }}
+            </p>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div v-for="t in restorePreview" :key="t.key" class="flex items-center justify-between rounded-lg bg-surface-container-low px-3 py-2">
+              <span class="text-data-secondary text-on-surface-variant">{{ t.label }}</span>
+              <span class="text-data-primary text-on-surface font-medium">{{ t.count }}</span>
+            </div>
+          </div>
+
+          <div v-if="restoreMode === 'wipe'" class="mt-3 rounded-lg bg-error-container/10 border border-error/20 px-3 py-2">
+            <p class="text-data-secondary text-error flex items-center gap-1.5">
+              <Icon name="warning" class="text-base" />
+              This will permanently delete all current data before restoring.
+            </p>
+          </div>
+
+          <Button
+            class="w-full mt-4"
+            :class="restoreMode === 'wipe' ? 'bg-error text-on-error' : ''"
+            :disabled="restoreSubmitting"
+            @click="handleRestore"
+          >
+            <LoadingSpinner v-if="restoreSubmitting" class="h-4 w-4 mr-2" />
+            {{ restoreSubmitting ? 'Restoring...' : restoreMode === 'wipe' ? 'Wipe & Restore' : 'Merge & Restore' }}
+          </Button>
+        </div>
+
+        <!-- Result -->
+        <div v-if="restoreResult" class="bg-success/10 border border-success/30 rounded-xl p-4">
+          <p class="text-data-primary text-success flex items-center gap-2 mb-3">
+            <Icon name="check_circle" />
+            Restore complete ({{ restoreResult.mode }} mode)
+          </p>
+          <div class="grid grid-cols-2 gap-2">
+            <template v-for="(entry, key) in restoreResult.restored" :key="key">
+              <div v-if="entry.restored > 0 || entry.skipped > 0" class="flex items-center justify-between rounded-lg bg-surface-container px-3 py-2">
+                <span class="text-data-secondary text-on-surface-variant">{{ entry.table }}</span>
+                <span class="text-data-primary text-on-surface text-sm">
+                  {{ entry.restored }}<span v-if="entry.skipped" class="text-on-surface-variant"> / {{ entry.skipped }} skip</span>
+                </span>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wipe confirm dialog -->
+    <ConfirmDialog
+      :open="restoreConfirm"
+      title="Wipe all data and restore?"
+      message="This will permanently delete ALL current data (customers, deliveries, purchases, expenses, accounts) and replace it with the backup. This cannot be undone."
+      confirm-text="Yes, Wipe & Restore"
+      :destructive="true"
+      :loading="restoreSubmitting"
+      @confirm="doRestore"
+      @cancel="restoreConfirm = false"
+    />
   </div>
 </template>

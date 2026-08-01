@@ -1,7 +1,8 @@
 import { useDB } from '~/server/database'
 import {
   customers, products, inventory, deliveries, deliveryItems, customerPayments, users,
-  purchases, purchaseItems, cylinderStock, stockMovements, orders, orderItems, expenses,
+  purchases, purchaseItems, purchasePayments, cylinderStock, orders, orderItems,
+  expenses, accounts, accountTransactions,
 } from '~/server/database/schema'
 
 export default defineEventHandler(async (event) => {
@@ -17,8 +18,9 @@ export default defineEventHandler(async (event) => {
   const [
     customerRows, productRows, inventoryRows,
     deliveryRows, deliveryItemRows, paymentRows, userRows,
-    purchaseRows, purchaseItemRows, cylinderStockRows, stockMovementRows,
-    orderRows, orderItemRows, expenseRows,
+    purchaseRows, purchaseItemRows, purchasePaymentRows,
+    cylinderStockRows, orderRows, orderItemRows,
+    expenseRows, accountRows, accountTransactionRows,
   ] = await Promise.all([
     db.select().from(customers).all(),
     db.select().from(products).all(),
@@ -36,11 +38,13 @@ export default defineEventHandler(async (event) => {
     }).from(users).all(),
     db.select().from(purchases).all(),
     db.select().from(purchaseItems).all(),
+    db.select().from(purchasePayments).all(),
     db.select().from(cylinderStock).all(),
-    db.select().from(stockMovements).all(),
     db.select().from(orders).all(),
     db.select().from(orderItems).all(),
     db.select().from(expenses).all(),
+    db.select().from(accounts).all(),
+    db.select().from(accountTransactions).all(),
   ])
 
   return {
@@ -54,11 +58,13 @@ export default defineEventHandler(async (event) => {
       users: userRows,
       purchases: purchaseRows,
       purchaseItems: purchaseItemRows,
+      purchasePayments: purchasePaymentRows,
       cylinderStock: cylinderStockRows,
-      stockMovements: stockMovementRows,
       orders: orderRows,
       orderItems: orderItemRows,
       expenses: expenseRows,
+      accounts: accountRows,
+      accountTransactions: accountTransactionRows,
       exportedAt: new Date().toISOString(),
     },
   }
