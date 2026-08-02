@@ -29,7 +29,10 @@ export default defineEventHandler(async (event) => {
   const firstMonth = monthList[0]!
   const lastMonth = monthList[monthList.length - 1]!
   const from = `${firstMonth}-01`
-  const to = `${lastMonth}-31`
+  // Calculate actual last day of the month (handles Feb, Apr, Jun, Sep, Nov)
+  const [ly, lm] = lastMonth.split('-').map(Number)
+  const lastDay = new Date(ly!, lm!, 0).getDate()
+  const to = `${lastMonth}-${String(lastDay).padStart(2, '0')}`
 
   const [revenueRows, costRows, expenseRows] = await Promise.all([
     // Revenue per month

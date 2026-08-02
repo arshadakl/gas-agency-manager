@@ -6,9 +6,10 @@ export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin'])
   const db = useDB(event)
 
-  // Null FK refs before deleting deliveries — D1 may enforce FK constraints
+  // Null FK refs before deleting deliveries — only orders that reference a delivery
   await db.update(orders)
     .set({ status: 'pending', deliveryId: null, deliveredAt: null })
+    .where(isNotNull(orders.deliveryId))
   await db.update(customerPayments)
     .set({ deliveryId: null })
     .where(isNotNull(customerPayments.deliveryId))

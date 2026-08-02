@@ -83,7 +83,18 @@ export default defineEventHandler(async (event) => {
     })
     .where(eq(deliveries.id, originalDelivery.id))
 
-  // Replace delivery items
+  // Replace delivery items — validate product IDs first, then swap
+  const newProductIds = body.items.map((i) => i.productId)
+  if (newProductIds.length > 0) {
+    const validCount = await db.select({ count: sql<number>`count(*)` })
+      .from(products)
+      .where(inArray(products.id, newProductIds))
+      .get()
+    if ((validCount?.count ?? 0) !== newProductIds.length) {
+      throw createError({ statusCode: 422, message: 'One or more products not found' })
+    }
+  }
+
   await db.delete(deliveryItems)
     .where(eq(deliveryItems.deliveryId, originalDelivery.id))
 

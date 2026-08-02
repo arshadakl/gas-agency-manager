@@ -120,9 +120,13 @@ export default defineEventHandler(async (event) => {
 
     return { data: { order: updatedOrder, delivery: finalDelivery } }
   } catch (err) {
-    await db.update(orders)
-      .set({ status: 'pending', deliveredAt: null, deliveryId: null })
-      .where(eq(orders.id, order.id))
+    try {
+      await db.update(orders)
+        .set({ status: 'pending', deliveredAt: null, deliveryId: null })
+        .where(eq(orders.id, order.id))
+    } catch (rollbackErr) {
+      console.error('CRITICAL: Order rollback failed after delivery error', rollbackErr)
+    }
     throw err
   }
 })

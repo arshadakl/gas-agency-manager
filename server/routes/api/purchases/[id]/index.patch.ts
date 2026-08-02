@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
@@ -111,14 +111,11 @@ export default defineEventHandler(async (event) => {
     await commitStockChanges(db, netChanges, 'purchase', id, 'purchase', user, 'net stock impact of purchase edit')
   }
 
-  // Apply net ownCount changes.
+  // Apply net ownCount changes — atomic increment
   for (const update of ownUpdates) {
-    const current = await db.select().from(cylinderStock).where(eq(cylinderStock.sizeKg, update.sizeKg)).get()
-    if (current) {
-      await db.update(cylinderStock)
-        .set({ ownCount: Math.max(0, current.ownCount + update.delta), updatedAt: new Date().toISOString() })
-        .where(eq(cylinderStock.sizeKg, update.sizeKg))
-    }
+    await db.update(cylinderStock)
+      .set({ ownCount: sql`max(0, ${cylinderStock.ownCount} + ${update.delta})`, updatedAt: new Date().toISOString() })
+      .where(eq(cylinderStock.sizeKg, update.sizeKg))
   }
 
   // Reverse old account transactions, then create new ones from new payments[].

@@ -4,7 +4,7 @@ import { useDB } from '~/server/database'
 import { expenses } from '~/server/database/schema'
 import { EXPENSE_TAGS } from '~/types'
 import type { AccountType } from '~/types'
-import { reverseAccountTransaction, recordAccountTransaction } from '~/server/utils/account'
+import { reverseAccountTransaction, recordAccountTransaction, getAccountBalance } from '~/server/utils/account'
 
 const UpdateExpenseSchema = z.object({
   expenseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
@@ -28,6 +28,21 @@ export default defineEventHandler(async (event) => {
   const amountChanged = body.amount !== undefined && body.amount !== existing.amount
   const sourceChanged = body.paymentSource !== undefined && body.paymentSource !== existing.paymentSource
   const needsAccountSync = amountChanged || sourceChanged
+
+  // Pre-validate: simulate the net effect on account balance before writing
+  if (needsAccountSync) {
+    const newAmount = body.amount ?? existing.amount
+    const newSource = (body.paymentSource ?? existing.paymentSource) as AccountType
+    const currentBalance = await getAccountBalance(db, newSource)
+    const reversedBalance = currentBalance + existing.amount // reversal adds back
+    const finalBalance = reversedBalance - newAmount
+    if (finalBalance < 0) {
+      throw createError({
+        statusCode: 422,
+        message: `Insufficient ${newSource} balance. Available: ₹${reversedBalance.toLocaleString('en-IN')}`,
+      })
+    }
+  }
 
   // Reverse old account transaction if amount or source changed
   if (needsAccountSync) {

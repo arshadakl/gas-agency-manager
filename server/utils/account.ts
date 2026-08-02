@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { accounts, accountTransactions } from '~/server/database/schema'
 import type { AccountType, AccountTransactionType } from '~/types'
@@ -68,8 +68,10 @@ export async function reverseAccountTransaction(
   const existing = await db.select()
     .from(accountTransactions)
     .where(
-      eq(accountTransactions.referenceType, referenceType) &&
-      eq(accountTransactions.referenceId, referenceId),
+      and(
+        eq(accountTransactions.referenceType, referenceType),
+        eq(accountTransactions.referenceId, referenceId),
+      ),
     )
     .all()
 
