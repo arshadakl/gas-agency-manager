@@ -12,10 +12,10 @@ const { isInstallable, isInstalled, install } = usePwaInstall()
 const { t } = useLocale()
 const { showToast } = useToast()
 
-type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock' | 'transactions'
+type ClearTarget = 'deliveries' | 'purchases' | 'customers' | 'stock' | 'transactions' | 'payments' | 'pendingOrders'
 const confirmClear = ref<ClearTarget | null>(null)
 const clearing = ref(false)
-const counts = ref<Record<ClearTarget, number>>({ deliveries: 0, purchases: 0, customers: 0, stock: 0, transactions: 0 })
+const counts = ref<Record<ClearTarget, number>>({ deliveries: 0, purchases: 0, customers: 0, stock: 0, transactions: 0, payments: 0, pendingOrders: 0 })
 const countsLoaded = ref(false)
 
 const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string; countLabel: string }> = {
@@ -24,6 +24,8 @@ const clearMeta: Record<ClearTarget, { label: string; desc: string; icon: string
   customers:    { label: 'Clear All Customers', desc: 'Removes customers, deliveries, payments and orders', icon: 'groups', countLabel: 'customers' },
   stock:        { label: 'Reset Stock Data', desc: 'Resets all cylinder counts to zero and clears movement history', icon: 'inventory_2', countLabel: 'stock movements' },
   transactions: { label: 'Clear All Transactions', desc: 'Deletes all account transactions, expenses and resets balances to zero', icon: 'receipt_long', countLabel: 'records' },
+  payments:     { label: 'Clear Collected Payments', desc: 'Removes all customer payment records and recalculates account balances', icon: 'payments', countLabel: 'payments' },
+  pendingOrders:{ label: 'Clear Pending Orders', desc: 'Removes all pending (undelivered) orders and their items', icon: 'schedule', countLabel: 'pending orders' },
 }
 
 async function loadCounts() {
