@@ -15,7 +15,7 @@ export default defineEventHandler(async (event) => {
   await db.delete(customers)
 
   // Reset cylinder stock — movements are gone, stock must be zeroed
-  await db.update(cylinderStock).set({ fullCount: 0, emptyCount: 0 })
+  await db.update(cylinderStock).set({ fullCount: 0, emptyCount: 0, ownCount: 0 })
 
   return { data: { message: 'All customer data cleared' } }
 })

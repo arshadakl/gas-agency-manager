@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const db = useDB(event)
 
   await db.delete(stockMovements)
-  await db.update(cylinderStock).set({ fullCount: 0, emptyCount: 0 })
+  await db.update(cylinderStock).set({ fullCount: 0, emptyCount: 0, ownCount: 0 })
 
   return { data: { message: 'All stock data cleared' } }
 })
