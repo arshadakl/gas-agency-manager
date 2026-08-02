@@ -35,6 +35,8 @@ const showOwnForm = ref(false)
 const ownSize = ref<CylinderSize>(17)
 const ownCount = ref<number>(1)
 const ownAmount = ref<number>(0)
+const ownDebit = ref(false)
+const ownPaymentSource = ref<'cash' | 'bank'>('cash')
 const ownSubmitting = ref(false)
 
 async function loadOwnStock() {
@@ -51,12 +53,20 @@ async function handleAddOwn() {
   try {
     await $fetch('/api/inventory/own-cylinders', {
       method: 'POST',
-      body: { sizeKg: ownSize.value, count: ownCount.value, amount: ownAmount.value },
+      body: {
+        sizeKg: ownSize.value,
+        count: ownCount.value,
+        amount: ownAmount.value,
+        debitFromAccount: ownDebit.value,
+        paymentSource: ownPaymentSource.value,
+      },
     })
     showToast(`${ownCount.value} × ${ownSize.value}kg own cylinders added`)
     showOwnForm.value = false
     ownCount.value = 1
     ownAmount.value = 0
+    ownDebit.value = false
+    ownPaymentSource.value = 'cash'
     await loadOwnStock()
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : (e as { data?: { message?: string } })?.data?.message || 'Failed to add'
@@ -162,6 +172,27 @@ const links = computed(() => [
             <label class="text-label-caps text-on-surface-variant mb-1 block">Amount (₹)</label>
             <input v-model.number="ownAmount" type="number" min="0" class="w-full rounded-lg bg-surface-container-highest px-3 py-2 text-data-primary text-on-surface border border-outline-variant/20 outline-none focus:border-primary-container" />
           </div>
+        </div>
+        <!-- Debit from account -->
+        <label class="flex items-center gap-3 cursor-pointer">
+          <div class="relative">
+            <input v-model="ownDebit" type="checkbox" class="peer sr-only" />
+            <div class="w-10 h-5 rounded-full bg-surface-container-highest border border-outline-variant/30 peer-checked:bg-primary-container transition-colors" />
+            <div class="absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-on-surface-variant peer-checked:translate-x-5 peer-checked:bg-on-primary-container transition-all" />
+          </div>
+          <span class="text-data-secondary text-on-surface-variant">Debit from account</span>
+        </label>
+        <div v-if="ownDebit" class="flex gap-2">
+          <button
+            class="flex-1 rounded-lg py-2 text-data-secondary border transition-colors"
+            :class="ownPaymentSource === 'cash' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' : 'bg-surface-container-high text-on-surface-variant border-outline-variant/20'"
+            @click="ownPaymentSource = 'cash'"
+          >Cash</button>
+          <button
+            class="flex-1 rounded-lg py-2 text-data-secondary border transition-colors"
+            :class="ownPaymentSource === 'bank' ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' : 'bg-surface-container-high text-on-surface-variant border-outline-variant/20'"
+            @click="ownPaymentSource = 'bank'"
+          >Bank</button>
         </div>
         <div class="flex gap-2">
           <button class="flex-1 rounded-xl border border-outline-variant/40 py-2.5 text-body-base text-on-surface-variant hover:bg-surface-variant transition-colors" @click="showOwnForm = false">Cancel</button>
