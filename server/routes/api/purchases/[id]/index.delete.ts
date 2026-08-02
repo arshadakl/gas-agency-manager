@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { applyStockChanges } from '~/server/utils/stock'
@@ -28,16 +28,13 @@ export default defineEventHandler(async (event) => {
     await applyStockChanges(db, reversal, 'adjustment', id, 'purchase', user, 'reversal for purchase delete')
   }
 
-  // Reverse ownCount changes.
+  // Reverse ownCount changes — atomic decrement
   const ownUpdates = items.filter((i) => (i.newConnectionQty ?? 0) > 0 || (i.emptyNewQty ?? 0) > 0)
   for (const item of ownUpdates) {
     const ownQty = (item.newConnectionQty ?? 0) + (item.emptyNewQty ?? 0)
-    const current = await db.select().from(cylinderStock).where(eq(cylinderStock.sizeKg, item.sizeKg)).get()
-    if (current) {
-      await db.update(cylinderStock)
-        .set({ ownCount: Math.max(0, current.ownCount - ownQty), updatedAt: new Date().toISOString() })
-        .where(eq(cylinderStock.sizeKg, item.sizeKg))
-    }
+    await db.update(cylinderStock)
+      .set({ ownCount: sql`max(0, ${cylinderStock.ownCount} - ${ownQty})`, updatedAt: new Date().toISOString() })
+      .where(eq(cylinderStock.sizeKg, item.sizeKg))
   }
 
   // Reverse all account transactions for this purchase.

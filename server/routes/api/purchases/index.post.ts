@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { purchases, purchaseItems, purchasePayments, cylinderStock } from '~/server/database/schema'
 import { PurchaseSchema } from '~/utils/validators'
@@ -86,16 +86,13 @@ export default defineEventHandler(async (event) => {
     await commitStockChanges(db, changes, 'purchase', purchase.id, 'purchase', user)
   }
 
-  // Update ownCount on cylinder_stock for each size with own cylinders.
+  // Update ownCount on cylinder_stock — atomic increment to avoid TOCTOU race
   const ownUpdates = body.items.filter((i) => (i.newConnectionQty ?? 0) > 0 || (i.emptyNewQty ?? 0) > 0)
   for (const item of ownUpdates) {
     const ownQty = (item.newConnectionQty ?? 0) + (item.emptyNewQty ?? 0)
-    const current = await db.select().from(cylinderStock).where(eq(cylinderStock.sizeKg, item.sizeKg)).get()
-    if (current) {
-      await db.update(cylinderStock)
-        .set({ ownCount: current.ownCount + ownQty, updatedAt: new Date().toISOString() })
-        .where(eq(cylinderStock.sizeKg, item.sizeKg))
-    }
+    await db.update(cylinderStock)
+      .set({ ownCount: sql`${cylinderStock.ownCount} + ${ownQty}`, updatedAt: new Date().toISOString() })
+      .where(eq(cylinderStock.sizeKg, item.sizeKg))
   }
 
   // Record each payment in purchase_payments + account transactions

@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
     await db.delete(inventory)
     await db.delete(customers)
     await db.delete(products)
-    await db.update(cylinderStock).set({ fullCount: 0, emptyCount: 0, ownCount: 0 })
+    await db.delete(cylinderStock)
     await db.update(accounts).set({ balance: 0 })
   }
 
