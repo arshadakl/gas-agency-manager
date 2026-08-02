@@ -87,7 +87,7 @@ export const PurchaseSchema = z.object({
     paymentMode: z.enum(['cash', 'bank']),
   })).default([]),
   paymentReference: z.string().max(100).optional(),
-  dueDate: z.union([z.string().regex(/^\d{4}-\d{2}-\d{2}$/), z.literal(''), z.undefined()]).transform(v => v || undefined),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   notes: z.string().max(500).optional(),
   purchaseType: z.enum(['gas', 'accessories']).default('gas'),
   items: z.array(z.object({
