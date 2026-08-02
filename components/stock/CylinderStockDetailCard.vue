@@ -12,41 +12,37 @@ const emit = defineEmits<{
   adjust: [fullChange: number, emptyChange: number]
 }>()
 
-const localFullCount = ref(props.stock.fullCount)
-const localEmptyCount = ref(props.stock.emptyCount)
+const inputFull = ref(props.stock.fullCount)
+const inputEmpty = ref(props.stock.emptyCount)
 
 watch(() => props.stock, (newStock) => {
-  localFullCount.value = newStock.fullCount
-  localEmptyCount.value = newStock.emptyCount
+  inputFull.value = newStock.fullCount
+  inputEmpty.value = newStock.emptyCount
 }, { deep: true })
 
-const total = computed(() => localFullCount.value + localEmptyCount.value)
-const fullPct = computed(() => (total.value > 0 ? (localFullCount.value / total.value) * 100 : 0))
-const emptyPct = computed(() => (total.value > 0 ? (localEmptyCount.value / total.value) * 100 : 0))
+const total = computed(() => inputFull.value + inputEmpty.value)
+const fullPct = computed(() => (total.value > 0 ? (inputFull.value / total.value) * 100 : 0))
+const emptyPct = computed(() => (total.value > 0 ? (inputEmpty.value / total.value) * 100 : 0))
 const isLow = computed(() => total.value > 0 && fullPct.value / 100 < LOW_STOCK_RATIO)
 
-function incFull() {
-  localFullCount.value++
-  emit('adjust', localFullCount.value - props.stock.fullCount, 0)
+function handleFullChange() {
+  const delta = inputFull.value - props.stock.fullCount
+  if (delta !== 0) emit('adjust', delta, 0)
 }
 
-function decFull() {
-  if (localFullCount.value > 0) {
-    localFullCount.value--
-    emit('adjust', localFullCount.value - props.stock.fullCount, 0)
-  }
+function handleEmptyChange() {
+  const delta = inputEmpty.value - props.stock.emptyCount
+  if (delta !== 0) emit('adjust', 0, delta)
 }
 
-function incEmpty() {
-  localEmptyCount.value++
-  emit('adjust', 0, localEmptyCount.value - props.stock.emptyCount)
+function clampFull() {
+  if (inputFull.value < 0) inputFull.value = 0
+  handleFullChange()
 }
 
-function decEmpty() {
-  if (localEmptyCount.value > 0) {
-    localEmptyCount.value--
-    emit('adjust', 0, localEmptyCount.value - props.stock.emptyCount)
-  }
+function clampEmpty() {
+  if (inputEmpty.value < 0) inputEmpty.value = 0
+  handleEmptyChange()
 }
 </script>
 
@@ -60,25 +56,18 @@ function decEmpty() {
       <div>
         <div class="flex justify-between items-center mb-1">
           <span class="text-data-secondary text-on-surface">Full / Ready</span>
-          <div class="flex items-center gap-2">
-            <span class="text-data-primary text-on-surface">{{ localFullCount }}</span>
-            <div v-if="editMode" class="flex items-center gap-1 bg-surface-container-highest rounded p-0.5">
-              <button
-                type="button"
-                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
-                @click="decFull"
-              >
-                <Icon name="remove" class="text-sm" />
-              </button>
-              <button
-                type="button"
-                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
-                @click="incFull"
-              >
-                <Icon name="add" class="text-sm" />
-              </button>
-            </div>
+          <div v-if="editMode" class="flex items-center gap-2">
+            <input
+              v-model.number="inputFull"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              class="w-20 text-center px-2 py-1 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+              @change="clampFull"
+            >
           </div>
+          <span v-else class="text-data-primary text-on-surface">{{ inputFull }}</span>
         </div>
         <div class="w-full bg-surface-container-low rounded-full h-2">
           <div class="h-2 rounded-full" :class="isLow ? 'bg-error-container' : 'bg-primary-container'" :style="{ width: `${fullPct}%` }" />
@@ -87,25 +76,18 @@ function decEmpty() {
       <div>
         <div class="flex justify-between items-center mb-1">
           <span class="text-data-secondary text-on-surface-variant">Empty / Returned</span>
-          <div class="flex items-center gap-2">
-            <span class="text-data-primary text-on-surface-variant">{{ localEmptyCount }}</span>
-            <div v-if="editMode" class="flex items-center gap-1 bg-surface-container-highest rounded p-0.5">
-              <button
-                type="button"
-                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
-                @click="decEmpty"
-              >
-                <Icon name="remove" class="text-sm" />
-              </button>
-              <button
-                type="button"
-                class="w-6 h-6 flex items-center justify-center rounded hover:bg-surface-variant transition-colors"
-                @click="incEmpty"
-              >
-                <Icon name="add" class="text-sm" />
-              </button>
-            </div>
+          <div v-if="editMode" class="flex items-center gap-2">
+            <input
+              v-model.number="inputEmpty"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              step="1"
+              class="w-20 text-center px-2 py-1 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface-variant text-body-base focus:outline-none focus:border-primary"
+              @change="clampEmpty"
+            >
           </div>
+          <span v-else class="text-data-primary text-on-surface-variant">{{ inputEmpty }}</span>
         </div>
         <div class="w-full bg-surface-container-low rounded-full h-2">
           <div class="bg-surface-variant h-2 rounded-full" :style="{ width: `${emptyPct}%` }" />
