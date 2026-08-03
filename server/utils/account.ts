@@ -38,6 +38,7 @@ export async function recordAccountTransaction(
     referenceId?: number
     referenceType?: string
     notes?: string
+    salaryForName?: string
     user: { id: number; fullName: string }
   },
 ) {
@@ -51,6 +52,7 @@ export async function recordAccountTransaction(
     referenceId: params.referenceId ?? null,
     referenceType: params.referenceType ?? null,
     notes: params.notes ?? null,
+    salaryForName: params.salaryForName ?? null,
     createdBy: params.user.id,
     createdByName: params.user.fullName,
   }).returning()

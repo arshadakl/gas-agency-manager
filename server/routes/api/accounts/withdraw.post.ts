@@ -6,6 +6,7 @@ const WithdrawSchema = z.object({
   amount: z.number().positive(),
   accountType: z.enum(['cash', 'bank']),
   notes: z.string().max(500).optional(),
+  salaryForName: z.string().max(100).optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -18,6 +19,7 @@ export default defineEventHandler(async (event) => {
     amount: -body.amount,
     transactionType: 'salary_withdrawal',
     notes: body.notes ?? 'Salary withdrawal',
+    salaryForName: body.salaryForName,
     user,
   })
 

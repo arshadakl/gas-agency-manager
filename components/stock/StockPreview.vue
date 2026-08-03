@@ -12,32 +12,32 @@ defineProps<{
 </script>
 
 <template>
-  <div class="w-full overflow-x-auto">
-    <table class="w-full text-left border-collapse">
-      <thead>
-        <tr class="border-b border-surface-container-highest">
-          <th class="py-2 text-label-caps text-on-surface-variant uppercase">Type / Size</th>
-          <th class="py-2 text-label-caps text-on-surface-variant uppercase text-right">Current</th>
-          <th class="py-2 text-label-caps text-on-surface-variant uppercase text-right">Change</th>
-          <th class="py-2 text-label-caps text-on-surface-variant uppercase text-right">After</th>
-        </tr>
-      </thead>
-      <tbody class="text-body-base">
-        <template v-for="row in preview" :key="row.size">
-          <tr class="border-b border-surface-container-highest/50" :class="!row.isValid && 'bg-error-container/10'">
-            <td class="py-3 text-on-surface">{{ row.size }}kg <span class="text-on-surface-variant text-[10px]">FULL</span></td>
-            <td class="py-3 text-right text-on-surface-variant">{{ row.before.fullCount }}</td>
-            <td class="py-3 text-right text-tertiary">{{ row.fullChange >= 0 ? '+' : '' }}{{ row.fullChange }}</td>
-            <td class="py-3 text-right font-medium" :class="!row.isValid ? 'text-error' : 'text-on-surface'">{{ row.after.fullCount }}</td>
-          </tr>
-          <tr class="border-b border-surface-container-highest/50" :class="!row.isValid && 'bg-error-container/10'">
-            <td class="py-3 text-on-surface">{{ row.size }}kg <span class="text-on-surface-variant text-[10px]">MT</span></td>
-            <td class="py-3 text-right text-on-surface-variant">{{ row.before.emptyCount }}</td>
-            <td class="py-3 text-right text-primary-fixed-dim">{{ row.emptyChange >= 0 ? '+' : '' }}{{ row.emptyChange }}</td>
-            <td class="py-3 text-right font-medium" :class="!row.isValid ? 'text-error' : 'text-on-surface'">{{ row.after.emptyCount }}</td>
-          </tr>
-        </template>
-      </tbody>
-    </table>
+  <div class="space-y-2">
+    <div
+      v-for="row in preview"
+      :key="row.size"
+      class="flex items-center justify-between rounded-lg px-3 py-2 text-body-base"
+      :class="!row.isValid ? 'bg-error-container/10 border border-error/30' : row.fullChange === 0 && row.emptyChange === 0 ? 'bg-surface-container-highest/50' : 'bg-surface-container-highest'"
+    >
+      <span class="text-on-surface font-medium">{{ row.size }}kg</span>
+      <div class="flex items-center gap-3 text-data-secondary">
+        <!-- Full -->
+        <span v-if="row.fullChange !== 0" class="flex items-center gap-1">
+          <span class="text-on-surface-variant">Full</span>
+          <span :class="row.fullChange > 0 ? 'text-emerald-500' : 'text-error'">
+            {{ row.before.fullCount }} → {{ row.after.fullCount }}
+          </span>
+        </span>
+        <span v-else class="text-on-surface-variant">Full {{ row.after.fullCount }}</span>
+        <!-- Empty -->
+        <span v-if="row.emptyChange !== 0" class="flex items-center gap-1">
+          <span class="text-on-surface-variant">Empty</span>
+          <span :class="row.emptyChange > 0 ? 'text-emerald-500' : row.emptyChange < 0 ? 'text-error' : 'text-on-surface-variant'">
+            {{ row.before.emptyCount }} → {{ row.after.emptyCount }}
+          </span>
+        </span>
+        <span v-else class="text-on-surface-variant">Empty {{ row.after.emptyCount }}</span>
+      </div>
+    </div>
   </div>
 </template>

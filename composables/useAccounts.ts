@@ -45,13 +45,13 @@ export function useAccounts() {
     }
   }
 
-  async function withdraw(accountType: AccountType, amount: number, notes?: string) {
+  async function withdraw(accountType: AccountType, amount: number, notes?: string, salaryForName?: string) {
     error.value = null
     loading.value = true
     try {
       const result = await $fetch<ApiResponse<{ balance: number; transaction: AccountTransaction }>>('/api/accounts/withdraw', {
         method: 'POST',
-        body: { accountType, amount, notes },
+        body: { accountType, amount, notes, salaryForName },
       })
       return result.data
     } catch (err: unknown) {

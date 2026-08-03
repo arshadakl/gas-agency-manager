@@ -272,6 +272,7 @@ export const accountTransactions = sqliteTable('account_transactions', {
   referenceId: integer('reference_id'),
   referenceType: text('reference_type'),
   notes: text('notes'),
+  salaryForName: text('salary_for_name'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
   ...timestamps,

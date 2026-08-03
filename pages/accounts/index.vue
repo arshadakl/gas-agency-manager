@@ -17,10 +17,12 @@ const { showToast } = useToast()
 
 const balances = ref({ cash: 0, bank: 0, total: 0 })
 const transactions = ref<AccountTransaction[]>([])
-const filter = ref<'all' | 'cash' | 'bank' | 'conversion'>('all')
+const filter = ref<'all' | 'cash' | 'bank' | 'conversion' | 'salary'>('all')
+
+const staffUsers = ref<Array<{ id: number; fullName: string }>>([])
 
 const showWithdrawModal = ref(false)
-const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '' })
+const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '', salaryForName: '' })
 const withdrawLoading = ref(false)
 const withdrawError = ref('')
 
@@ -67,6 +69,9 @@ const filteredTransactions = computed(() => {
       tx.transactionType === 'conversion_in' || tx.transactionType === 'conversion_out'
     )
   }
+  if (filter.value === 'salary') {
+    return transactions.value.filter(tx => tx.transactionType === 'salary_withdrawal')
+  }
   return transactions.value.filter(tx => tx.accountType === filter.value)
 })
 
@@ -77,6 +82,11 @@ async function load() {
   ])
   balances.value = balData
   transactions.value = txData
+  // Fetch staff users for salary selector
+  try {
+    const res = await $fetch<{ data: Array<{ id: number; fullName: string }> }>('/api/users/staff')
+    staffUsers.value = res.data
+  } catch { /* ignore */ }
 }
 
 onMounted(load)
@@ -85,6 +95,7 @@ function openWithdrawModal() {
   withdrawForm.amount = 0
   withdrawForm.accountType = 'cash'
   withdrawForm.notes = ''
+  withdrawForm.salaryForName = ''
   withdrawError.value = ''
   showWithdrawModal.value = true
 }
@@ -93,7 +104,7 @@ async function handleWithdraw() {
   if (!withdrawForm.amount || withdrawForm.amount <= 0) return
   withdrawLoading.value = true
   try {
-    const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined)
+    const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined, withdrawForm.salaryForName || undefined)
     if (result) {
       balances.value[withdrawForm.accountType] = result.balance
       balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
@@ -216,6 +227,7 @@ function balanceTextClass(amount: number) {
           { key: 'all', label: 'All' },
           { key: 'cash', label: 'Cash' },
           { key: 'bank', label: 'Bank' },
+          { key: 'salary', label: 'Salary' },
           { key: 'conversion', label: 'Conversion' },
         ] as const"
         :key="opt.key"
@@ -248,7 +260,8 @@ function balanceTextClass(amount: number) {
           <div class="flex-1 min-w-0">
             <p class="text-data-primary text-on-surface truncate">
               {{ txTypeLabels[tx.transactionType] ?? tx.transactionType }}
-              <span v-if="tx.notes" class="text-on-surface-variant">— {{ tx.notes }}</span>
+              <span v-if="tx.transactionType === 'salary_withdrawal' && tx.salaryForName" class="text-primary-fixed-dim">— {{ tx.salaryForName }}</span>
+              <span v-else-if="tx.notes" class="text-on-surface-variant">— {{ tx.notes }}</span>
             </p>
             <p class="text-data-tertiary text-on-surface-variant">
               {{ formatTxDate(tx.createdAt) }} · {{ tx.createdByName }}
@@ -308,6 +321,20 @@ function balanceTextClass(amount: number) {
                   <Icon :name="opt.icon" class="text-sm" />
                   {{ opt.label }}
                 </button>
+              </div>
+            </div>
+
+            <div>
+              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Salary for</label>
+              <div class="relative">
+                <select
+                  v-model="withdrawForm.salaryForName"
+                  class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none appearance-none"
+                >
+                  <option value="">Select staff member</option>
+                  <option v-for="s in staffUsers" :key="s.id" :value="s.fullName">{{ s.fullName }}</option>
+                </select>
+                <Icon name="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
               </div>
             </div>
 
