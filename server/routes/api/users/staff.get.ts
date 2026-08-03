@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { users } from '~/server/database/schema'
 
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   const rows = await db.select({
     id: users.id,
     fullName: users.fullName,
-  }).from(users).where(eq(users.isActive, 1)).all()
+  }).from(users).where(and(eq(users.isActive, 1), ne(users.role, 'admin'))).all()
 
   return { data: rows }
 })
