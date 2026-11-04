@@ -12,6 +12,8 @@ export interface Expense {
   tag: ExpenseTag
   paymentSource: PaymentSource
   notes: string | null
+  staffId?: number | null
+  staffName?: string | null
   createdBy: number
   createdByName: string
   createdAt: string
@@ -50,7 +52,7 @@ export function useExpenses() {
     }
   }
 
-  async function createExpense(data: { expenseDate: string; amount: number; tag: ExpenseTag; paymentSource?: PaymentSource; notes?: string }) {
+  async function createExpense(data: { expenseDate: string; amount: number; tag: ExpenseTag; paymentSource?: PaymentSource; notes?: string; staffId?: number | null; staffName?: string | null }) {
     error.value = null
     loading.value = true
     try {
@@ -64,7 +66,7 @@ export function useExpenses() {
     }
   }
 
-  async function updateExpense(publicId: string, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; paymentSource: PaymentSource; notes: string }>) {
+  async function updateExpense(publicId: string, data: Partial<{ expenseDate: string; amount: number; tag: ExpenseTag; paymentSource: PaymentSource; notes: string; staffId: number | null; staffName: string | null }>) {
     error.value = null
     loading.value = true
     try {

@@ -243,9 +243,11 @@ export const expenses = sqliteTable('expenses', {
   publicId: text('public_id').unique(),
   expenseDate: text('expense_date').notNull(),
   amount: real('amount').notNull(),
-  tag: text('tag', { enum: ['fuel', 'maintenance', 'free_accessory', 'other'] }).notNull(),
+  tag: text('tag', { enum: ['fuel', 'maintenance', 'free_accessory', 'other', 'salary'] }).notNull(),
   paymentSource: text('payment_source', { enum: ['cash', 'bank'] }).default('cash').notNull(),
   notes: text('notes'),
+  staffId: integer('staff_id').references(() => users.id),
+  staffName: text('staff_name'),
   createdBy: integer('created_by').references(() => users.id).notNull(),
   createdByName: text('created_by_name').notNull(),
   ...timestamps,
@@ -253,6 +255,7 @@ export const expenses = sqliteTable('expenses', {
   dateIdx: index('expenses_date_idx').on(table.expenseDate),
   tagIdx: index('expenses_tag_idx').on(table.tag),
   sourceIdx: index('expenses_source_idx').on(table.paymentSource),
+  staffIdx: index('expenses_staff_idx').on(table.staffId),
 }))
 
 export const accounts = sqliteTable('accounts', {

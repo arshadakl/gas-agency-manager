@@ -70,7 +70,7 @@ const filteredTransactions = computed(() => {
     )
   }
   if (filter.value === 'salary') {
-    return transactions.value.filter(tx => tx.transactionType === 'salary_withdrawal')
+    return transactions.value.filter(tx => tx.transactionType === 'salary_withdrawal' || !!tx.salaryForName || (tx.notes && tx.notes.toLowerCase().includes('salary')))
   }
   return transactions.value.filter(tx => tx.accountType === filter.value)
 })
@@ -260,7 +260,7 @@ function balanceTextClass(amount: number) {
           <div class="flex-1 min-w-0">
             <p class="text-data-primary text-on-surface truncate">
               {{ txTypeLabels[tx.transactionType] ?? tx.transactionType }}
-              <span v-if="tx.transactionType === 'salary_withdrawal' && tx.salaryForName" class="text-primary-fixed-dim">— {{ tx.salaryForName }}</span>
+              <span v-if="tx.salaryForName" class="text-teal-600 font-medium">— Salary: {{ tx.salaryForName }}</span>
               <span v-else-if="tx.notes" class="text-on-surface-variant">— {{ tx.notes }}</span>
             </p>
             <p class="text-data-tertiary text-on-surface-variant">
@@ -287,13 +287,24 @@ function balanceTextClass(amount: number) {
           <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWithdrawModal = false" />
           <div class="relative bg-surface-container-high rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 border border-outline-variant/20 z-10">
             <div class="flex items-center justify-between">
-              <h2 class="text-headline-md text-on-surface">Salary Withdrawal</h2>
+              <h2 class="text-headline-md text-on-surface">Cash / Bank Withdrawal</h2>
               <button class="p-2 -mr-2" @click="showWithdrawModal = false">
                 <Icon name="close" class="text-on-surface-variant" />
               </button>
             </div>
 
-            <p class="text-data-secondary text-on-surface-variant">Mark a withdrawal from cash or bank for salary.</p>
+            <p class="text-data-secondary text-on-surface-variant">Record a general withdrawal or owner drawing.</p>
+            <NuxtLink
+              to="/expenses/new?tag=salary"
+              class="px-3.5 py-2.5 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-600 text-data-secondary flex items-center justify-between hover:bg-teal-500/15 transition-colors"
+              @click="showWithdrawModal = false"
+            >
+              <div class="flex items-center gap-2">
+                <Icon name="badge" class="text-base" />
+                <span>Paying staff salary?</span>
+              </div>
+              <span class="font-medium underline flex items-center gap-0.5 text-xs">Record in Expenses <Icon name="arrow_forward" class="text-xs" /></span>
+            </NuxtLink>
 
             <div>
               <label class="text-data-secondary text-on-surface-variant block mb-1.5">Amount</label>

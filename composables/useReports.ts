@@ -27,7 +27,7 @@ interface ProcurementReport {
 interface ProfitLossReport {
   revenue: { totalBilled: number; cashCollected: number; bankCollected: number; totalCollected: number }
   costs: { gasPurchases: number; connectionCharges: number; totalPurchases: number }
-  expenses: { fuel: number; maintenance: number; fine: number; other: number; total: number }
+  expenses: { fuel: number; maintenance: number; fine: number; salary: number; other: number; total: number }
   withdrawals: { total: number; count: number }
   grossProfit: number
   netProfit: number
@@ -93,7 +93,7 @@ export function useReports() {
   const fetchProfitLoss = () => get<ProfitLossReport>('/api/reports/profit-loss', {
     revenue: { totalBilled: 0, cashCollected: 0, bankCollected: 0, totalCollected: 0 },
     costs: { gasPurchases: 0, connectionCharges: 0, totalPurchases: 0 },
-    expenses: { fuel: 0, maintenance: 0, fine: 0, other: 0, total: 0 },
+    expenses: { fuel: 0, maintenance: 0, fine: 0, salary: 0, other: 0, total: 0 },
     withdrawals: { total: 0, count: 0 },
     grossProfit: 0, netProfit: 0,
     previous: { grossProfit: 0, netProfit: 0, grossDelta: null, netDelta: null },

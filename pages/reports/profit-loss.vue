@@ -71,10 +71,11 @@ function deltaText(d: number | null) {
 
 const expenseItems = computed(() => {
   if (!report.value) return []
-  const { fuel, maintenance, fine, other } = report.value.expenses
+  const { fuel, maintenance, fine, salary, other } = report.value.expenses
   return [
     { label: 'Fuel', amount: fuel, icon: 'local_gas_station', color: 'text-amber-500' },
     { label: 'Maintenance', amount: maintenance, icon: 'build', color: 'text-blue-500' },
+    { label: 'Salaries', amount: salary || 0, icon: 'badge', color: 'text-teal-500' },
     { label: 'Fine', amount: fine, icon: 'gavel', color: 'text-red-500' },
     { label: 'Other', amount: other, icon: 'receipt', color: 'text-on-surface-variant' },
   ].filter(e => e.amount > 0)

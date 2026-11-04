@@ -12,6 +12,8 @@ const CreateExpenseSchema = z.object({
   tag: z.enum(EXPENSE_TAGS),
   paymentSource: z.enum(['cash', 'bank']).default('cash'),
   notes: z.string().max(500).optional(),
+  staffId: z.number().int().positive().nullable().optional(),
+  staffName: z.string().max(100).nullable().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -26,6 +28,8 @@ export default defineEventHandler(async (event) => {
     tag: body.tag,
     paymentSource: body.paymentSource,
     notes: body.notes,
+    staffId: body.staffId ?? null,
+    staffName: body.staffName ?? null,
     createdBy: user.id,
     createdByName: user.fullName,
   }).returning()
@@ -40,6 +44,7 @@ export default defineEventHandler(async (event) => {
     referenceId: created.id,
     referenceType: 'expense',
     notes: body.notes,
+    salaryForName: body.tag === 'salary' ? (body.staffName ?? undefined) : undefined,
     user,
   })
 

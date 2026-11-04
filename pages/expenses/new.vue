@@ -3,7 +3,7 @@ import { Button } from '~/components/ui/button'
 import type { ExpenseTag } from '~/types'
 import { EXPENSE_TAGS, PAYMENT_SOURCES } from '~/types'
 import type { PaymentSource } from '~/composables/useExpenses'
-import { TAG_LABELS, TAG_COLORS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
+import { TAG_LABELS, TAG_COLORS, TAG_ICONS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
 
 definePageMeta({
   layout: 'default',
@@ -22,16 +22,35 @@ const editId = computed(() => route.query.id as string | undefined)
 const isEdit = computed(() => Boolean(editId.value))
 const pageTitle = computed(() => isEdit.value ? 'Edit Expense' : 'New Expense')
 
+const staffUsers = ref<Array<{ id: number; fullName: string }>>([])
+
+const initialTag = (route.query.tag && EXPENSE_TAGS.includes(route.query.tag as ExpenseTag))
+  ? (route.query.tag as ExpenseTag)
+  : 'fuel'
+
 const form = reactive({
   expenseDate: new Date().toISOString().split('T')[0],
   amount: '' as number | '',
-  tag: 'fuel' as ExpenseTag,
+  tag: initialTag as ExpenseTag,
   paymentSource: 'cash' as PaymentSource,
+  staffId: null as number | null,
+  staffName: '',
   notes: '',
 })
 const formError = ref<string | null>(null)
 
+function onStaffSelect() {
+  const found = staffUsers.value.find(s => s.fullName === form.staffName)
+  form.staffId = found?.id ?? null
+}
+
 onMounted(async () => {
+  // Fetch active staff users for salary selector
+  try {
+    const res = await $fetch<{ data: Array<{ id: number; fullName: string }> }>('/api/users/staff')
+    staffUsers.value = res.data
+  } catch { /* ignore */ }
+
   if (editId.value) {
     const expense = await getExpense(editId.value)
     if (expense) {
@@ -40,6 +59,8 @@ onMounted(async () => {
       form.tag = expense.tag
       form.paymentSource = expense.paymentSource
       form.notes = expense.notes ?? ''
+      form.staffId = expense.staffId ?? null
+      form.staffName = expense.staffName ?? ''
     } else {
       await navigateTo('/expenses')
     }
@@ -48,22 +69,30 @@ onMounted(async () => {
 
 const tagLabels = TAG_LABELS
 const tagColors = TAG_COLORS
+const tagIcons = TAG_ICONS
 const sourceLabels = SOURCE_LABELS
 const sourceIcons = SOURCE_ICONS
 const sourceColors = SOURCE_COLORS
 
 async function handleSubmit() {
   formError.value = null
-  if (!form.amount || form.amount <= 0) {
+  if (!form.amount || Number(form.amount) <= 0) {
     formError.value = 'Enter a valid amount'
     return
   }
+  if (form.tag === 'salary' && !form.staffName) {
+    formError.value = 'Please select a staff member for salary'
+    return
+  }
+
   const data = {
     expenseDate: form.expenseDate as string,
     amount: Number(form.amount),
     tag: form.tag,
     paymentSource: form.paymentSource,
-    notes: form.tag === 'other' && form.notes ? form.notes : undefined,
+    notes: form.notes ? form.notes : undefined,
+    staffId: form.tag === 'salary' ? form.staffId : null,
+    staffName: form.tag === 'salary' ? form.staffName : null,
   }
 
   if (isEdit.value && editId.value) {
@@ -97,7 +126,7 @@ async function handleSubmit() {
     <form class="space-y-5" @submit.prevent="handleSubmit">
       <div>
         <label class="text-data-secondary text-on-surface-variant">Date</label>
-        <input v-model="form.expenseDate" type="date" class="block w-full px-0 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
+        <input v-model="form.expenseDate" type="date" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
       </div>
 
       <div>
@@ -112,12 +141,29 @@ async function handleSubmit() {
             v-for="tag in EXPENSE_TAGS"
             :key="tag"
             type="button"
-            class="px-3 py-1.5 rounded-full text-data-secondary border transition-colors"
+            class="px-3 py-1.5 rounded-full text-data-secondary border transition-colors flex items-center gap-1.5"
             :class="form.tag === tag ? tagColors[tag] : 'border-outline-variant/30 text-on-surface-variant'"
             @click="form.tag = tag"
           >
+            <Icon :name="tagIcons[tag]" class="text-xs" />
             {{ tagLabels[tag] }}
           </button>
+        </div>
+      </div>
+
+      <!-- Staff Member Selector (visible when Category is Salary) -->
+      <div v-if="form.tag === 'salary'">
+        <label class="text-data-secondary text-on-surface-variant block mb-1">Staff Member</label>
+        <div class="relative">
+          <select
+            v-model="form.staffName"
+            class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none appearance-none"
+            @change="onStaffSelect"
+          >
+            <option value="">Select staff member</option>
+            <option v-for="s in staffUsers" :key="s.id" :value="s.fullName">{{ s.fullName }}</option>
+          </select>
+          <Icon name="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
         </div>
       </div>
 
@@ -138,9 +184,15 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <div v-if="form.tag === 'other'">
-        <label class="text-data-secondary text-on-surface-variant">Notes</label>
-        <input v-model="form.notes" type="text" maxlength="500" placeholder="What was this expense for?" class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary">
+      <div>
+        <label class="text-data-secondary text-on-surface-variant">Notes (optional)</label>
+        <input
+          v-model="form.notes"
+          type="text"
+          maxlength="500"
+          :placeholder="form.tag === 'salary' ? 'e.g. July salary, advance, or bonus' : 'What was this expense for?'"
+          class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
+        >
       </div>
 
       <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>

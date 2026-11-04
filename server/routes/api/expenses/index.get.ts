@@ -1,6 +1,7 @@
 import { eq, and, gte, lte, desc, sql, getTableColumns } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { expenses } from '~/server/database/schema'
+import type { ExpenseTag } from '~/types'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['admin', 'delivery', 'viewer'])
@@ -11,7 +12,7 @@ export default defineEventHandler(async (event) => {
   const conditions: ReturnType<typeof eq>[] = []
 
   if (query.tag) {
-    conditions.push(eq(expenses.tag, query.tag as 'fuel' | 'maintenance' | 'free_accessory' | 'other'))
+    conditions.push(eq(expenses.tag, query.tag as ExpenseTag))
   }
   if (query.from) {
     conditions.push(gte(expenses.expenseDate, query.from))

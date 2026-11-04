@@ -40,7 +40,7 @@ async function fetchPnl(db: ReturnType<typeof useDB>, from: string, to: string) 
       .groupBy(expenses.tag)
       .all(),
 
-    // Salary withdrawals
+    // Unmigrated / raw withdrawals (excluding those linked as expenses)
     db.select({
       total: sql<number>`coalesce(sum(abs(${accountTransactions.amount})), 0)`,
       count: sql<number>`count(*)`,
@@ -48,6 +48,7 @@ async function fetchPnl(db: ReturnType<typeof useDB>, from: string, to: string) 
       .from(accountTransactions)
       .where(and(
         eq(accountTransactions.transactionType, 'salary_withdrawal'),
+        sql`(${accountTransactions.referenceType} IS NULL OR ${accountTransactions.referenceType} != 'expense')`,
         gte(sql`date(${accountTransactions.createdAt})`, from),
         lte(sql`date(${accountTransactions.createdAt})`, to),
       ))
@@ -63,7 +64,7 @@ async function fetchPnl(db: ReturnType<typeof useDB>, from: string, to: string) 
   const connectionCharges = purchaseCosts?.connectionCharge ?? 0
   const totalPurchases = gasPurchases + connectionCharges
 
-  const expensesByTag: Record<string, number> = { fuel: 0, maintenance: 0, fine: 0, other: 0 }
+  const expensesByTag: Record<string, number> = { fuel: 0, maintenance: 0, fine: 0, salary: 0, other: 0 }
   for (const row of expenseData) {
     expensesByTag[row.tag ?? 'other'] = row.total
   }

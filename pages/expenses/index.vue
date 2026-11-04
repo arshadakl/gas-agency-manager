@@ -2,7 +2,8 @@
 import { Button } from '~/components/ui/button'
 import type { ExpenseTag, PaymentSource } from '~/types'
 import { EXPENSE_TAGS } from '~/types'
-import { TAG_LABELS, TAG_COLORS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
+import type { Expense } from '~/composables/useExpenses'
+import { TAG_LABELS, TAG_COLORS, TAG_ICONS, SOURCE_LABELS, SOURCE_ICONS, SOURCE_COLORS } from '~/utils/expenseConstants'
 
 definePageMeta({
   layout: 'default',
@@ -12,7 +13,7 @@ definePageMeta({
 const { user } = useUserSession()
 const { fetchExpenses, deleteExpense } = useExpenses()
 
-const expenses = ref<Array<{ id: number; publicId: string | null; expenseDate: string; amount: number; tag: ExpenseTag; paymentSource: PaymentSource; notes: string | null; createdBy: number; createdByName: string; createdAt: string }>>([])
+const expenses = ref<Expense[]>([])
 const totalExpenses = ref(0)
 const byTag = ref<Record<string, number>>({})
 const bySource = ref<Record<string, number>>({})
@@ -91,14 +92,7 @@ function formatShortDate(date: string) {
 }
 
 const tagLabels = TAG_LABELS
-
-const tagIcons: Record<ExpenseTag, string> = {
-  fuel: 'local_gas_station',
-  maintenance: 'build',
-  free_accessory: 'inventory_2',
-  other: 'more_horiz',
-}
-
+const tagIcons = TAG_ICONS
 const tagColors = TAG_COLORS
 
 const sourceLabels = SOURCE_LABELS
@@ -107,11 +101,11 @@ const sourceColors = SOURCE_COLORS
 </script>
 
 <template>
-  <div class="px-margin-mobile py-lg flex flex-col gap-lg">
+  <div class="px-margin-mobile py-lg flex flex-col gap-lg pb-40">
     <div class="flex items-end justify-between gap-md">
       <div>
         <h1 class="text-headline-md text-on-surface">Expenses</h1>
-        <p class="text-data-secondary text-on-surface-variant mt-1">Track fuel, maintenance, and other costs.</p>
+        <p class="text-data-secondary text-on-surface-variant mt-1">Track fuel, maintenance, salaries, and other costs.</p>
       </div>
       <NuxtLink v-if="user?.role === 'admin' || user?.role === 'delivery'" to="/expenses/new" class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0">
         <Icon name="add" />
@@ -143,7 +137,7 @@ const sourceColors = SOURCE_COLORS
         class="bg-surface-container rounded-xl p-3 border border-outline-variant/30"
       >
         <div class="flex items-center gap-2 mb-1">
-          <Icon :name="tagIcons[tag]" class="text-sm" :class="tag === 'fuel' ? 'text-amber-500' : tag === 'maintenance' ? 'text-blue-500' : tag === 'free_accessory' ? 'text-purple-500' : 'text-on-surface-variant'" />
+          <Icon :name="tagIcons[tag]" class="text-sm" :class="tag === 'fuel' ? 'text-amber-500' : tag === 'maintenance' ? 'text-blue-500' : tag === 'free_accessory' ? 'text-purple-500' : tag === 'salary' ? 'text-teal-500' : 'text-on-surface-variant'" />
           <span class="text-data-tertiary text-on-surface-variant">{{ tagLabels[tag] }}</span>
         </div>
         <p class="text-data-primary text-on-surface">{{ formatCurrency(byTag[tag] ?? 0) }}</p>
@@ -162,10 +156,11 @@ const sourceColors = SOURCE_COLORS
       <button
         v-for="tag in EXPENSE_TAGS"
         :key="tag"
-        class="px-3 py-1.5 rounded-full text-data-secondary border transition-colors"
+        class="px-3 py-1.5 rounded-full text-data-secondary border transition-colors flex items-center gap-1.5"
         :class="tagFilter === tag ? tagColors[tag] : 'border-outline-variant/30 text-on-surface-variant'"
         @click="tagFilter = tag"
       >
+        <Icon :name="tagIcons[tag]" class="text-xs" />
         {{ tagLabels[tag] }}
       </button>
     </div>
@@ -185,9 +180,12 @@ const sourceColors = SOURCE_COLORS
           <Icon :name="tagIcons[expense.tag]" class="text-lg" />
         </div>
         <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="text-data-primary text-on-surface">{{ formatCurrency(expense.amount) }}</span>
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="text-data-primary text-on-surface font-medium">{{ formatCurrency(expense.amount) }}</span>
             <span class="text-data-tertiary text-on-surface-variant">· {{ tagLabels[expense.tag] }}</span>
+            <span v-if="expense.tag === 'salary' && expense.staffName" class="px-2 py-0.5 rounded-full bg-teal-500/10 text-teal-600 border border-teal-500/20 text-xs font-medium">
+              {{ expense.staffName }}
+            </span>
           </div>
           <p class="text-data-tertiary text-on-surface-variant mt-0.5">
             {{ formatShortDate(expense.expenseDate) }}

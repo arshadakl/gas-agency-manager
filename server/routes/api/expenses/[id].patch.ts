@@ -12,6 +12,8 @@ const UpdateExpenseSchema = z.object({
   tag: z.enum(EXPENSE_TAGS).optional(),
   paymentSource: z.enum(['cash', 'bank']).optional(),
   notes: z.string().max(500).optional(),
+  staffId: z.number().int().positive().nullable().optional(),
+  staffName: z.string().max(100).nullable().optional(),
 })
 
 export default defineEventHandler(async (event) => {
@@ -56,6 +58,8 @@ export default defineEventHandler(async (event) => {
       ...(body.tag !== undefined ? { tag: body.tag } : {}),
       ...(body.paymentSource !== undefined ? { paymentSource: body.paymentSource } : {}),
       ...(body.notes !== undefined ? { notes: body.notes } : {}),
+      ...(body.staffId !== undefined ? { staffId: body.staffId } : {}),
+      ...(body.staffName !== undefined ? { staffName: body.staffName } : {}),
     })
     .where(eq(expenses.id, existing.id))
     .returning()
@@ -66,6 +70,8 @@ export default defineEventHandler(async (event) => {
   if (needsAccountSync) {
     const newAmount = body.amount ?? existing.amount
     const newSource = (body.paymentSource ?? existing.paymentSource) as AccountType
+    const effectiveTag = body.tag ?? existing.tag
+    const effectiveStaffName = body.staffName !== undefined ? body.staffName : existing.staffName
     await recordAccountTransaction(db, {
       accountType: newSource,
       amount: -newAmount,
@@ -73,6 +79,7 @@ export default defineEventHandler(async (event) => {
       referenceId: updated.id,
       referenceType: 'expense',
       notes: body.notes ?? existing.notes ?? undefined,
+      salaryForName: effectiveTag === 'salary' ? (effectiveStaffName ?? undefined) : undefined,
       user,
     })
   }
