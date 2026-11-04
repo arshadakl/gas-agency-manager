@@ -39,7 +39,9 @@ export const customers = sqliteTable('customers', {
   type: text('type', { enum: ['restaurant', 'home'] }).notNull().default('restaurant'),
   isActive: integer('is_active').default(1).notNull(),
   ...timestamps,
-})
+}, (table) => ({
+  phoneIdx: index('customers_phone_idx').on(table.phone),
+}))
 
 export const products = sqliteTable('products', {
   id: integer('id').primaryKey({ autoIncrement: true }),
@@ -90,6 +92,7 @@ export const deliveries = sqliteTable('deliveries', {
   customerIdx: index('deliveries_customer_idx').on(table.customerId),
   dateIdx: index('deliveries_date_idx').on(table.deliveryDate),
   createdByIdx: index('deliveries_created_by_idx').on(table.createdBy),
+  custPayIdx: index('deliveries_cust_pay_idx').on(table.customerId, table.paymentStatus),
 }))
 
 export const deliveryItems = sqliteTable('delivery_items', {
@@ -283,4 +286,5 @@ export const accountTransactions = sqliteTable('account_transactions', {
   accountIdx: index('account_transactions_account_idx').on(table.accountType),
   typeIdx: index('account_transactions_type_idx').on(table.transactionType),
   dateIdx: index('account_transactions_date_idx').on(table.createdAt),
+  refIdx: index('account_transactions_ref_idx').on(table.referenceType, table.referenceId),
 }))
