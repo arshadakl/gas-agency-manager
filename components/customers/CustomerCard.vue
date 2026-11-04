@@ -7,7 +7,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useLocale()
-const level = computed(() => getOutstandingLevel(props.customer.pendingDeliveryCount))
+const level = computed(() => getOutstandingLevel(props.customer.pendingDeliveryCount, props.customer.balance))
 
 const styles = {
   clear: {
@@ -37,9 +37,13 @@ const styles = {
 } as const
 
 const style = computed(() => styles[level.value])
-const badgeLabel = computed(() =>
-  level.value === 'clear' ? t('balance_clear') : `${props.customer.pendingDeliveryCount} ${t('pending_label')}`,
-)
+const badgeLabel = computed(() => {
+  if (level.value === 'clear') return t('balance_clear')
+  if (props.customer.pendingDeliveryCount > 0) {
+    return `${props.customer.pendingDeliveryCount} ${t('pending_label')}`
+  }
+  return 'Pre-app Due'
+})
 
 const promiseOverdue = computed(() =>
   !!props.customer.promisedPayDate && props.customer.promisedPayDate < toISODate(new Date()),

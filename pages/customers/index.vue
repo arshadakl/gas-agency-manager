@@ -59,7 +59,7 @@ function toggleTypeFilter(type: CustomerType) {
 const filteredCustomers = computed(() => {
   if (filter.value !== 'outstanding') return customers.value
   return customers.value.filter((c) => {
-    const level = getOutstandingLevel(c.pendingDeliveryCount)
+    const level = getOutstandingLevel(c.pendingDeliveryCount, c.balance)
     if (level === 'clear') return false
     return levelFilter.value ? level === levelFilter.value : true
   })
