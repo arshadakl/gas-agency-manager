@@ -270,7 +270,7 @@ export const accountTransactions = sqliteTable('account_transactions', {
   accountType: text('account_type', { enum: ['cash', 'bank'] }).notNull(),
   amount: real('amount').notNull(),
   transactionType: text('transaction_type', {
-    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment', 'salary_withdrawal', 'deposit']
+    enum: ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment', 'salary_withdrawal', 'deposit', 'withdrawal']
   }).notNull(),
   referenceId: integer('reference_id'),
   referenceType: text('reference_type'),

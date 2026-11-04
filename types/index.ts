@@ -34,7 +34,7 @@ export type PaymentSource = typeof PAYMENT_SOURCES[number]
 
 export type AccountType = 'cash' | 'bank'
 
-export const ACCOUNT_TRANSACTION_TYPES = ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment', 'salary_withdrawal', 'deposit'] as const
+export const ACCOUNT_TRANSACTION_TYPES = ['delivery_collection', 'payment_received', 'purchase_paid', 'purchase_clear', 'expense', 'conversion_in', 'conversion_out', 'adjustment', 'salary_withdrawal', 'deposit', 'withdrawal'] as const
 export type AccountTransactionType = typeof ACCOUNT_TRANSACTION_TYPES[number]
 
 export type PurchaseType = 'gas' | 'accessories'

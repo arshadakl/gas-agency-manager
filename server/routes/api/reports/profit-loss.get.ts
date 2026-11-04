@@ -1,4 +1,4 @@
-import { and, eq, gte, lte, sql } from 'drizzle-orm'
+import { and, eq, gte, lte, or, sql } from 'drizzle-orm'
 import { useDB } from '~/server/database'
 import { deliveries, customerPayments, purchases, expenses, accountTransactions } from '~/server/database/schema'
 import { ReportQuerySchema } from '~/utils/validators'
@@ -40,14 +40,17 @@ async function fetchPnl(db: ReturnType<typeof useDB>, from: string, to: string) 
       .groupBy(expenses.tag)
       .all(),
 
-    // Unmigrated / raw withdrawals (excluding those linked as expenses)
+    // Owner withdrawals / raw withdrawals (excluding those linked as expenses)
     db.select({
       total: sql<number>`coalesce(sum(abs(${accountTransactions.amount})), 0)`,
       count: sql<number>`count(*)`,
     })
       .from(accountTransactions)
       .where(and(
-        eq(accountTransactions.transactionType, 'salary_withdrawal'),
+        or(
+          eq(accountTransactions.transactionType, 'withdrawal'),
+          eq(accountTransactions.transactionType, 'salary_withdrawal'),
+        ),
         sql`(${accountTransactions.referenceType} IS NULL OR ${accountTransactions.referenceType} != 'expense')`,
         gte(sql`date(${accountTransactions.createdAt})`, from),
         lte(sql`date(${accountTransactions.createdAt})`, to),

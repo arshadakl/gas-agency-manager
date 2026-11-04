@@ -17,12 +17,10 @@ const { showToast } = useToast()
 
 const balances = ref({ cash: 0, bank: 0, total: 0 })
 const transactions = ref<AccountTransaction[]>([])
-const filter = ref<'all' | 'cash' | 'bank' | 'conversion' | 'salary'>('all')
-
-const staffUsers = ref<Array<{ id: number; fullName: string }>>([])
+const filter = ref<'all' | 'cash' | 'bank' | 'conversion' | 'withdrawal'>('all')
 
 const showWithdrawModal = ref(false)
-const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '', salaryForName: '' })
+const withdrawForm = reactive({ amount: 0, accountType: 'cash' as AccountType, notes: '' })
 const withdrawLoading = ref(false)
 const withdrawError = ref('')
 
@@ -40,6 +38,7 @@ const txTypeLabels: Record<string, string> = {
   conversion_in: 'Convert In',
   conversion_out: 'Convert Out',
   adjustment: 'Adjustment',
+  withdrawal: 'Withdrawal',
   salary_withdrawal: 'Salary',
   deposit: 'Deposit',
 }
@@ -53,6 +52,7 @@ const txTypeIcons: Record<string, string> = {
   conversion_in: 'arrow_downward',
   conversion_out: 'arrow_upward',
   adjustment: 'sync_alt',
+  withdrawal: 'account_balance',
   salary_withdrawal: 'account_balance',
   deposit: 'add_circle',
 }
@@ -69,8 +69,10 @@ const filteredTransactions = computed(() => {
       tx.transactionType === 'conversion_in' || tx.transactionType === 'conversion_out'
     )
   }
-  if (filter.value === 'salary') {
-    return transactions.value.filter(tx => tx.transactionType === 'salary_withdrawal' || !!tx.salaryForName || (tx.notes && tx.notes.toLowerCase().includes('salary')))
+  if (filter.value === 'withdrawal') {
+    return transactions.value.filter(tx =>
+      tx.transactionType === 'withdrawal' || tx.transactionType === 'salary_withdrawal'
+    )
   }
   return transactions.value.filter(tx => tx.accountType === filter.value)
 })
@@ -82,11 +84,6 @@ async function load() {
   ])
   balances.value = balData
   transactions.value = txData
-  // Fetch staff users for salary selector
-  try {
-    const res = await $fetch<{ data: Array<{ id: number; fullName: string }> }>('/api/users/staff')
-    staffUsers.value = res.data
-  } catch { /* ignore */ }
 }
 
 onMounted(load)
@@ -95,7 +92,6 @@ function openWithdrawModal() {
   withdrawForm.amount = 0
   withdrawForm.accountType = 'cash'
   withdrawForm.notes = ''
-  withdrawForm.salaryForName = ''
   withdrawError.value = ''
   showWithdrawModal.value = true
 }
@@ -104,7 +100,7 @@ async function handleWithdraw() {
   if (!withdrawForm.amount || withdrawForm.amount <= 0) return
   withdrawLoading.value = true
   try {
-    const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined, withdrawForm.salaryForName || undefined)
+    const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined)
     if (result) {
       balances.value[withdrawForm.accountType] = result.balance
       balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
@@ -227,7 +223,7 @@ function balanceTextClass(amount: number) {
           { key: 'all', label: 'All' },
           { key: 'cash', label: 'Cash' },
           { key: 'bank', label: 'Bank' },
-          { key: 'salary', label: 'Salary' },
+          { key: 'withdrawal', label: 'Withdrawal' },
           { key: 'conversion', label: 'Conversion' },
         ] as const"
         :key="opt.key"
@@ -287,24 +283,13 @@ function balanceTextClass(amount: number) {
           <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" @click="showWithdrawModal = false" />
           <div class="relative bg-surface-container-high rounded-t-2xl sm:rounded-2xl w-full max-w-md p-6 flex flex-col gap-4 border border-outline-variant/20 z-10">
             <div class="flex items-center justify-between">
-              <h2 class="text-headline-md text-on-surface">Cash / Bank Withdrawal</h2>
+              <h2 class="text-headline-md text-on-surface">Owner / Cash Withdrawal</h2>
               <button class="p-2 -mr-2" @click="showWithdrawModal = false">
                 <Icon name="close" class="text-on-surface-variant" />
               </button>
             </div>
 
-            <p class="text-data-secondary text-on-surface-variant">Record a general withdrawal or owner drawing.</p>
-            <NuxtLink
-              to="/expenses/new?tag=salary"
-              class="px-3.5 py-2.5 rounded-xl bg-teal-500/10 border border-teal-500/30 text-teal-600 text-data-secondary flex items-center justify-between hover:bg-teal-500/15 transition-colors"
-              @click="showWithdrawModal = false"
-            >
-              <div class="flex items-center gap-2">
-                <Icon name="badge" class="text-base" />
-                <span>Paying staff salary?</span>
-              </div>
-              <span class="font-medium underline flex items-center gap-0.5 text-xs">Record in Expenses <Icon name="arrow_forward" class="text-xs" /></span>
-            </NuxtLink>
+            <p class="text-data-secondary text-on-surface-variant">Record an owner drawing or general withdrawal from cash or bank.</p>
 
             <div>
               <label class="text-data-secondary text-on-surface-variant block mb-1.5">Amount</label>
@@ -336,26 +321,12 @@ function balanceTextClass(amount: number) {
             </div>
 
             <div>
-              <label class="text-data-secondary text-on-surface-variant block mb-1.5">Salary for</label>
-              <div class="relative">
-                <select
-                  v-model="withdrawForm.salaryForName"
-                  class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none appearance-none"
-                >
-                  <option value="">Select staff member</option>
-                  <option v-for="s in staffUsers" :key="s.id" :value="s.fullName">{{ s.fullName }}</option>
-                </select>
-                <Icon name="expand_more" class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none" />
-              </div>
-            </div>
-
-            <div>
               <label class="text-data-secondary text-on-surface-variant block mb-1.5">Notes (optional)</label>
               <input
                 v-model="withdrawForm.notes"
                 type="text"
                 class="w-full px-3 py-2.5 rounded-xl bg-surface-container-highest text-on-surface border border-outline-variant/30 focus:border-primary outline-none"
-                placeholder="e.g. July salary"
+                placeholder="e.g. Owner drawing, personal withdrawal, etc."
               />
             </div>
 
