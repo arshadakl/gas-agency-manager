@@ -27,6 +27,7 @@ const form = reactive({
   whatsappNumber: props.customer?.whatsappNumber ?? '',
   address: props.customer?.address ?? '',
   type: (props.customer?.type ?? 'restaurant') as 'restaurant' | 'home',
+  openingBalance: props.customer?.openingBalance ?? ('' as number | ''),
   connectionDeposit: props.customer?.connectionDeposit ?? ('' as number | ''),
   depositNote: props.customer?.depositNote ?? '',
 })
@@ -47,7 +48,13 @@ const whatsappError = computed(() => {
   return ''
 })
 
-const formValid = computed(() => !phoneError.value && !whatsappError.value && form.name.length >= 2)
+const openingBalanceError = computed(() => {
+  if (form.openingBalance === '' || form.openingBalance === undefined) return ''
+  if (Number(form.openingBalance) < 0) return 'Opening balance cannot be negative'
+  return ''
+})
+
+const formValid = computed(() => !phoneError.value && !whatsappError.value && !openingBalanceError.value && form.name.length >= 2)
 
 function handleSubmit() {
   phoneTouched.value = true
@@ -60,6 +67,7 @@ function handleSubmit() {
     whatsappNumber: form.whatsappNumber ? form.whatsappNumber.replace(/\s/g, '') : undefined,
     address: form.address || undefined,
     type: form.type,
+    openingBalance: form.openingBalance === '' ? 0 : Number(form.openingBalance),
     connectionDeposit: form.connectionDeposit === '' ? null : Number(form.connectionDeposit),
     depositNote: form.depositNote || null,
   })
@@ -131,6 +139,20 @@ function handleSubmit() {
     <div class="space-y-1">
       <Label for="address">Address</Label>
       <Textarea id="address" v-model="form.address" rows="3" />
+    </div>
+    <div class="space-y-1">
+      <Label for="openingBalance">Opening Balance / Pending Amount (₹) <span class="text-muted-foreground">(optional)</span></Label>
+      <Input
+        id="openingBalance"
+        v-model.number="form.openingBalance"
+        type="number"
+        inputmode="numeric"
+        min="0"
+        step="1"
+        placeholder="e.g. 2500"
+      />
+      <p class="text-xs text-muted-foreground">Pre-existing balance owed by customer before using this system.</p>
+      <p v-if="openingBalanceError" class="text-xs text-destructive mt-1">{{ openingBalanceError }}</p>
     </div>
     <div class="space-y-1">
       <Label for="deposit">Connection Deposit <span class="text-muted-foreground">(optional, refundable)</span></Label>

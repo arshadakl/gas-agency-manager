@@ -52,7 +52,8 @@ const openingBalanceAmount = ref<number | ''>('')
 const openingBalanceMode = ref<PaymentMode>('cash')
 
 function openOpeningBalancePicker() {
-  openingBalanceAmount.value = props.openingBalance
+  const maxCollect = Math.max(0, props.balance)
+  openingBalanceAmount.value = maxCollect > 0 ? Math.min(props.openingBalance, maxCollect) : props.openingBalance
   openingBalanceMode.value = 'cash'
   showOpeningBalancePicker.value = true
 }
@@ -69,9 +70,38 @@ async function handleCollectOpeningBalance() {
     notes: 'Opening balance settlement',
   })
   if (created) {
-    await setOpeningBalance(props.customerPublicId, 0)
     showOpeningBalancePicker.value = false
     emit('paid')
+  }
+}
+
+// Opening balance edit / adjust
+const showEditOpeningBalance = ref(false)
+const editOpeningBalanceInput = ref<number | ''>('')
+const editOpeningBalanceLoading = ref(false)
+const editOpeningBalanceError = ref<string | null>(null)
+
+function openEditOpeningBalance() {
+  editOpeningBalanceInput.value = props.openingBalance || ''
+  editOpeningBalanceError.value = null
+  showEditOpeningBalance.value = true
+}
+
+async function handleSaveOpeningBalance() {
+  editOpeningBalanceError.value = null
+  const newAmount = editOpeningBalanceInput.value === '' ? 0 : Number(editOpeningBalanceInput.value)
+  if (newAmount < 0) {
+    editOpeningBalanceError.value = 'Opening balance cannot be negative'
+    return
+  }
+  editOpeningBalanceLoading.value = true
+  const ok = await setOpeningBalance(props.customerPublicId, newAmount)
+  editOpeningBalanceLoading.value = false
+  if (ok) {
+    showEditOpeningBalance.value = false
+    emit('paid')
+  } else {
+    editOpeningBalanceError.value = 'Failed to update opening balance'
   }
 }
 
@@ -129,6 +159,18 @@ async function handleCollect(delivery: DeliveryWithRelations) {
         <p class="text-data-tertiary text-on-surface-variant">Balance</p>
         <p class="text-data-primary mt-1" :class="balance > 0 ? 'text-error' : 'text-primary-fixed-dim'">{{ formatCurrency(balance) }}</p>
       </div>
+    </div>
+
+    <!-- Opening Balance Notice (if > 0) -->
+    <div v-if="openingBalance > 0" class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-surface-container-low border border-outline-variant/30 text-data-tertiary">
+      <div class="flex items-center gap-2">
+        <Icon name="history" class="text-base text-on-surface-variant" />
+        <span class="text-on-surface-variant">Pre-app Opening Balance: <strong class="text-on-surface font-medium">{{ formatCurrency(openingBalance) }}</strong></span>
+      </div>
+      <button v-if="canEdit" class="text-primary hover:underline font-medium text-data-tertiary flex items-center gap-1" @click="openEditOpeningBalance">
+        <Icon name="edit" class="text-xs" />
+        Edit
+      </button>
     </div>
 
     <!-- Tab bar -->
@@ -209,6 +251,15 @@ async function handleCollect(delivery: DeliveryWithRelations) {
           <div class="flex items-center gap-2 shrink-0 ml-2">
             <span class="text-data-primary text-error font-medium">{{ formatCurrency(openingBalance) }}</span>
             <button
+              class="flex items-center gap-1 rounded-full border border-outline-variant/40 text-on-surface-variant px-2.5 py-1 text-data-tertiary hover:bg-surface-container transition-colors active:scale-95"
+              title="Edit Opening Balance"
+              @click="openEditOpeningBalance"
+            >
+              <Icon name="edit" class="text-sm" />
+              Edit
+            </button>
+            <button
+              v-if="balance > 0"
               class="flex items-center gap-1 rounded-full bg-success/15 border border-success/30 text-success px-3 py-1 text-data-tertiary hover:bg-success/25 transition-colors active:scale-95"
               @click="showOpeningBalancePicker ? showOpeningBalancePicker = false : openOpeningBalancePicker()"
             >
@@ -220,13 +271,13 @@ async function handleCollect(delivery: DeliveryWithRelations) {
 
         <!-- Inline collect form -->
         <div v-if="showOpeningBalancePicker" class="border-t border-outline-variant/20 pt-sm mt-3 flex flex-col gap-sm">
-          <label class="text-data-tertiary text-on-surface-variant">Amount (₹, max {{ formatCurrency(openingBalance) }})</label>
+          <label class="text-data-tertiary text-on-surface-variant">Amount (₹, max {{ formatCurrency(Math.max(0, balance)) }})</label>
           <input
             v-model.number="openingBalanceAmount"
             type="number"
             inputmode="numeric"
             min="0"
-            :max="openingBalance"
+            :max="Math.max(0, balance)"
             step="1"
             class="block w-full px-3 py-2 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
           >
@@ -260,6 +311,54 @@ async function handleCollect(delivery: DeliveryWithRelations) {
               Cancel
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- If opening balance is 0 and user can edit, provide button to set pre-app debt -->
+      <div v-else-if="openingBalance === 0 && canEdit" class="rounded-xl border border-dashed border-outline-variant/40 bg-surface-container-low p-3.5 flex justify-between items-center">
+        <div>
+          <p class="text-data-secondary text-on-surface">Pre-App Pending Amount</p>
+          <p class="text-data-tertiary text-on-surface-variant">No opening balance set for this customer.</p>
+        </div>
+        <button
+          class="flex items-center gap-1 rounded-full border border-primary/40 text-primary px-3 py-1 text-data-tertiary hover:bg-primary/10 transition-colors"
+          @click="openEditOpeningBalance"
+        >
+          <Icon name="add" class="text-sm" />
+          Set Amount
+        </button>
+      </div>
+
+      <!-- Inline edit opening balance form (accessible whether openingBalance is 0 or > 0) -->
+      <div v-if="showEditOpeningBalance" class="rounded-xl border border-primary/40 bg-surface-container p-4 flex flex-col gap-sm">
+        <p class="text-data-secondary font-medium text-on-surface">Set Pre-App Pending Amount / Opening Balance</p>
+        <p class="text-data-tertiary text-on-surface-variant">Enter the pre-existing debt owed before using this software. This amount will be added to the customer's ledger balance.</p>
+        <label class="text-data-tertiary text-on-surface-variant">Opening Balance (₹)</label>
+        <input
+          v-model.number="editOpeningBalanceInput"
+          type="number"
+          inputmode="numeric"
+          min="0"
+          step="1"
+          placeholder="0"
+          class="block w-full px-3 py-2 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base focus:outline-none focus:border-primary"
+        >
+        <p v-if="editOpeningBalanceError" class="text-data-tertiary text-error">{{ editOpeningBalanceError }}</p>
+        <div class="flex gap-2">
+          <button
+            class="flex-1 rounded-xl bg-primary text-on-primary py-2 text-data-secondary font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+            :disabled="editOpeningBalanceLoading"
+            @click="handleSaveOpeningBalance"
+          >
+            <LoadingSpinner v-if="editOpeningBalanceLoading" class="h-3 w-3 inline mr-1" />
+            Save Balance
+          </button>
+          <button
+            class="px-4 rounded-xl border border-outline-variant/30 text-on-surface-variant text-data-secondary hover:bg-surface-variant transition-colors"
+            @click="showEditOpeningBalance = false"
+          >
+            Cancel
+          </button>
         </div>
       </div>
 
