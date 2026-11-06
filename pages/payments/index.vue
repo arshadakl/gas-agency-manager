@@ -47,6 +47,7 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
   const created = await recordPayment(data)
   if (created) {
     showForm.value = false
+    showToast('Payment recorded successfully', 'success')
     await load()
   } else {
     showToast(error.value || 'Failed to record payment', 'destructive')

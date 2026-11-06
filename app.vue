@@ -13,4 +13,5 @@ onMounted(() => {
   <NuxtLayout>
     <NuxtPage />
   </NuxtLayout>
+  <ToastContainer />
 </template>

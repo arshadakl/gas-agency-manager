@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { InventoryItem, CylinderStock, StockMovement } from '~/types/database'
 import type { CylinderSize } from '~/types'
@@ -22,9 +23,14 @@ export interface StockAdjustmentInput {
 export function useInventory() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchInventory() {
@@ -51,7 +57,7 @@ export function useInventory() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to record stock-in')
+      handleError(err, 'Failed to record stock-in', true)
       return null
     } finally {
       loading.value = false
@@ -95,7 +101,7 @@ export function useInventory() {
       await $fetch<ApiResponse<null>>('/api/inventory/adjustment', { method: 'POST', body: data })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to adjust stock')
+      handleError(err, 'Failed to adjust stock', true)
       return false
     } finally {
       loading.value = false
@@ -109,7 +115,7 @@ export function useInventory() {
       await $fetch<ApiResponse<null>>('/api/inventory/collect-empties', { method: 'POST', body: data })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to record empty cylinders')
+      handleError(err, 'Failed to record empty cylinders', true)
       return false
     } finally {
       loading.value = false

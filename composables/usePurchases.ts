@@ -1,4 +1,4 @@
-import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Purchase, PurchaseItem, PurchasePayment } from '~/types/database'
 import type { CylinderSize, PurchaseType } from '~/types'
@@ -38,9 +38,14 @@ export interface PurchaseFormData {
 export function usePurchases() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchPurchases(range?: { from?: string; to?: string; type?: string }) {
@@ -78,7 +83,7 @@ export function usePurchases() {
       const result = await $fetch<ApiResponse<PurchaseWithItems>>('/api/purchases', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to record purchase')
+      handleError(err, 'Failed to record purchase', true)
       return null
     } finally {
       loading.value = false
@@ -92,7 +97,7 @@ export function usePurchases() {
       const result = await $fetch<ApiResponse<PurchaseWithItems>>(`/api/purchases/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update purchase')
+      handleError(err, 'Failed to update purchase', true)
       return null
     } finally {
       loading.value = false
@@ -106,7 +111,7 @@ export function usePurchases() {
       await $fetch(`/api/purchases/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to delete purchase')
+      handleError(err, 'Failed to delete purchase', true)
       return false
     } finally {
       loading.value = false
@@ -123,7 +128,7 @@ export function usePurchases() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to clear purchase payment')
+      handleError(err, 'Failed to clear purchase payment', true)
       return null
     } finally {
       loading.value = false

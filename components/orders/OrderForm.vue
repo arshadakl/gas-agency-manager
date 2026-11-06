@@ -68,14 +68,18 @@ const selectedItems = computed(() =>
     .filter((i) => i.quantity > 0),
 )
 
+const { showToast } = useToast()
+
 function handleSubmit() {
   validationError.value = ''
   if (!selectedCustomerId.value) {
     validationError.value = 'Select a customer first.'
+    showToast(validationError.value, 'warning')
     return
   }
   if (selectedItems.value.length === 0) {
     validationError.value = 'Add at least one item.'
+    showToast(validationError.value, 'warning')
     return
   }
   emit('submit', {
@@ -99,7 +103,7 @@ function handleSubmit() {
           placeholder="Search customer..."
           class="block w-full pl-10 pr-3 py-3 border border-surface-variant rounded-lg bg-surface text-on-surface text-body-base placeholder-on-surface-variant focus:outline-none focus:border-primary"
         >
-        <div v-if="filteredCustomers.length > 0" class="mt-2 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container z-50">
+        <div v-if="filteredCustomers.length > 0" class="absolute left-0 right-0 top-full mt-1 rounded-lg border border-surface-variant divide-y divide-surface-variant overflow-hidden bg-surface-container-high shadow-xl z-50">
           <button
             v-for="c in filteredCustomers"
             :key="c.id"

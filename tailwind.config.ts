@@ -45,6 +45,10 @@ export default <Partial<Config>>{
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))',
         },
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
+        },
 
         // ── Aura Gas Management M3 tokens ─────────────────────────────────────
         // All values are CSS variables (RGB channels) so they switch between

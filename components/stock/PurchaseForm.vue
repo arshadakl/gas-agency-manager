@@ -191,8 +191,47 @@ watch(includeEmptyNew, (v) => {
   }
 })
 
+const { showToast } = useToast()
+
 function handleSubmit() {
-  if (!formIsValid.value) return
+  if (!formIsValid.value) {
+    if (!stockIsValid.value) {
+      const invalidStock = preview.value.find((p) => !p.isValid)
+      if (invalidStock) {
+        if (!invalidStock.emptyValid) {
+          showToast(`Cannot return ${invalidStock.size}kg empty cylinders: only ${invalidStock.before.emptyCount} available in stock`, 'destructive')
+          return
+        }
+        if (!invalidStock.fullValid) {
+          showToast(`Invalid ${invalidStock.size}kg full cylinder stock change`, 'destructive')
+          return
+        }
+      }
+    }
+    if (grandTotal.value <= 0) {
+      showToast('Please enter purchase items or an amount greater than ₹0', 'warning')
+      return
+    }
+    if (hasOwnQtyErrors.value) {
+      const [firstSize, errorMsg] = Object.entries(ownQtyErrors.value)[0] ?? []
+      showToast(`Own cylinders error (${firstSize}kg): ${errorMsg}`, 'destructive')
+      return
+    }
+    if (payNow.value && totalPaid.value <= 0) {
+      showToast('Please enter an amount for immediate payment or switch off Pay Now', 'warning')
+      return
+    }
+    if (totalPaid.value > grandTotal.value + 0.01) {
+      showToast(`Payment amount (${formatCurrency(totalPaid.value)}) exceeds grand total (${formatCurrency(grandTotal.value)})`, 'destructive')
+      return
+    }
+    if (payNow.value && paymentRows.value.some((r) => (Number(r.amount) || 0) <= 0)) {
+      showToast('All payment rows must have an amount greater than 0', 'warning')
+      return
+    }
+    showToast('Please correct the errors in the form before saving', 'warning')
+    return
+  }
   const apiItems = buildApiItems()
   const payments: PurchasePaymentEntry[] = payNow.value
     ? paymentRows.value
@@ -509,7 +548,7 @@ function handleSubmit() {
       <button
         type="submit"
         class="bg-primary text-primary-foreground px-6 py-3 rounded-lg flex flex-col items-center justify-center active:scale-95 transition-all disabled:opacity-50"
-        :disabled="props.loading || !formIsValid"
+        :disabled="props.loading"
       >
         <span class="text-data-primary">{{ props.loading ? 'Saving...' : 'Confirm Purchase' }}</span>
         <span class="text-data-tertiary opacity-80 mt-0.5">Stock will update immediately</span>

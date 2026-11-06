@@ -97,11 +97,15 @@ function openWithdrawModal() {
 }
 
 async function handleWithdraw() {
-  if (!withdrawForm.amount || withdrawForm.amount <= 0) return
+  if (!withdrawForm.amount || withdrawForm.amount <= 0) {
+    showToast('Enter a valid withdrawal amount', 'warning')
+    return
+  }
   withdrawLoading.value = true
   try {
     const result = await withdraw(withdrawForm.accountType, withdrawForm.amount, withdrawForm.notes || undefined)
     if (result) {
+      showToast('Withdrawal recorded successfully', 'success')
       balances.value[withdrawForm.accountType] = result.balance
       balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
       showWithdrawModal.value = false
@@ -127,11 +131,15 @@ function openDepositModal() {
 }
 
 async function handleDeposit() {
-  if (!depositForm.amount || depositForm.amount <= 0) return
+  if (!depositForm.amount || depositForm.amount <= 0) {
+    showToast('Enter a valid deposit amount', 'warning')
+    return
+  }
   depositLoading.value = true
   try {
     const result = await deposit(depositForm.accountType, depositForm.amount, depositForm.notes || undefined)
     if (result) {
+      showToast('Deposit recorded successfully', 'success')
       balances.value[depositForm.accountType] = result.balance
       balances.value.total = Math.round((balances.value.cash + balances.value.bank) * 100) / 100
       showDepositModal.value = false

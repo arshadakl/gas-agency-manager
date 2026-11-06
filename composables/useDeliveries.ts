@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Delivery, DeliveryWithRelations } from '~/types/database'
 import type { PaymentMode } from '~/types'
@@ -28,9 +29,14 @@ export interface DeliveryCreatePayload {
 export function useDeliveries() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchDeliveries(range?: { from?: string; to?: string; mine?: boolean }) {
@@ -61,7 +67,7 @@ export function useDeliveries() {
       return { delivery: result.data, queuedOffline: false }
     } catch (err: unknown) {
       if (err instanceof FetchError) {
-        handleError(err, 'Failed to create delivery')
+        handleError(err, 'Failed to create delivery', true)
         return null
       }
       await useOfflineQueue().queueDelivery(data)
@@ -81,7 +87,7 @@ export function useDeliveries() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update delivery')
+      handleError(err, 'Failed to update delivery', true)
       return null
     } finally {
       loading.value = false
@@ -98,7 +104,7 @@ export function useDeliveries() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to collect payment')
+      handleError(err, 'Failed to collect payment', true)
       return null
     } finally {
       loading.value = false

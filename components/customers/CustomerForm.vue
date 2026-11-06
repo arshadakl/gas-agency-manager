@@ -55,10 +55,30 @@ const openingBalanceError = computed(() => {
 })
 
 const formValid = computed(() => !phoneError.value && !whatsappError.value && !openingBalanceError.value && form.name.length >= 2)
+const { showToast } = useToast()
 
 function handleSubmit() {
   phoneTouched.value = true
-  if (!formValid.value) return
+  if (!formValid.value) {
+    if (form.name.trim().length < 2) {
+      showToast('Customer name must be at least 2 characters', 'warning')
+      return
+    }
+    if (phoneError.value) {
+      showToast(phoneError.value, 'warning')
+      return
+    }
+    if (whatsappError.value) {
+      showToast(whatsappError.value, 'warning')
+      return
+    }
+    if (openingBalanceError.value) {
+      showToast(openingBalanceError.value, 'warning')
+      return
+    }
+    showToast('Please check the form for errors', 'warning')
+    return
+  }
   emit('submit', {
     name: form.name,
     contactPerson: form.contactPerson || undefined,

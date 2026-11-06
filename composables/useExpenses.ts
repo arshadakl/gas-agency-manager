@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { ExpenseTag } from '~/types'
 
@@ -22,9 +23,14 @@ export interface Expense {
 export function useExpenses() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchExpenses(params?: { tag?: string; from?: string; to?: string }) {
@@ -59,7 +65,7 @@ export function useExpenses() {
       const result = await $fetch<ApiResponse<Expense>>('/api/expenses', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to create expense')
+      handleError(err, 'Failed to create expense', true)
       return null
     } finally {
       loading.value = false
@@ -73,7 +79,7 @@ export function useExpenses() {
       const result = await $fetch<ApiResponse<Expense>>(`/api/expenses/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update expense')
+      handleError(err, 'Failed to update expense', true)
       return null
     } finally {
       loading.value = false
@@ -87,7 +93,7 @@ export function useExpenses() {
       await $fetch(`/api/expenses/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to delete expense')
+      handleError(err, 'Failed to delete expense', true)
       return false
     } finally {
       loading.value = false

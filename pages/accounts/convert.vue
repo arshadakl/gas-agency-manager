@@ -30,7 +30,17 @@ const amountNum = computed(() => Number(amount.value) || 0)
 const isValid = computed(() => amountNum.value > 0 && amountNum.value <= maxAmount.value + 0.01)
 
 function handleConvert() {
-  if (!isValid.value) return
+  if (!isValid.value) {
+    if (amountNum.value <= 0) {
+      showToast('Please enter an amount to convert', 'warning')
+      return
+    }
+    if (amountNum.value > maxAmount.value) {
+      showToast(`Amount exceeds available ${fromType.value} balance (₹${maxAmount.value.toLocaleString('en-IN')})`, 'destructive')
+      return
+    }
+    return
+  }
   showConfirm.value = true
 }
 

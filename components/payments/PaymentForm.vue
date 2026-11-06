@@ -25,15 +25,18 @@ const form = reactive({
   notes: '',
 })
 const validationError = ref('')
+const { showToast } = useToast()
 
 function handleSubmit() {
   validationError.value = ''
   if (!form.customerId) {
     validationError.value = 'Select a customer first.'
+    showToast(validationError.value, 'warning')
     return
   }
   if (!form.amount || form.amount <= 0) {
-    validationError.value = 'Enter an amount.'
+    validationError.value = 'Enter an amount greater than 0.'
+    showToast(validationError.value, 'warning')
     return
   }
   emit('submit', {

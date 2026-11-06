@@ -21,8 +21,17 @@ const form = reactive({
   role: ROLES.DELIVERY,
   password: '',
 })
+const { showToast } = useToast()
 
 function handleSubmit() {
+  if (!form.username.trim() || !form.fullName.trim()) {
+    showToast('Username and Full Name are required', 'warning')
+    return
+  }
+  if (form.password.length < 8) {
+    showToast('Password must be at least 8 characters long', 'warning')
+    return
+  }
   emit('submit', { ...form })
 }
 </script>

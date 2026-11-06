@@ -136,9 +136,12 @@ async function handleCollectEmpties() {
     sizeKg: s,
     qty: collectQtys[s]!,
   }))
-  if (items.length === 0) return
+  if (items.length === 0) {
+    showToast('Add at least one empty cylinder quantity', 'warning')
+    return
+  }
   if (!collectSelectedCustomer.value) {
-    showToast('Select a customer', 'destructive')
+    showToast('Select a customer', 'warning')
     return
   }
   const ok = await collectEmpties({
@@ -148,7 +151,7 @@ async function handleCollectEmpties() {
     customerName: collectSelectedCustomer.value.name,
   })
   if (ok) {
-    showToast('Empty cylinders recorded')
+    showToast('Empty cylinders recorded successfully', 'success')
     showCollectPanel.value = false
     resetCollectForm()
   } else {

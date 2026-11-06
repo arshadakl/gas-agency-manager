@@ -178,10 +178,16 @@ function buildPayload(): DeliveryCreatePayload | null {
 }
 
 const submitMode = ref<'save-only' | 'save-whatsapp'>('save-only')
+const { showToast } = useToast()
 
 function handleSubmit() {
   const payload = buildPayload()
-  if (!payload) return
+  if (!payload) {
+    if (validationError.value) {
+      showToast(validationError.value, 'warning')
+    }
+    return
+  }
   const withWhatsapp = submitMode.value === 'save-whatsapp'
   emit('submit', withWhatsapp ? { ...payload, whatsapp: true } : payload)
 }

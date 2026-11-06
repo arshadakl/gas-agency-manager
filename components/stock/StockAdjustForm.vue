@@ -22,8 +22,13 @@ const form = reactive({
   emptyChange: 0,
   notes: '',
 })
+const { showToast } = useToast()
 
 function handleSubmit() {
+  if (form.fullChange === 0 && form.emptyChange === 0) {
+    showToast('Please enter a non-zero change for full or empty cylinders', 'warning')
+    return
+  }
   emit('submit', { ...form, notes: form.notes || undefined })
 }
 </script>

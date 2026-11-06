@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Customer, NewCustomer, CustomerPayment, CustomerWithBalance, DeliveryWithRelations } from '~/types/database'
 
@@ -15,9 +16,14 @@ interface CustomerLedger {
 export function useCustomers() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchCustomers(search?: string, isActive?: '1' | '0', filters?: { type?: string; hasDeposit?: boolean }) {
@@ -74,7 +80,7 @@ export function useCustomers() {
       const result = await $fetch<ApiResponse<Customer>>('/api/customers', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to create customer')
+      handleError(err, 'Failed to create customer', true)
       return null
     } finally {
       loading.value = false
@@ -88,7 +94,7 @@ export function useCustomers() {
       const result = await $fetch<ApiResponse<Customer>>(`/api/customers/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update customer')
+      handleError(err, 'Failed to update customer', true)
       return null
     } finally {
       loading.value = false
@@ -114,7 +120,7 @@ export function useCustomers() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update opening balance')
+      handleError(err, 'Failed to update opening balance', true)
       return null
     } finally {
       loading.value = false
@@ -131,7 +137,7 @@ export function useCustomers() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update payment promise')
+      handleError(err, 'Failed to update payment promise', true)
       return null
     } finally {
       loading.value = false
@@ -145,7 +151,7 @@ export function useCustomers() {
       const result = await $fetch<{ action: 'soft_delete' | 'hard_delete' }>(`/api/customers/${publicId}/archive`, { method: 'PATCH' })
       return result.action
     } catch (err: unknown) {
-      handleError(err, 'Failed to archive customer')
+      handleError(err, 'Failed to archive customer', true)
       return null
     } finally {
       loading.value = false

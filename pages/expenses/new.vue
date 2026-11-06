@@ -78,10 +78,12 @@ async function handleSubmit() {
   formError.value = null
   if (!form.amount || Number(form.amount) <= 0) {
     formError.value = 'Enter a valid amount'
+    showToast(formError.value, 'warning')
     return
   }
   if (form.tag === 'salary' && !form.staffName) {
     formError.value = 'Please select a staff member for salary'
+    showToast(formError.value, 'warning')
     return
   }
 

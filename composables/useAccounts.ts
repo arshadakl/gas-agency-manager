@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse } from '~/types/api'
 import type { AccountTransaction } from '~/types/database'
 import type { AccountType } from '~/types'
@@ -12,9 +13,14 @@ export interface AccountBalances {
 export function useAccounts() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchBalances() {
@@ -55,7 +61,7 @@ export function useAccounts() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to record withdrawal')
+      handleError(err, 'Failed to record withdrawal', true)
       return null
     } finally {
       loading.value = false
@@ -72,7 +78,7 @@ export function useAccounts() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to record deposit')
+      handleError(err, 'Failed to record deposit', true)
       return null
     } finally {
       loading.value = false
@@ -89,7 +95,7 @@ export function useAccounts() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to convert')
+      handleError(err, 'Failed to convert', true)
       return null
     } finally {
       loading.value = false

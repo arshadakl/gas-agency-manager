@@ -14,6 +14,7 @@ if (!canCreate.value) await navigateTo('/orders')
 const { createOrder, loading, error } = useOrders()
 const { fetchCustomers } = useCustomers()
 const { fetchProducts } = usePricing()
+const { showToast } = useToast()
 
 const customers = ref<Customer[]>([])
 const products = ref<Product[]>([])
@@ -26,7 +27,10 @@ onMounted(async () => {
 
 async function handleSubmit(data: OrderCreatePayload) {
   const created = await createOrder(data)
-  if (created) await navigateTo('/orders')
+  if (created) {
+    showToast('Order created successfully', 'success')
+    await navigateTo('/orders')
+  }
 }
 </script>
 

@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { User } from '#auth-utils'
 import type { User as AppUser } from '~/types/database'
@@ -8,9 +9,14 @@ export function useAuth() {
   const { user, loggedIn, session, fetch: refreshSession, clear } = useUserSession()
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function login(username: string, password: string) {
@@ -24,7 +30,7 @@ export function useAuth() {
       await refreshSession()
       return true
     } catch (err: unknown) {
-      error.value = err instanceof FetchError ? (err.data?.message ?? 'Login failed') : 'Network error. Please check your connection.'
+      handleError(err, 'Login failed', true)
       return false
     } finally {
       loading.value = false
@@ -62,7 +68,7 @@ export function useAuth() {
       const result = await $fetch<ApiResponse<AppUser>>('/api/settings/users', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to create user')
+      handleError(err, 'Failed to create user', true)
       return null
     } finally {
       loading.value = false
@@ -76,7 +82,7 @@ export function useAuth() {
       const result = await $fetch<ApiResponse<AppUser>>(`/api/settings/users/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update user')
+      handleError(err, 'Failed to update user', true)
       return null
     } finally {
       loading.value = false
@@ -94,7 +100,7 @@ export function useAuth() {
       })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to change password')
+      handleError(err, 'Failed to change password', true)
       return false
     } finally {
       loading.value = false
@@ -108,7 +114,7 @@ export function useAuth() {
       await $fetch(`/api/settings/users/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to delete user')
+      handleError(err, 'Failed to delete user', true)
       return false
     } finally {
       loading.value = false

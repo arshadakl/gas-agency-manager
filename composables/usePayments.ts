@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { CustomerPayment, NewCustomerPayment, DeliveryItem, Product } from '~/types/database'
 import type { PaymentMode } from '~/types'
@@ -18,9 +19,14 @@ export interface PaymentFilters {
 export function usePayments() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchPayments(filters?: PaymentFilters) {
@@ -51,7 +57,7 @@ export function usePayments() {
       const result = await $fetch<ApiResponse<CustomerPayment>>('/api/payments', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to record payment')
+      handleError(err, 'Failed to record payment', true)
       return null
     } finally {
       loading.value = false

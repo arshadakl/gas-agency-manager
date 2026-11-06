@@ -44,7 +44,7 @@ async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange
     const ok = await adjustStock({ sizeKg: sizeKg as CylinderSize, fullChange, emptyChange })
     pendingSizes.value = pendingSizes.value.filter(s => s !== sizeKg)
     if (ok) {
-      showToast(`${sizeKg}kg stock updated`)
+      showToast(`${sizeKg}kg stock updated`, 'success')
       await load()
       delete debounceTimers.value[sizeKg]
     }

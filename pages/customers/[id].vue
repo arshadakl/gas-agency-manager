@@ -66,6 +66,7 @@ async function handleSavePromise() {
   promiseError.value = null
   if (!promiseDateInput.value) {
     promiseError.value = 'Pick a date'
+    showToast('Please pick a promise date', 'warning')
     return
   }
   const updated = await setPromise(id, promiseDateInput.value, promiseNoteInput.value || null)

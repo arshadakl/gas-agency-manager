@@ -1,4 +1,5 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { OrderWithRelations, Delivery } from '~/types/database'
 import type { OrderStatus, PaymentMode } from '~/types'
@@ -19,9 +20,14 @@ export interface OrderDeliverPayload {
 export function useOrders() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchOrders(status?: OrderStatus) {
@@ -59,7 +65,7 @@ export function useOrders() {
       const result = await $fetch<ApiResponse<OrderWithRelations>>('/api/orders', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to create order')
+      handleError(err, 'Failed to create order', true)
       return null
     } finally {
       loading.value = false
@@ -76,7 +82,7 @@ export function useOrders() {
       })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to mark order delivered')
+      handleError(err, 'Failed to mark order delivered', true)
       return null
     } finally {
       loading.value = false
@@ -90,7 +96,7 @@ export function useOrders() {
       await $fetch(`/api/orders/${publicId}/cancel`, { method: 'POST' })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to cancel order')
+      handleError(err, 'Failed to cancel order', true)
       return false
     } finally {
       loading.value = false

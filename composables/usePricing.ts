@@ -1,13 +1,19 @@
 import { FetchError } from 'ofetch'
+import { formatApiError } from '~/utils/apiError'
 import type { ApiResponse, ApiListResponse } from '~/types/api'
 import type { Product, NewProduct } from '~/types/database'
 
 export function usePricing() {
   const error = ref<string | null>(null)
   const loading = ref(false)
+  const { showToast } = useToast()
 
-  function handleError(err: unknown, fallback: string) {
-    error.value = err instanceof FetchError ? (err.data?.message ?? fallback) : 'Network error. Please check your connection.'
+  function handleError(err: unknown, fallback: string, notify = false) {
+    const msg = formatApiError(err, fallback)
+    error.value = msg
+    if (notify) {
+      showToast(msg, 'destructive')
+    }
   }
 
   async function fetchProducts() {
@@ -31,7 +37,7 @@ export function usePricing() {
       const result = await $fetch<ApiResponse<Product>>('/api/products', { method: 'POST', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to create product')
+      handleError(err, 'Failed to create product', true)
       return null
     } finally {
       loading.value = false
@@ -45,7 +51,7 @@ export function usePricing() {
       const result = await $fetch<ApiResponse<Product>>(`/api/products/${publicId}`, { method: 'PATCH', body: data })
       return result.data
     } catch (err: unknown) {
-      handleError(err, 'Failed to update product')
+      handleError(err, 'Failed to update product', true)
       return null
     } finally {
       loading.value = false
@@ -59,7 +65,7 @@ export function usePricing() {
       await $fetch(`/api/products/${publicId}`, { method: 'DELETE' })
       return true
     } catch (err: unknown) {
-      handleError(err, 'Failed to delete product')
+      handleError(err, 'Failed to delete product', true)
       return false
     } finally {
       loading.value = false

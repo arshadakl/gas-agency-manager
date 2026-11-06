@@ -37,10 +37,11 @@ async function handleSubmit(data: DeliveryCreatePayload & { whatsapp?: boolean }
   const result = await createDelivery(payload)
   if (!result) return
   if (result.queuedOffline) {
-    showToast('Saved offline — will sync when connected')
+    showToast('Saved offline — will sync when connected', 'warning')
     await navigateTo('/deliveries')
     return
   }
+  showToast('Delivery created successfully', 'success')
   if (whatsapp && result.delivery) {
     const customer = customers.value.find((c) => c.id === payload.customerId)
     if (customer) {
