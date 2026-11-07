@@ -22,6 +22,12 @@ const form = reactive({
   emptyChange: 0,
   notes: '',
 })
+const selectedSize = computed({
+  get: () => String(form.sizeKg),
+  set: (val) => {
+    form.sizeKg = Number(val) as CylinderSize
+  },
+})
 const { showToast } = useToast()
 
 function handleSubmit() {
@@ -38,10 +44,10 @@ function handleSubmit() {
     <p class="text-data-primary text-on-surface">Adjust Full Cylinder Stock</p>
     <div class="space-y-1">
       <Label>Cylinder Size</Label>
-      <Select v-model="form.sizeKg">
+      <Select v-model="selectedSize">
         <SelectTrigger><SelectValue /></SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="size in CYLINDER_SIZES" :key="size" :value="size">{{ size }}kg</SelectItem>
+          <SelectItem v-for="size in CYLINDER_SIZES" :key="size" :value="String(size)">{{ size }}kg</SelectItem>
         </SelectContent>
       </Select>
     </div>

@@ -14,7 +14,6 @@ interface ReportSummary {
 }
 
 interface CylinderReportRow { sizeKg: number | null; totalDelivered: number; totalRevenue: number }
-interface EmptiesReportRow { sizeKg: number; totalCollected: number }
 interface PaymentsReportRow { paymentMode: string; totalAmount: number; count: number }
 interface CustomerReportRow { customerId: number; customerPublicId: string | null; name: string; type: string; totalBilled: number; deliveryCount: number }
 interface StaffReportRow { createdBy: number; createdByName: string; deliveryCount: number; totalValue: number; cashCollected: number; bankCollected: number; totalCollected: number; paymentCount: number }
@@ -83,7 +82,6 @@ export function useReports() {
     billed: 0, collected: 0, outstanding: 0, previousBilled: 0, previousCollected: 0, billedDelta: null, collectedDelta: null,
   })
   const fetchCylinders = () => get<CylinderReportRow[]>('/api/reports/cylinders', [])
-  const fetchEmpties = () => get<EmptiesReportRow[]>('/api/reports/empties', [])
   const fetchPaymentsBreakdown = () => get<PaymentsReportRow[]>('/api/reports/payments', [])
   const fetchTopCustomers = (type?: string) => get<CustomerReportRow[]>('/api/reports/customers', [], { type })
   const fetchStaff = () => get<StaffReportRow[]>('/api/reports/staff', [])
@@ -119,7 +117,7 @@ export function useReports() {
 
   return {
     preset, customFrom, customTo, dateRange, canFetch, setPreset, setCustomRange,
-    fetchSummary, fetchCylinders, fetchEmpties, fetchPaymentsBreakdown, fetchTopCustomers, fetchStaff, fetchProcurement,
+    fetchSummary, fetchCylinders, fetchPaymentsBreakdown, fetchTopCustomers, fetchStaff, fetchProcurement,
     fetchProfitLoss, fetchProfitLossTrend, fetchStaffActivity,
     loading, error,
   }

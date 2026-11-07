@@ -24,6 +24,12 @@ const form = reactive({
   paymentDate: toISODate(new Date()),
   notes: '',
 })
+const selectedCustomerId = computed({
+  get: () => (form.customerId != null ? String(form.customerId) : undefined),
+  set: (val) => {
+    form.customerId = val ? Number(val) : undefined
+  },
+})
 const validationError = ref('')
 const { showToast } = useToast()
 
@@ -53,10 +59,10 @@ function handleSubmit() {
   <form class="space-y-4" @submit.prevent="handleSubmit">
     <div class="space-y-1">
       <Label>Customer</Label>
-      <Select v-model="form.customerId">
+      <Select v-model="selectedCustomerId">
         <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
         <SelectContent>
-          <SelectItem v-for="c in props.customers" :key="c.id" :value="c.id">{{ c.name }}</SelectItem>
+          <SelectItem v-for="c in props.customers" :key="c.id" :value="String(c.id)">{{ c.name }}</SelectItem>
         </SelectContent>
       </Select>
     </div>

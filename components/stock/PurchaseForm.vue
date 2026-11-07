@@ -104,7 +104,7 @@ function buildApiItems(): PurchaseLineItem[] {
   }))
 }
 
-const preview = computed(() => buildPreview(buildApiItems()))
+const preview = computed(() => buildPreview(buildApiItems(), props.initial?.items))
 const stockIsValid = computed(() => preview.value.every((p) => p.isValid))
 
 const ownQtyErrors = computed(() => {
@@ -359,16 +359,16 @@ function handleSubmit() {
       </div>
     </section>
 
-    <!-- Part 4b: Empty new cylinders -->
+    <!-- Part 4b: Empty new cylinders (company-owned shells) -->
     <section class="bg-surface-container rounded-xl p-5 border border-surface-container-highest">
       <label class="flex items-center gap-3 cursor-pointer mb-0" :class="includeEmptyNew && 'mb-md'">
         <input v-model="includeEmptyNew" type="checkbox" class="w-5 h-5 rounded border-outline-variant text-primary-container focus:ring-primary accent-primary-container">
         <div class="flex items-center gap-sm">
           <Icon name="inventory_2" :filled="true" class="text-primary-fixed-dim" />
-          <h2 class="text-data-primary text-on-surface">Empty new cylinders (brand new, no gas)</h2>
+          <h2 class="text-data-primary text-on-surface">New empty shells (company-owned asset, no gas)</h2>
         </div>
       </label>
-      <p v-if="!includeEmptyNew" class="text-data-tertiary text-on-surface-variant mt-1">Check if purchasing brand-new empty cylinders without gas.</p>
+      <p v-if="!includeEmptyNew" class="text-data-tertiary text-on-surface-variant mt-1">Check if purchasing brand-new empty cylinder shells as company assets.</p>
 
       <div v-if="includeEmptyNew" class="space-y-sm mt-sm">
         <p class="text-data-secondary text-on-surface-variant">No validation — these don't come from "Full Received".</p>

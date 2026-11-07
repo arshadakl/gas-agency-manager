@@ -80,10 +80,13 @@ async function handleSubmit(data: Omit<NewCustomerPayment, 'createdBy' | 'create
     <div class="flex gap-3 flex-wrap items-center">
       <input v-model="filterFrom" type="date" class="flex-1 min-w-0 rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface focus:outline-none focus:border-primary-container transition-colors" >
       <input v-model="filterTo" type="date" class="flex-1 min-w-0 rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface focus:outline-none focus:border-primary-container transition-colors" >
-      <select v-model="filterMode" class="rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface capitalize focus:outline-none focus:border-primary-container transition-colors appearance-none pr-8">
-        <option value="">All modes</option>
-        <option v-for="mode in PAYMENT_MODES" :key="mode" :value="mode">{{ mode }}</option>
-      </select>
+      <div class="relative">
+        <select v-model="filterMode" class="rounded-xl border border-outline-variant/40 bg-surface-container-highest px-3 py-2 text-body-base text-on-surface capitalize focus:outline-none focus:border-primary-container transition-colors appearance-none pr-8">
+          <option value="">All modes</option>
+          <option v-for="mode in PAYMENT_MODES" :key="mode" :value="mode">{{ mode }}</option>
+        </select>
+        <Icon name="expand_more" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none text-base" />
+      </div>
     </div>
 
     <div v-if="loading && payments.length === 0" class="flex justify-center py-12">

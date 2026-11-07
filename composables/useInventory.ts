@@ -108,19 +108,5 @@ export function useInventory() {
     }
   }
 
-  async function collectEmpties(data: { date: string; items: { sizeKg: number; qty: number }[]; notes?: string; customerName: string }) {
-    error.value = null
-    loading.value = true
-    try {
-      await $fetch<ApiResponse<null>>('/api/inventory/collect-empties', { method: 'POST', body: data })
-      return true
-    } catch (err: unknown) {
-      handleError(err, 'Failed to record empty cylinders', true)
-      return false
-    } finally {
-      loading.value = false
-    }
-  }
-
-  return { fetchInventory, stockIn, fetchCylinderStock, fetchMovements, adjustStock, collectEmpties, loading, error }
+  return { fetchInventory, stockIn, fetchCylinderStock, fetchMovements, adjustStock, loading, error }
 }
