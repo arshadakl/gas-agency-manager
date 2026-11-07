@@ -32,7 +32,7 @@ async function load() {
 }
 onMounted(load)
 
-async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange: number) {
+async function handleQuickAdjust(sizeKg: number, fullChange: number) {
   if (!pendingSizes.value.includes(sizeKg)) {
     pendingSizes.value = [...pendingSizes.value, sizeKg]
   }
@@ -41,7 +41,7 @@ async function handleQuickAdjust(sizeKg: number, fullChange: number, emptyChange
   }
 
   debounceTimers.value[sizeKg] = setTimeout(async () => {
-    const ok = await adjustStock({ sizeKg: sizeKg as CylinderSize, fullChange, emptyChange })
+    const ok = await adjustStock({ sizeKg: sizeKg as CylinderSize, fullChange, emptyChange: 0 })
     pendingSizes.value = pendingSizes.value.filter(s => s !== sizeKg)
     if (ok) {
       showToast(`${sizeKg}kg stock updated`, 'success')
@@ -90,7 +90,7 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
           :key="row.sizeKg"
           :stock="row"
           :edit-mode="editMode"
-          @adjust="(fullChange, emptyChange) => handleQuickAdjust(row.sizeKg, fullChange, emptyChange)"
+          @adjust="(fullChange) => handleQuickAdjust(row.sizeKg, fullChange)"
         />
       </section>
 
@@ -147,8 +147,8 @@ const movementIcon = (type: string) => (type === 'purchase' ? 'download' : type 
               <p class="text-data-secondary text-on-surface">{{ m.sizeKg }}kg · {{ m.movementType }}</p>
               <p class="text-data-tertiary text-on-surface-variant">{{ formatDateTime(m.createdAt) }} · {{ m.createdByName }}</p>
             </div>
-            <p class="text-data-tertiary text-on-surface-variant text-right">
-              Full {{ m.fullChange >= 0 ? '+' : '' }}{{ m.fullChange }} / Empty {{ m.emptyChange >= 0 ? '+' : '' }}{{ m.emptyChange }}
+            <p class="text-data-secondary text-right font-medium" :class="m.fullChange > 0 ? 'text-emerald-400' : m.fullChange < 0 ? 'text-error' : 'text-on-surface-variant'">
+              {{ m.fullChange >= 0 ? '+' : '' }}{{ m.fullChange }}
             </p>
           </div>
         </div>

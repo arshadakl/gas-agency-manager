@@ -36,10 +36,9 @@ export default defineEventHandler(async (event) => {
       sizeKg,
       fullChange: ((next?.receivedQty ?? 0) + (next?.newConnectionQty ?? 0))
         - ((old?.receivedQty ?? 0) + (old?.newConnectionQty ?? 0)),
-      emptyChange: (-((next?.returnedQty ?? 0)) + (next?.emptyNewQty ?? 0))
-        - (-((old?.returnedQty ?? 0)) + (old?.emptyNewQty ?? 0)),
+      emptyChange: 0,
     }
-  }).filter((c) => c.fullChange !== 0 || c.emptyChange !== 0)
+  }).filter((c) => c.fullChange !== 0)
 
   if (netChanges.length > 0) await validateStockChanges(db, netChanges)
 

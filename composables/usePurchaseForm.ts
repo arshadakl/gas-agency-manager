@@ -28,24 +28,18 @@ export function usePurchaseForm() {
       const item = items.find((i) => i.sizeKg === size)
 
       const receivedQty = item?.receivedQty ?? 0
-      const returnedQty = item?.returnedQty ?? 0
       const newConnectionQty = item?.newConnectionQty ?? 0
-      const emptyNewQty = item?.emptyNewQty ?? 0
 
-      // Refill exchange adds full + removes empty; new-connection cylinders add
-      // full with no empty going out; empty new cylinders add to empty stock.
+      // Only full cylinders add to warehouse inventory stock
       const newFull = current.fullCount + receivedQty + newConnectionQty
-      const newEmpty = current.emptyCount - returnedQty + emptyNewQty
 
       return {
         size,
-        before: { fullCount: current.fullCount, emptyCount: current.emptyCount },
+        before: { fullCount: current.fullCount },
         fullChange: receivedQty + newConnectionQty,
-        emptyChange: -returnedQty + emptyNewQty,
-        after: { fullCount: newFull, emptyCount: newEmpty },
+        after: { fullCount: newFull },
         fullValid: newFull >= 0,
-        emptyValid: newEmpty >= 0,
-        isValid: newFull >= 0 && newEmpty >= 0,
+        isValid: newFull >= 0,
       }
     })
   }

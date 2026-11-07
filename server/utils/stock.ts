@@ -6,7 +6,7 @@ import type { CylinderSize, StockMovementType } from '~/types'
 interface StockChange {
   sizeKg: CylinderSize
   fullChange: number
-  emptyChange: number
+  emptyChange?: number
 }
 
 // D1's drizzle driver has no real transaction support — see CLAUDE.md §23.4.
@@ -31,12 +31,6 @@ export async function validateStockChanges(db: ReturnType<typeof useDB>, changes
         message: `Insufficient full cylinders for ${change.sizeKg}kg. Available: ${current.fullCount}`,
       })
     }
-    if (current.emptyCount + change.emptyChange < 0) {
-      throw createError({
-        statusCode: 422,
-        message: `Insufficient empty cylinders for ${change.sizeKg}kg. Available: ${current.emptyCount}`,
-      })
-    }
   }
 }
 
@@ -59,7 +53,7 @@ export async function commitStockChanges(
     await db.update(cylinderStock)
       .set({
         fullCount: current.fullCount + change.fullChange,
-        emptyCount: current.emptyCount + change.emptyChange,
+        emptyCount: 0,
         updatedAt: new Date().toISOString(),
       })
       .where(eq(cylinderStock.sizeKg, change.sizeKg))
@@ -68,7 +62,7 @@ export async function commitStockChanges(
       sizeKg: change.sizeKg,
       movementType,
       fullChange: change.fullChange,
-      emptyChange: change.emptyChange,
+      emptyChange: 0,
       referenceId,
       referenceType,
       notes,

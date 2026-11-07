@@ -59,8 +59,8 @@ export default defineEventHandler(async (event) => {
   const cylinderChanges = Array.from(allSizes).map((sizeKg) => ({
     sizeKg,
     fullChange: -((newCylinderTotals.get(sizeKg) ?? 0) - (oldCylinderTotals.get(sizeKg) ?? 0)),
-    emptyChange: (newCylinderTotals.get(sizeKg) ?? 0) - (oldCylinderTotals.get(sizeKg) ?? 0),
-  })).filter((c) => c.fullChange !== 0 || c.emptyChange !== 0)
+    emptyChange: 0,
+  })).filter((c) => c.fullChange !== 0)
 
   if (cylinderChanges.length > 0) await validateStockChanges(db, cylinderChanges)
 

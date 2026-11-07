@@ -197,15 +197,9 @@ function handleSubmit() {
   if (!formIsValid.value) {
     if (!stockIsValid.value) {
       const invalidStock = preview.value.find((p) => !p.isValid)
-      if (invalidStock) {
-        if (!invalidStock.emptyValid) {
-          showToast(`Cannot return ${invalidStock.size}kg empty cylinders: only ${invalidStock.before.emptyCount} available in stock`, 'destructive')
-          return
-        }
-        if (!invalidStock.fullValid) {
-          showToast(`Invalid ${invalidStock.size}kg full cylinder stock change`, 'destructive')
-          return
-        }
+      if (invalidStock && !invalidStock.fullValid) {
+        showToast(`Invalid ${invalidStock.size}kg full cylinder stock change`, 'destructive')
+        return
       }
     }
     if (grandTotal.value <= 0) {
@@ -297,7 +291,7 @@ function handleSubmit() {
             <Icon name="arrow_upward" :filled="true" class="text-primary-fixed-dim" />
             <h2 class="text-data-primary text-on-surface">Empties Returned</h2>
           </div>
-          <span class="text-data-tertiary text-primary-fixed-dim">Reduces empty stock</span>
+          <span class="text-data-tertiary text-primary-fixed-dim">Invoice record</span>
         </div>
         <div class="space-y-xs">
           <div v-for="item in items" :key="item.sizeKg" class="flex items-center justify-between py-3 border-b border-surface-container-highest last:border-0">
@@ -412,7 +406,7 @@ function handleSubmit() {
         <h2 class="text-data-primary text-on-surface">Stock Change</h2>
       </div>
       <StockPreview :preview="preview" />
-      <p v-if="!stockIsValid" class="text-data-secondary text-error mt-3">Cannot return more empties than currently in stock.</p>
+      <p v-if="!stockIsValid" class="text-data-secondary text-error mt-3">Full stock cannot be negative.</p>
     </section>
 
     <!-- Part 6: Payment -->

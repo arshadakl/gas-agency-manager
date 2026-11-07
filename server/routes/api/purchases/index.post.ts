@@ -24,14 +24,15 @@ export default defineEventHandler(async (event) => {
     amountPaid >= grandTotal ? 'paid' :
     amountPaid > 0 ? 'partial' : 'pending'
 
-  // Stock: refill exchange (full in, empty out) + new connection (full in, no empty out)
-  // + empty new cylinders (empty in, no full). Sequential — see §23.4 D1 note.
+  // Stock: Full cylinders received add to stock.
+  // Empties returned are saved in purchase_items.returnedQty for supplier invoice reconciliation,
+  // without tracking or deducting warehouse empty stock.
   const changes = body.items
-    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0 || i.emptyNewQty > 0)
+    .filter((i) => i.receivedQty > 0 || i.newConnectionQty > 0)
     .map((i) => ({
       sizeKg: i.sizeKg,
       fullChange: i.receivedQty + i.newConnectionQty,
-      emptyChange: -i.returnedQty + i.emptyNewQty,
+      emptyChange: 0,
     }))
 
   // Validate before any write — D1 has no rollback, so a failure here must

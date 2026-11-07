@@ -142,7 +142,7 @@ export const stockMovements = sqliteTable('stock_movements', {
   sizeKg: integer('size_kg').notNull(),
   movementType: text('movement_type', { enum: ['delivery', 'purchase', 'adjustment'] }).notNull(),
   fullChange: integer('full_change').notNull(),
-  emptyChange: integer('empty_change').notNull(),
+  emptyChange: integer('empty_change').default(0).notNull(),
   referenceId: integer('reference_id'),
   referenceType: text('reference_type'),
   notes: text('notes'),

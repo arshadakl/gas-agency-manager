@@ -10,7 +10,7 @@ export default defineEventHandler(async (event) => {
 
   await applyStockChanges(
     db,
-    [{ sizeKg: body.sizeKg, fullChange: body.fullChange, emptyChange: body.emptyChange }],
+    [{ sizeKg: body.sizeKg, fullChange: body.fullChange, emptyChange: 0 }],
     'adjustment',
     null,
     'manual',

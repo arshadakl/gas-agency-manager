@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
   const cylinderChanges = Array.from(cylinderTotals.entries()).map(([sizeKg, qty]) => ({
     sizeKg,
     fullChange: -qty,
-    emptyChange: qty,
+    emptyChange: 0,
   }))
 
   // Validate before any write — D1 has no rollback, so a failure here must

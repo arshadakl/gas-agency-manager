@@ -54,7 +54,7 @@ export default defineEventHandler(async (event) => {
     const cylinderChanges = Array.from(cylinderTotals.entries()).map(([sizeKg, qty]) => ({
       sizeKg,
       fullChange: -qty,
-      emptyChange: qty,
+      emptyChange: 0,
     }))
 
     if (cylinderChanges.length > 0) await validateStockChanges(db, cylinderChanges)

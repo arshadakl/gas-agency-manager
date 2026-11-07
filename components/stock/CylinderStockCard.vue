@@ -10,20 +10,16 @@ defineProps<{
 
 <template>
   <div class="rounded-xl border border-outline-variant/50 bg-surface-container overflow-hidden">
-    <div class="grid grid-cols-3 gap-xs p-3 border-b border-outline-variant/30 bg-surface-container-high">
+    <div class="grid grid-cols-2 gap-xs p-3 border-b border-outline-variant/30 bg-surface-container-high">
       <div class="text-label-caps text-on-surface-variant pl-2">Size</div>
       <div class="text-label-caps text-on-surface-variant text-center flex items-center justify-center gap-1">
-        <div class="w-2 h-2 rounded-full bg-primary-container" /> Full
-      </div>
-      <div class="text-label-caps text-on-surface-variant text-center flex items-center justify-center gap-1">
-        <div class="w-2 h-2 rounded-full border border-outline" /> Empty
+        <div class="w-2 h-2 rounded-full bg-primary-container" /> Full (In Stock)
       </div>
     </div>
     <div class="divide-y divide-outline-variant/20">
-      <div v-for="row in stock" :key="row.sizeKg" class="grid grid-cols-3 gap-xs p-3 items-center hover:bg-surface-container-highest transition-colors">
-        <div class="text-data-secondary text-on-surface pl-2">{{ row.sizeKg }}kg</div>
-        <div class="text-data-primary text-primary-fixed-dim text-center">{{ row.fullCount }}</div>
-        <div class="text-data-primary text-on-surface-variant text-center">{{ row.emptyCount }}</div>
+      <div v-for="row in stock" :key="row.sizeKg" class="grid grid-cols-2 gap-xs p-3 items-center hover:bg-surface-container-highest transition-colors">
+        <div class="text-data-secondary text-on-surface pl-2 font-medium">{{ row.sizeKg }}kg</div>
+        <div class="text-data-primary text-primary-fixed-dim text-center font-bold text-lg">{{ row.fullCount }}</div>
       </div>
     </div>
     <p

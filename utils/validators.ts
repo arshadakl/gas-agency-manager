@@ -112,6 +112,6 @@ export const ReportQuerySchema = z.object({
 export const StockAdjustmentSchema = z.object({
   sizeKg: cylinderSizeSchema,
   fullChange: z.number().int(),
-  emptyChange: z.number().int(),
+  emptyChange: z.number().int().optional().default(0),
   notes: z.string().max(500).optional(),
 })

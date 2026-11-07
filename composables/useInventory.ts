@@ -16,7 +16,7 @@ interface InventoryRow {
 export interface StockAdjustmentInput {
   sizeKg: CylinderSize
   fullChange: number
-  emptyChange: number
+  emptyChange?: number
   notes?: string
 }
 

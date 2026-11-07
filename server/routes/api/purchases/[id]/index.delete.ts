@@ -18,11 +18,11 @@ export default defineEventHandler(async (event) => {
   const items = await db.select().from(purchaseItems).where(eq(purchaseItems.purchaseId, id)).all()
 
   const reversal = items
-    .filter((i) => i.receivedQty > 0 || i.returnedQty > 0 || i.newConnectionQty > 0 || i.emptyNewQty > 0)
+    .filter((i) => i.receivedQty > 0 || i.newConnectionQty > 0)
     .map((i) => ({
       sizeKg: i.sizeKg as CylinderSize,
       fullChange: -(i.receivedQty + i.newConnectionQty),
-      emptyChange: i.returnedQty - i.emptyNewQty,
+      emptyChange: 0,
     }))
   if (reversal.length > 0) {
     await applyStockChanges(db, reversal, 'adjustment', id, 'purchase', user, 'reversal for purchase delete')

@@ -25,17 +25,17 @@ const form = reactive({
 const { showToast } = useToast()
 
 function handleSubmit() {
-  if (form.fullChange === 0 && form.emptyChange === 0) {
-    showToast('Please enter a non-zero change for full or empty cylinders', 'warning')
+  if (form.fullChange === 0) {
+    showToast('Please enter a non-zero change for full cylinders', 'warning')
     return
   }
-  emit('submit', { ...form, notes: form.notes || undefined })
+  emit('submit', { ...form, emptyChange: 0, notes: form.notes || undefined })
 }
 </script>
 
 <template>
   <form class="space-y-3 rounded-xl border border-outline-variant/30 bg-surface-container-low p-4" @submit.prevent="handleSubmit">
-    <p class="text-data-primary text-on-surface">Change Stock</p>
+    <p class="text-data-primary text-on-surface">Adjust Full Cylinder Stock</p>
     <div class="space-y-1">
       <Label>Cylinder Size</Label>
       <Select v-model="form.sizeKg">
@@ -45,15 +45,9 @@ function handleSubmit() {
         </SelectContent>
       </Select>
     </div>
-    <div class="grid grid-cols-2 gap-2">
-      <div class="space-y-1">
-        <Label for="fullChange">Full Cylinders (+ add, - remove)</Label>
-        <Input id="fullChange" v-model.number="form.fullChange" type="number" />
-      </div>
-      <div class="space-y-1">
-        <Label for="emptyChange">Empty Cylinders (+ add, - remove)</Label>
-        <Input id="emptyChange" v-model.number="form.emptyChange" type="number" />
-      </div>
+    <div class="space-y-1">
+      <Label for="fullChange">Full Cylinders (+ add, - remove)</Label>
+      <Input id="fullChange" v-model.number="form.fullChange" type="number" />
     </div>
     <div class="space-y-1">
       <Label for="notes">Reason</Label>

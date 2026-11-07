@@ -11,7 +11,6 @@ definePageMeta({
 const route = useRoute()
 const { user } = useUserSession()
 const { fetchDeliveries, loading } = useDeliveries()
-const { collectEmpties, loading: collectLoading, error: collectError } = useInventory()
 const { fetchCustomers } = useCustomers()
 const { showToast } = useToast()
 
@@ -92,72 +91,6 @@ onMounted(() => {
   if (todayOnly.value) loadToday()
   else load()
 })
-
-// Collect empties panel
-const showCollectPanel = ref(false)
-const collectDate = ref(toISODate(new Date()))
-const collectCustomerSearch = ref('')
-const collectSelectedCustomerId = ref<number | null>(null)
-const collectNotes = ref('')
-const collectQtys = reactive<Record<number, number>>({})
-
-const collectSelectedCustomer = computed(() =>
-  collectSelectedCustomerId.value ? customers.value.find(c => c.id === collectSelectedCustomerId.value) ?? null : null
-)
-
-const filteredCollectCustomers = computed(() => {
-  if (!collectCustomerSearch.value || collectSelectedCustomerId.value) return []
-  const q = collectCustomerSearch.value.toLowerCase()
-  return customers.value
-    .filter(c => c.isActive && c.name.toLowerCase().includes(q))
-    .slice(0, 8)
-})
-
-function selectCollectCustomer(c: CustomerWithBalance) {
-  collectSelectedCustomerId.value = c.id
-  collectCustomerSearch.value = c.name
-}
-
-function clearCollectCustomer() {
-  collectSelectedCustomerId.value = null
-  collectCustomerSearch.value = ''
-}
-
-function resetCollectForm() {
-  collectDate.value = toISODate(new Date())
-  collectCustomerSearch.value = ''
-  collectSelectedCustomerId.value = null
-  collectNotes.value = ''
-  for (const k of Object.keys(collectQtys)) delete collectQtys[Number(k)]
-}
-
-async function handleCollectEmpties() {
-  const items = CYLINDER_SIZES.filter((s) => (collectQtys[s] ?? 0) > 0).map((s) => ({
-    sizeKg: s,
-    qty: collectQtys[s]!,
-  }))
-  if (items.length === 0) {
-    showToast('Add at least one empty cylinder quantity', 'warning')
-    return
-  }
-  if (!collectSelectedCustomer.value) {
-    showToast('Select a customer', 'warning')
-    return
-  }
-  const ok = await collectEmpties({
-    date: collectDate.value,
-    items,
-    notes: collectNotes.value || undefined,
-    customerName: collectSelectedCustomer.value.name,
-  })
-  if (ok) {
-    showToast('Empty cylinders recorded successfully', 'success')
-    showCollectPanel.value = false
-    resetCollectForm()
-  } else {
-    showToast(collectError.value || 'Failed to record empties', 'destructive')
-  }
-}
 </script>
 
 <template>
@@ -165,91 +98,10 @@ async function handleCollectEmpties() {
     <div class="flex items-center justify-between">
       <h1 class="text-headline-md text-on-surface">{{ todayOnly ? "Today's Deliveries" : 'Deliveries' }}</h1>
       <div class="flex gap-2">
-        <Button v-if="canWrite" size="icon" variant="outline" class="rounded-full" title="Collect empty cylinders" @click="showCollectPanel = !showCollectPanel">
-          <Icon name="move_to_inbox" />
-        </Button>
         <Button v-if="canAdd" size="icon" class="rounded-full" as-child>
           <NuxtLink to="/deliveries/new"><Icon name="add" /></NuxtLink>
         </Button>
       </div>
-    </div>
-
-    <!-- Collect Empties Panel -->
-    <div v-if="showCollectPanel" class="rounded-xl border border-outline-variant/30 bg-surface-container-low p-4 flex flex-col gap-sm">
-      <div class="flex items-center justify-between mb-1">
-        <p class="text-data-primary text-on-surface font-medium">Collect Empty Cylinders</p>
-        <button class="text-on-surface-variant" @click="showCollectPanel = false; resetCollectForm()">
-          <Icon name="close" />
-        </button>
-      </div>
-      <input
-        v-model="collectDate"
-        type="date"
-        class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base focus:outline-none focus:border-primary"
-      >
-      <!-- Customer search -->
-      <div v-if="!collectSelectedCustomer" class="relative">
-        <Icon name="search" class="absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm" />
-        <input
-          v-model="collectCustomerSearch"
-          type="text"
-          placeholder="Search customer..."
-          class="w-full pl-9 pr-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
-        >
-        <div v-if="filteredCollectCustomers.length > 0" class="absolute left-0 right-0 top-full mt-1 rounded-lg border border-outline-variant/30 divide-y divide-outline-variant/20 overflow-hidden bg-surface-container-high shadow-lg z-20">
-          <button
-            v-for="c in filteredCollectCustomers"
-            :key="c.id"
-            type="button"
-            class="w-full text-left px-3 py-2.5 hover:bg-surface-container-highest transition-colors"
-            @click="selectCollectCustomer(c)"
-          >
-            <p class="text-data-primary text-on-surface">{{ c.name }}</p>
-            <p v-if="c.contactPerson" class="text-data-tertiary text-on-surface-variant">{{ c.contactPerson }}<span v-if="c.area"> · {{ c.area }}</span></p>
-          </button>
-        </div>
-      </div>
-      <div v-else class="flex items-center justify-between rounded-lg border border-outline-variant/30 bg-surface-container px-3 py-2">
-        <div>
-          <p class="text-data-primary text-on-surface">{{ collectSelectedCustomer.name }}</p>
-          <p v-if="collectSelectedCustomer.contactPerson" class="text-data-tertiary text-on-surface-variant">{{ collectSelectedCustomer.contactPerson }}</p>
-        </div>
-        <button type="button" class="text-on-surface-variant hover:text-on-surface" @click="clearCollectCustomer">
-          <Icon name="close" class="text-sm" />
-        </button>
-      </div>
-      <div class="flex flex-col gap-2">
-        <div v-for="size in CYLINDER_SIZES" :key="size" class="flex items-center justify-between">
-          <span class="text-data-secondary text-on-surface-variant">{{ size }}kg empties</span>
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="w-8 h-8 rounded-full border border-outline-variant/50 text-on-surface flex items-center justify-center hover:bg-surface-variant"
-              @click="collectQtys[size] = Math.max(0, (collectQtys[size] ?? 0) - 1)"
-            >
-              <Icon name="remove" class="text-sm" />
-            </button>
-            <span class="text-data-primary text-on-surface w-6 text-center">{{ collectQtys[size] ?? 0 }}</span>
-            <button
-              type="button"
-              class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:opacity-90"
-              @click="collectQtys[size] = (collectQtys[size] ?? 0) + 1"
-            >
-              <Icon name="add" class="text-sm" />
-            </button>
-          </div>
-        </div>
-      </div>
-      <input
-        v-model="collectNotes"
-        type="text"
-        placeholder="Notes (optional)"
-        class="block w-full px-3 py-2 border border-outline-variant/50 rounded-lg bg-surface-container-highest text-on-surface text-body-base placeholder:text-on-surface-variant focus:outline-none focus:border-primary"
-      >
-      <Button :disabled="collectLoading" @click="handleCollectEmpties">
-        <LoadingSpinner v-if="collectLoading" class="h-4 w-4 mr-2" />
-        Record Empty Cylinders
-      </Button>
     </div>
 
     <!-- Filters -->
